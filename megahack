@@ -33,21 +33,21 @@ local function safeLoad(url)
 end
 
 -- ══════════════════════════════════════
---  HUB DATA  (замени ТВОЯ_ССЫЛКА на реальные pastefy ссылки)
+-- PZIAISiasiaisiasiaisiaisAISIAISIASIAIS
 -- ══════════════════════════════════════
 local HubData = {
     Brookhaven      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/ebalpizdu/refs/heads/main/brookhaven"),
     Evade           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/ebalpizdu/refs/heads/main/evade"),
-    MM2             = safeLoad("https://ТВОЯ_ССЫЛКА/MM2/raw"),
+    MM2             = safeLoad(""),
     MegaHack        = safeLoad("https://raw.githubusercontent.com/shaypishgithub/ebalpizdu/refs/heads/main/megapizda"),
-    Hacks           = safeLoad("https://ТВОЯ_ССЫЛКА/Hacks/raw"),
+    Hacks           = safeLoad("),
     Admins          = safeLoad("https://raw.githubusercontent.com/shaypishgithub/ebalpizdu/refs/heads/main/admin"),
-    Animations      = safeLoad("https://ТВОЯ_ССЫЛКА/Animations/raw"),
-    FE              = safeLoad("https://ТВОЯ_ССЫЛКА/FE/raw"),
-    RagdollEngine   = safeLoad("https://ТВОЯ_ССЫЛКА/RagdollEngine/raw"),
-    NaturalDisaster = safeLoad("https://ТВОЯ_ССЫЛКА/NaturalDisaster/raw"),
-    BloxFruit       = safeLoad("https://ТВОЯ_ССЫЛКА/BloxFruit/raw"),
-    BladeBall       = safeLoad("https://ТВОЯ_ССЫЛКА/BladeBall/raw"),
+    Animations      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/ebalpizdu/refs/heads/main/animation"),
+    FE              = safeLoad(""),
+    RagdollEngine   = safeLoad("https://raw.githubusercontent.com/shaypishgithub/ebalpizdu/refs/heads/main/ragdoll"),
+    NaturalDisaster = safeLoad(""),
+    BloxFruit       = safeLoad(""),
+    BladeBall       = safeLoad(""),
     StealBrainRoot  = safeLoad("https://ТВОЯ_ССЫЛКА/StealBrainRoot/raw"),
     TowerOfHell     = safeLoad("https://ТВОЯ_ССЫЛКА/TowerOfHell/raw"),
     AdoptMe         = safeLoad("https://ТВОЯ_ССЫЛКА/AdoptMe/raw"),
