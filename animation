@@ -1,0 +1,42 @@
+ return {
+        {"AFEM", function()
+            loadstring(game:HttpGet("https://yarhm.mhi.im/scr?channel=afem", false))()
+        end},
+{"VHUB", function()
+            loadstring(game:HttpGet(('https://raw.githubusercontent.com/Veincx5315/Created/VHub/Simple'),true))()
+        end},
+{"Gazer-Ha", function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/Gazer-Ha/Gaze-stuff/refs/heads/main/Gaze%20emote"))()
+        end},
+{"jerk gui", function()
+loadstring(game:HttpGet("https://pastebin.com/raw/hkyuHQ7Y"))();
+     end},
+{"emotes hub(megahack)", function()
+loadstring(game:HttpGet("https://pastefy.app/3s9b11gD/raw", true))()
+     end},
+ {"Suck script idk", function()
+            loadstring(game:HttpGet("https://pastefy.app/hnw7hxuW/raw"))()
+        end},
+ {"Animation ProximaHub", function()
+ loadstring(game:HttpGet('https://raw.githubusercontent.com/TrixAde/Proxima-Hub/main/UniversalDance-AnimGui.lua'))()    
+        end},
+ {"Animations Hub V3", function()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Emerson2-creator/Scripts-Roblox/refs/heads/main/animationsHubV3.lua"))()    
+        end},
+ {"Fe Emote Player", function()
+   loadstring(game:HttpGet("https://pastefy.app/K8FlVSEZ/raw"))()     
+        end},
+ {"Emote Pack  Defy_Exploits", function()
+loadstring(game:HttpGet("https://gist.githubusercontent.com/Defy-cloud/9bf44c7673977bf27ac57ce30235357b/raw/f11a05046d6177a60d0727202ff36209838fc119/Emote%2520Pack%2520FixedV5.6.lua"))()  
+        end},
+ {"Bac0nHck ChangeRigType", function()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Bac0nHck/Scripts/refs/heads/main/ChangeRigType"))()
+        end},
+ {"animation v2 Gazer", function()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Gazer-Ha/Gaze-stuff/refs/heads/main/Silly%20emote"))()   
+        end},
+{"jerk r6/r15", function()
+loadstring(game:HttpGet("https://pastefy.app/wa3v2Vgm/raw"))()
+loadstring(game:HttpGet("https://pastefy.app/YZoglOyJ/raw"))()
+ end}
+    }
