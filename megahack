@@ -100,7 +100,7 @@ end
 
 local function countScripts()
     local success, hubData = pcall(function()
-        return loadstring(game:HttpGet("https://pastefy.app/htHOXCYh/raw", true))()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/shaypishgithub/ebalpizdu/refs/heads/main/base", true))()
     end)
     if success and hubData then
         local count = 0
@@ -521,7 +521,7 @@ end
 local function searchScriptsByMegahack(query)
     local results = {}
     local success, hubData = pcall(function()
-        return loadstring(game:HttpGet("https://pastefy.app/htHOXCYh/raw", true))()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/shaypishgithub/ebalpizdu/refs/heads/main/base", true))()
     end)
     if success and hubData then
         for categoryName, hacks in pairs(hubData) do
