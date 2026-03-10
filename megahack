@@ -37,7 +37,7 @@ end
 -- ══════════════════════════════════════
 local HubData = {
     Brookhaven      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/ebalpizdu/refs/heads/main/brookhaven"),
-    Evade           = safeLoad("https://ТВОЯ_ССЫЛКА/Evade/raw"),
+    Evade           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/ebalpizdu/refs/heads/main/evade"),
     MM2             = safeLoad("https://ТВОЯ_ССЫЛКА/MM2/raw"),
     MegaHack        = safeLoad("https://ТВОЯ_ССЫЛКА/MegaHack/raw"),
     Hacks           = safeLoad("https://ТВОЯ_ССЫЛКА/Hacks/raw"),
