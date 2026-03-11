@@ -1,6 +1,5 @@
 -- RagdollEngine
 return {
-    RagdollEngine = {
         {"System Broken", function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/H20CalibreYT/SystemBroken/main/script"))()
         end},
@@ -19,5 +18,4 @@ return {
         {"Crypthonic", function()
             loadstring(game:HttpGet('https://raw.githubusercontent.com/martinelcrac/cryptonichub/main/Ragdollengine.lua'))()
         end}
-    }
 }
