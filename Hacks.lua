@@ -1,5 +1,5 @@
 return {
-    Hacks = {
+
         {"coolkid", function()
             loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-coolkid-gui-15453"))()
         end},
@@ -13,4 +13,4 @@ return {
             loadstring(game:HttpGet("https://pastefy.app/Er0qginF/raw"))()
         end}
     }
-}
+
