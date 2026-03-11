@@ -51,7 +51,7 @@ local HubData = {
     StealBrainRoot  = safeLoad("https://ТВОЯ_ССЫЛКА/StealBrainRoot/raw"),
     TowerOfHell     = safeLoad("https://ТВОЯ_ССЫЛКА/TowerOfHell/raw"),
     AdoptMe         = safeLoad("https://ТВОЯ_ССЫЛКА/AdoptMe/raw"),
-    GrowGarden      = safeLoad("https://ТВОЯ_ССЫЛКА/GrowGarden/raw"),
+    GrowGarden      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/ebalpizdu/refs/heads/main/GrowGarden.lua"),
     Night           = safeLoad("https://ТВОЯ_ССЫЛКА/Night/raw"),
     Weird           = safeLoad("https://ТВОЯ_ССЫЛКА/Weird/raw"),
 }
