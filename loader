@@ -1055,8 +1055,8 @@ local categories = {
 local categoryOrder = {
     "Home", "Settings", "All Scripts", "MegaHack", "Hacks", "Admins", "Animations", "FE",
     "Steal Brain Root", "Blade Ball", "Ragdoll Engine", "Natural Disaster",
-    "MM2", "Evade", "Blox Fruit", "Brookhaven", "Adopt Me", "Tower of Hell",
-    "Night99", "GrowGarden", "Weird Gun Game", "Duels MVS"
+    "MM2","Duels MVS", "Evade", "Blox Fruit", "Brookhaven", "Adopt Me", "Tower of Hell",
+    "Night99", "GrowGarden", "Weird Gun Game"
 }
 
 for _, categoryName in ipairs(categoryOrder) do
