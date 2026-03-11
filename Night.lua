@@ -1,5 +1,4 @@
 return {
-    Night = {
         {"H4xScripts Loader", function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/H4xScripts/Loader/refs/heads/main/loader.lua", true))()
         end},
@@ -28,4 +27,4 @@ return {
             loadstring(game:HttpGet("https://raw.githubusercontent.com/VapeVoidware/VW-Add/main/nightsintheforest.lua", true))()
         end}
     }
-}
+
