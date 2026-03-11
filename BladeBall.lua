@@ -1,5 +1,4 @@
 return {
-    BladeBall = {
         {"Blade Ball (megahack)", function()
             loadstring(game:HttpGet("https://pastefy.app/Qp3k1Ut9/raw"))()
         end},
@@ -21,5 +20,4 @@ return {
         {"Argon", function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/luwriy/jwhub/refs/heads/main/loader"))()
         end}
-    }
 }
