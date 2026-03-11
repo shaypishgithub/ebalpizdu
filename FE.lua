@@ -1,5 +1,4 @@
 return {
-    FE = {
         {"Snail script V2", function()
             loadstring(game:HttpGet("https://pastefy.app/WrxZLfSa/raw", true))()
         end},
@@ -141,5 +140,4 @@ return {
         {"Project Evo FE", function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/ProjectEvo/ProjectEvo/main/Main", true))()
         end}
-    }
 }
