@@ -1,0 +1,79 @@
+return {
+    Brookhaven = {
+        {"Brookhaven (Megahack)", function()
+            loadstring(game:HttpGet('https://pastefy.app/9RvQFnlm/raw'))()
+        end},
+        {"TheDarkone", function()
+            loadstring(game:HttpGet('https://raw.githubusercontent.com/TheDarkoneMarcillisePex/Other-Scripts/main/Brook%20Haven%20Gui'))()
+        end},
+        {"Sander XY", function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/kigredns/testUIDK/refs/heads/main/panel.lua"))()
+        end},
+        {"FE Sounds", function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/Okisli/Owner-Hub/refs/heads/main/OwnerHub.lua"))()
+        end},
+        {"Zynora", function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/Jaozin77/Zynora-Hub-Brookhaven.Rp-/refs/heads/main/Obfuscate"))()
+        end},
+        {"Soluna", function()
+            loadstring(game:HttpGet("https://soluna-script.vercel.app/brookhaven.lua", true))()
+        end},
+        {"FHub", function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/OpenSourceEngine/Script/refs/heads/main/Brookhaven.lua"))()
+        end},
+        {"Orbit Icehub", function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/Waza80/scripts-new/main/IceHubBrookhaven.lua"))()
+        end},
+        {"Salvatore", function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/RFR-R1CH4RD/Loader/main/Salvatore.lua"))()
+        end},
+        {"SysAdmin", function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/Cat558-uz/IntTeste/refs/heads/main/N9999"))()
+        end},
+        {"mangohub", function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/rogelioajax/lua/main/MangoHub", true))()
+        end},
+        {"Rochips", function()
+            loadstring(game:HttpGet("https://pastebin.com/raw/1bfpdt2L"))()
+        end},
+        {"SP Hub", function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/as6cd0/SP_Hub/refs/heads/main/Brookhaven"))()
+        end},
+        {"HYZOR HUB", function()
+            loadstring(game:HttpGet('https://raw.githubusercontent.com/Hyz0r-Dev404/Hyz0/refs/heads/main/Hyz0r-Hub.lua'))()
+        end},
+        {"YHUB", function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/Luarmor123/community-Y-HUB/refs/heads/main/YHUB%20ENGLISH.lua"))()
+        end},
+        {"Station", function()
+            loadstring(game:HttpGet("https://pastebin.com/raw/QMVVEMTn"))()
+        end},
+        {"SpaceHub", function()
+            loadstring(game:HttpGet('https://raw.githubusercontent.com/woopstwq/ssswool/main/SpaceHub.lua'))()
+        end},
+        {"HubV1Brook", function()
+            loadstring(game:HttpGet("https://pastebin.com/raw/AHg2NLqG"))()
+        end},
+        {"PormansBrookhaven", function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/pormansutility/PormansBrookhaven/main/BrookhavenV1Keyless"))()
+        end},
+        {"Mohamed", function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/youssefhesham542/Y2-Hub/main/STR%20HUB", true))()
+        end},
+        {"Cartola Hub", function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/Davi999z/Cartola-Hub/refs/heads/main/Brookhaven", true))()
+        end},
+        {"Stelarium XS", function()
+            loadstring("\108\111\97\100\115\116\114\105\110\103\40\103\97\109\101\58\72\116\116\112\71\101\116\40\34\104\116\116\112\115\58\47\47\115\99\114\105\112\116\115\98\105\110\115\46\118\101\114\99\101\108\46\97\112\112\47\114\97\119\47\53\107\51\79\106\109\113\84\110\122\120\113\79\115\70\51\106\119\103\82\34\41\41\40\41")()
+        end},
+        {"RP Troll Script", function()
+            loadstring(game:HttpGet("https://pastebin.com/raw/a4tz4u8C"))()
+        end},
+        {"MoonUIv13", function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/IlikeyocutgHAH/MoonUI-v13-102-SCRIPTS/main/MoonUI%20v13.lua"))()
+        end},
+        {"SHNMAX HUB", function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/joelmadasilvademorais-glitch/Fffgy/refs/heads/main/SHNMAX.lua"))()
+        end}
+    }
+}
