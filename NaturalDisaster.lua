@@ -1,5 +1,5 @@
 return {
-    NaturalDisaster = {
+
         {"Garfield Hub", function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/2dgeneralspam1/scripts-and-stuff/master/scripts/garfield%20hub", true))()
         end},
@@ -22,4 +22,4 @@ return {
             loadstring(game:HttpGet('https://raw.githubusercontent.com/zeroidxx/axe-hub/refs/heads/main/axehub%20nds.txt'))()
         end}
     }
-}
+
