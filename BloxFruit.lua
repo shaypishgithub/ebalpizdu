@@ -1,5 +1,4 @@
 return {
-    BloxFruit = {
         {"Blox Fruit (megahack)", function()
             loadstring(game:HttpGet("https://pastefy.app/TTggTpix/raw"))()
         end},
@@ -22,4 +21,3 @@ return {
             loadstring(game:HttpGet("https://raw.githubusercontent.com/Anniecreate86/BloxFruits/refs/heads/main/BetaHub-BF"))()
         end}
     }
-}
