@@ -1,5 +1,4 @@
 return {
-    MM2 = {
         {"SolixHub - 90% work", function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/debunked69/Solixreworkkeysystem/refs/heads/main/solix%20new%20keyui.lua"))()
         end},
@@ -138,5 +137,4 @@ return {
         {"Solix", function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/debunked69/Solixreworkkeysystem/refs/heads/main/solix%20new%20keyui.lua"))()
         end}
-    }
 }
