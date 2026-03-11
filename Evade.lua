@@ -1,5 +1,5 @@
 return {
-    Evade = {
+
         {"Evade pc (megahack)", function()
             loadstring(game:HttpGet("https://pastefy.app/pYvac3QB/raw"))()
         end},
@@ -136,4 +136,4 @@ return {
             loadstring(game:HttpGet("https://rscripts.net/raw/evade-by-indrahub-HCUv"))()
         end}
     }
-}
+
