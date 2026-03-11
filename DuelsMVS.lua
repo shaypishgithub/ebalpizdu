@@ -1,5 +1,5 @@
 return {
-    DuelsMVS = {
+
         {"decentholograms MVS", function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/decentholograms/Roblox-Scripts/refs/heads/main/Scripts/MvsS.lua", true))()
         end},
@@ -28,4 +28,4 @@ return {
             loadstring(game:HttpGet("https://raw.githubusercontent.com/alan11ago/Hub/refs/heads/main/ImpHub.lua"))()
         end}
     }
-}
+
