@@ -153,11 +153,11 @@ local function Stroke(thickness, color, transp, parent)
     return New("UIStroke", {Thickness = thickness, Color = color, Transparency = transp or 0}, parent)
 end
 
-local function Gradient(c0, c1, rotation, parent)
-    local g = New("UIGradient", {
-        Color    = ColorSequence.new(c0, c1),
-        Rotation = rotation or 0,
-    }, parent)
+local function Gradient(colorSeq, rotation, parent)
+    local g = Instance.new("UIGradient")
+    g.Color    = colorSeq
+    g.Rotation = rotation or 0
+    g.Parent   = parent
     return g
 end
 
@@ -265,14 +265,11 @@ Corner(14, mainFrame)
 local mainStroke = Stroke(1.5, Theme.accent, 0.3, mainFrame)
 
 -- Background gradient
-Gradient(
-    ColorSequence.new({
-        ColorSequenceKeypoint.new(0,   Color3.fromRGB(12, 10, 22)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(8,  14, 20)),
-        ColorSequenceKeypoint.new(1,   Color3.fromRGB(10, 10, 18)),
-    }),
-    135, mainFrame
-)
+Gradient(ColorSequence.new({
+    ColorSequenceKeypoint.new(0,   Color3.fromRGB(12, 10, 22)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(8,  14, 20)),
+    ColorSequenceKeypoint.new(1,   Color3.fromRGB(10, 10, 18)),
+}), 135, mainFrame)
 
 -- ══ HEADER ══════════════════════════════
 local header = New("Frame", {
@@ -298,13 +295,10 @@ New("Frame", {
 })
 
 -- header gradient
-Gradient(
-    ColorSequence.new({
-        ColorSequenceKeypoint.new(0,   Color3.fromRGB(15, 12, 28)),
-        ColorSequenceKeypoint.new(1,   Color3.fromRGB(10, 16, 24)),
-    }),
-    90, header
-)
+Gradient(ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 12, 28)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 16, 24)),
+}), 90, header)
 
 -- divider line under header
 local headerLine = New("Frame", {
@@ -695,7 +689,6 @@ local function sectionHeader(text)
         BackgroundTransparency = 1,
         Size = UDim2.new(0, 160, 1, 0),
         TextXAlignment = Enum.TextXAlignment.Left,
-        LetterSpacing = 3,
         ZIndex = 5,
         Parent = row,
     })
@@ -954,14 +947,6 @@ local function colorPickerPanel()
         {label="BRITE", y=90,  val=Theme.accentVal},
     }
 
-    local function rebuildHueTrack(track)
-        local colors = {}
-        for i = 0, 6 do
-            colors[#colors+1] = ColorSequenceKeypoint.new(i/6, Color3.fromHSV(i/6, 1, 1))
-        end
-        New("UIGradient", {Color = ColorSequence.new(colors), Rotation = 0}, track)
-    end
-
     for i, s in ipairs(sliderData) do
         New("TextLabel", {
             Text = s.label,
@@ -985,12 +970,14 @@ local function colorPickerPanel()
         })
         Corner(4, track)
 
-        if i == 1 then rebuildHueTrack(track)
+        if i == 1 then
+            local hueColors = {}
+            for hi = 0, 6 do
+                hueColors[hi+1] = ColorSequenceKeypoint.new(hi/6, Color3.fromHSV(hi/6, 1, 1))
+            end
+            Gradient(ColorSequence.new(hueColors), 0, track)
         else
-            New("UIGradient", {
-                Color = ColorSequence.new(Theme.bg3, Theme.accent),
-                Rotation = 0,
-            }, track)
+            Gradient(ColorSequence.new(Theme.bg3, Theme.accent), 0, track)
         end
 
         local knob = New("Frame", {
@@ -1074,7 +1061,7 @@ local function presetColorRow(label, colors)
         Corner(6, dot)
         Stroke(1, Theme.bg0, 0.3, dot)
         dot.MouseButton1Click:Connect(function()
-            local h, s, v = Color3.toHSV(c.color)
+            local h, s, v = c.color:ToHSV()
             updateAccent(h, s, v)
             applyAccentToAll()
             notify("THEME", "Accent: " .. c.name, 2, Theme.accent)
@@ -1400,6 +1387,7 @@ local sideEntries = {
 }
 
 local firstBtn = nil
+local firstAction = nil
 for _, e in ipairs(sideEntries) do
     if e.label:find("─") then
         -- separator
@@ -1413,7 +1401,10 @@ for _, e in ipairs(sideEntries) do
         })
     else
         local b = createSideBtn(e.label, e.icon, e.action)
-        if not firstBtn then firstBtn = b end
+        if not firstBtn then
+            firstBtn = b
+            firstAction = e.action
+        end
     end
 end
 
@@ -1484,8 +1475,10 @@ tween(mainFrame, {Size = UDim2.new(0, WIN_W, 0, WIN_H), BackgroundTransparency =
 --  INIT
 -- ══════════════════════════════════════
 task.delay(0.1, function()
-    if firstBtn then
-        firstBtn.MouseButton1Click:Fire()
+    if firstBtn and firstAction then
+        activeSideBtn = firstBtn
+        firstBtn._setActive(true)
+        firstAction()
     else
         showHome()
     end
