@@ -1,0 +1,1495 @@
+-- ══════════════════════════════════════════════════════════════
+--  MEGAHACK V2  ·  Glassmorphism Neon  ·  by shayfish
+-- ══════════════════════════════════════════════════════════════
+
+local TweenService       = game:GetService("TweenService")
+local UserInputService   = game:GetService("UserInputService")
+local Players            = game:GetService("Players")
+local CoreGui            = game:GetService("CoreGui")
+local RunService         = game:GetService("RunService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local TeleportService    = game:GetService("TeleportService")
+local HttpService        = game:GetService("HttpService")
+
+local player    = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui", 5)
+if not playerGui then warn("[MH] PlayerGui not found"); return end
+
+local isMobile   = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+local platformName = isMobile and "Mobile" or "PC"
+
+-- ══════════════════════════════════════
+--  THEME SYSTEM
+-- ══════════════════════════════════════
+local Theme = {
+    -- Base palette
+    bg0         = Color3.fromRGB(8,   8,  14),   -- deepest bg
+    bg1         = Color3.fromRGB(14,  14,  22),   -- panel bg
+    bg2         = Color3.fromRGB(20,  20,  32),   -- card bg
+    bg3         = Color3.fromRGB(28,  28,  44),   -- hover bg
+    border      = Color3.fromRGB(50,  50,  80),   -- subtle border
+    borderGlow  = Color3.fromRGB(0,  200, 255),   -- accent border (dynamic)
+
+    -- Text
+    textPrimary   = Color3.fromRGB(230, 230, 255),
+    textSecondary = Color3.fromRGB(140, 140, 180),
+    textMuted     = Color3.fromRGB(80,  80, 110),
+
+    -- Accent (dynamic – changes with color picker)
+    accent        = Color3.fromRGB(0, 200, 255),
+    accentDim     = Color3.fromRGB(0, 100, 130),
+    accentGlow    = Color3.fromRGB(0, 160, 200),
+
+    -- Status
+    success = Color3.fromRGB(0,  220, 120),
+    error   = Color3.fromRGB(255, 70,  70),
+    warn    = Color3.fromRGB(255, 190,  0),
+
+    -- Misc
+    transparency  = 0.12,
+    accentHue     = 0.54,   -- 0-1
+    accentSat     = 1,
+    accentVal     = 1,
+}
+
+local function updateAccent(h, s, v)
+    Theme.accentHue = h; Theme.accentSat = s; Theme.accentVal = v
+    Theme.accent     = Color3.fromHSV(h, s, v)
+    Theme.accentDim  = Color3.fromHSV(h, s * 0.9, v * 0.45)
+    Theme.accentGlow = Color3.fromHSV(h, s * 0.8, v * 0.75)
+    Theme.borderGlow = Theme.accent
+end
+
+-- ══════════════════════════════════════
+--  SAFE LOAD
+-- ══════════════════════════════════════
+local function safeLoad(url)
+    local ok, res = pcall(function()
+        return loadstring(game:HttpGet(url, true))()
+    end)
+    if ok and res then return res end
+    warn("[MH] failed to load: " .. tostring(url))
+    return {}
+end
+
+-- ══════════════════════════════════════
+--  HUB DATA
+-- ══════════════════════════════════════
+local HubData = {
+    Brookhaven      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/brookhaven"),
+    Evade           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/evade"),
+    MM2             = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/MM2.lua"),
+    MegaHack        = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/megapizda"),
+    Hacks           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Hacks.lua"),
+    Admins          = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/admin"),
+    Animations      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/animation"),
+    FE              = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/FE.lua"),
+    RagdollEngine   = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/ragdoll"),
+    NaturalDisaster = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/NaturalDisaster.lua"),
+    BloxFruit       = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/BloxFruit.lua"),
+    BladeBall       = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/BladeBall.lua"),
+    StealBrainRoot  = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/StealBrainRoot.lua"),
+    TowerOfHell     = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/tower.lua"),
+    AdoptMe         = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/adoptme"),
+    GrowGarden      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/GrowGarden.lua"),
+    Night           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Night.lua"),
+    Weird           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Weird.lua"),
+    DuelsMVS        = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/DuelsMVS.lua"),
+    ViolenceDistrict= safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/ViolenceDistrict.lua"),
+}
+
+local function countScripts()
+    local n = 0
+    for _, cat in pairs(HubData) do
+        if type(cat) == "table" then n = n + #cat end
+    end
+    return n
+end
+
+-- ══════════════════════════════════════
+--  SCREEN GUI SETUP
+-- ══════════════════════════════════════
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name          = "MegaHackV2"
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.IgnoreGuiInset = false
+screenGui.ResetOnSpawn  = false
+
+local function Hide_UI(gui)
+    local ok = pcall(function()
+        if get_hidden_gui then gui.Parent = get_hidden_gui()
+        elseif gethui then gui.Parent = gethui()
+        else gui.Parent = CoreGui end
+    end)
+    if not ok then gui.Parent = CoreGui end
+end
+Hide_UI(screenGui)
+
+-- ══════════════════════════════════════
+--  HELPER: TWEEN SHORTCUT
+-- ══════════════════════════════════════
+local function tween(obj, props, t, style, dir)
+    t     = t     or 0.25
+    style = style or Enum.EasingStyle.Quart
+    dir   = dir   or Enum.EasingDirection.Out
+    TweenService:Create(obj, TweenInfo.new(t, style, dir), props):Play()
+end
+
+-- ══════════════════════════════════════
+--  HELPER: MAKE INSTANCE
+-- ══════════════════════════════════════
+local function New(cls, props, parent)
+    local inst = Instance.new(cls)
+    for k, v in pairs(props) do inst[k] = v end
+    if parent then inst.Parent = parent end
+    return inst
+end
+
+local function Corner(r, parent)
+    return New("UICorner", {CornerRadius = UDim.new(0, r)}, parent)
+end
+
+local function Stroke(thickness, color, transp, parent)
+    return New("UIStroke", {Thickness = thickness, Color = color, Transparency = transp or 0}, parent)
+end
+
+local function Gradient(c0, c1, rotation, parent)
+    local g = New("UIGradient", {
+        Color    = ColorSequence.new(c0, c1),
+        Rotation = rotation or 0,
+    }, parent)
+    return g
+end
+
+-- ══════════════════════════════════════
+--  NOTIFICATION SYSTEM (redesigned)
+-- ══════════════════════════════════════
+local notifQueue = {}
+local notifActive = false
+
+local function processNotifQueue()
+    if notifActive or #notifQueue == 0 then return end
+    notifActive = true
+    local item = table.remove(notifQueue, 1)
+
+    local ng = New("ScreenGui", {Name="MH_Notif", Parent=playerGui, ResetOnSpawn=false})
+
+    local W, H = 280, 64
+    local frame = New("Frame", {
+        Size = UDim2.new(0, W, 0, H),
+        Position = UDim2.new(1, -(W+16), 1, -(H+16)),
+        BackgroundColor3 = Theme.bg1,
+        BackgroundTransparency = 0,
+        BorderSizePixel = 0,
+        Parent = ng,
+    })
+    Corner(10, frame)
+
+    -- left accent bar
+    local bar = New("Frame", {
+        Size = UDim2.new(0, 3, 1, -12),
+        Position = UDim2.new(0, 6, 0, 6),
+        BackgroundColor3 = item.color or Theme.accent,
+        BorderSizePixel = 0,
+        Parent = frame,
+    })
+    Corner(3, bar)
+
+    -- glow stroke
+    local st = Stroke(1, item.color or Theme.accent, 0.4, frame)
+
+    -- title
+    local title = New("TextLabel", {
+        Text = item.title,
+        Font = Enum.Font.GothamBold,
+        TextSize = 13,
+        TextColor3 = Theme.textPrimary,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -24, 0, 20),
+        Position = UDim2.new(0, 16, 0, 8),
+        Parent = frame,
+    })
+
+    -- subtitle
+    New("TextLabel", {
+        Text = item.sub,
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = Theme.textSecondary,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -24, 0, 18),
+        Position = UDim2.new(0, 16, 0, 28),
+        Parent = frame,
+    })
+
+    -- slide-in
+    frame.Position = UDim2.new(1, 16, 1, -(H+16))
+    tween(frame, {Position = UDim2.new(1, -(W+16), 1, -(H+16))}, 0.35)
+
+    task.delay(item.dur or 3, function()
+        tween(frame, {Position = UDim2.new(1, 16, 1, -(H+16))}, 0.3)
+        task.delay(0.35, function()
+            ng:Destroy()
+            notifActive = false
+            processNotifQueue()
+        end)
+    end)
+end
+
+local function notify(title, sub, dur, color)
+    table.insert(notifQueue, {title=title, sub=sub, dur=dur, color=color})
+    processNotifQueue()
+end
+
+-- ══════════════════════════════════════
+--  MAIN WINDOW  (560 × 380)
+-- ══════════════════════════════════════
+local WIN_W, WIN_H = 560, 380
+local SIDEBAR_W    = 120
+local HEADER_H     = 42
+
+local mainFrame = New("Frame", {
+    Name                 = "MainFrame",
+    Size                 = UDim2.new(0, WIN_W, 0, WIN_H),
+    Position             = UDim2.new(0.5, -WIN_W/2, 0.5, -WIN_H/2),
+    AnchorPoint          = Vector2.new(0, 0),
+    BackgroundColor3     = Theme.bg0,
+    BackgroundTransparency = Theme.transparency,
+    BorderSizePixel      = 0,
+    ZIndex               = 2,
+    Parent               = screenGui,
+})
+Corner(14, mainFrame)
+local mainStroke = Stroke(1.5, Theme.accent, 0.3, mainFrame)
+
+-- Background gradient
+Gradient(
+    ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   Color3.fromRGB(12, 10, 22)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(8,  14, 20)),
+        ColorSequenceKeypoint.new(1,   Color3.fromRGB(10, 10, 18)),
+    }),
+    135, mainFrame
+)
+
+-- ══ HEADER ══════════════════════════════
+local header = New("Frame", {
+    Name             = "Header",
+    Size             = UDim2.new(1, 0, 0, HEADER_H),
+    BackgroundColor3 = Theme.bg1,
+    BackgroundTransparency = 0.05,
+    BorderSizePixel  = 0,
+    ZIndex           = 4,
+    Parent           = mainFrame,
+})
+Corner(14, header)
+
+-- fix bottom corners of header
+New("Frame", {
+    Size = UDim2.new(1, 0, 0, 14),
+    Position = UDim2.new(0, 0, 1, -14),
+    BackgroundColor3 = Theme.bg1,
+    BackgroundTransparency = 0.05,
+    BorderSizePixel = 0,
+    ZIndex = 3,
+    Parent = header,
+})
+
+-- header gradient
+Gradient(
+    ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   Color3.fromRGB(15, 12, 28)),
+        ColorSequenceKeypoint.new(1,   Color3.fromRGB(10, 16, 24)),
+    }),
+    90, header
+)
+
+-- divider line under header
+local headerLine = New("Frame", {
+    Size = UDim2.new(1, -20, 0, 1),
+    Position = UDim2.new(0, 10, 1, -1),
+    BackgroundColor3 = Theme.accent,
+    BackgroundTransparency = 0.5,
+    BorderSizePixel = 0,
+    ZIndex = 5,
+    Parent = header,
+})
+
+-- logo dot
+local logoDot = New("Frame", {
+    Size = UDim2.new(0, 8, 0, 8),
+    Position = UDim2.new(0, 12, 0.5, -4),
+    BackgroundColor3 = Theme.accent,
+    BorderSizePixel = 0,
+    ZIndex = 5,
+    Parent = header,
+})
+Corner(4, logoDot)
+
+-- logo text
+local logoText = New("TextLabel", {
+    Text = "MEGA",
+    Font = Enum.Font.GothamBlack,
+    TextSize = 16,
+    TextColor3 = Theme.textPrimary,
+    BackgroundTransparency = 1,
+    Size = UDim2.new(0, 50, 1, 0),
+    Position = UDim2.new(0, 26, 0, 0),
+    ZIndex = 5,
+    Parent = header,
+})
+local logoAccent = New("TextLabel", {
+    Text = "HACK",
+    Font = Enum.Font.GothamBlack,
+    TextSize = 16,
+    TextColor3 = Theme.accent,
+    BackgroundTransparency = 1,
+    Size = UDim2.new(0, 50, 1, 0),
+    Position = UDim2.new(0, 70, 0, 0),
+    ZIndex = 5,
+    Parent = header,
+})
+local versionLabel = New("TextLabel", {
+    Text = "V2",
+    Font = Enum.Font.Gotham,
+    TextSize = 10,
+    TextColor3 = Theme.textMuted,
+    BackgroundTransparency = 1,
+    Size = UDim2.new(0, 20, 0, 14),
+    Position = UDim2.new(0, 118, 0, 8),
+    ZIndex = 5,
+    Parent = header,
+})
+
+-- game name in header center
+local gameNameHeader = New("TextLabel", {
+    Text = "Loading...",
+    Font = Enum.Font.Gotham,
+    TextSize = 11,
+    TextColor3 = Theme.textSecondary,
+    BackgroundTransparency = 1,
+    Size = UDim2.new(0, 200, 1, 0),
+    Position = UDim2.new(0.5, -100, 0, 0),
+    TextXAlignment = Enum.TextXAlignment.Center,
+    ZIndex = 5,
+    Parent = header,
+})
+pcall(function()
+    gameNameHeader.Text = MarketplaceService:GetProductInfo(game.PlaceId).Name
+end)
+
+-- scripts count badge
+local scriptsBadge = New("Frame", {
+    Size = UDim2.new(0, 70, 0, 20),
+    Position = UDim2.new(1, -108, 0.5, -10),
+    BackgroundColor3 = Theme.accentDim,
+    BackgroundTransparency = 0.3,
+    BorderSizePixel = 0,
+    ZIndex = 5,
+    Parent = header,
+})
+Corner(10, scriptsBadge)
+New("TextLabel", {
+    Text = countScripts() .. " scripts",
+    Font = Enum.Font.GothamBold,
+    TextSize = 10,
+    TextColor3 = Theme.accent,
+    BackgroundTransparency = 1,
+    Size = UDim2.new(1, 0, 1, 0),
+    TextXAlignment = Enum.TextXAlignment.Center,
+    ZIndex = 6,
+    Parent = scriptsBadge,
+})
+
+-- close button
+local closeBtn = New("ImageButton", {
+    Size = UDim2.new(0, 26, 0, 26),
+    Position = UDim2.new(1, -36, 0.5, -13),
+    BackgroundColor3 = Color3.fromRGB(200, 50, 50),
+    BackgroundTransparency = 0.4,
+    Image = "rbxassetid://14397748477",
+    ImageColor3 = Color3.fromRGB(255, 255, 255),
+    ZIndex = 6,
+    Parent = header,
+})
+Corner(6, closeBtn)
+
+closeBtn.MouseEnter:Connect(function() tween(closeBtn, {BackgroundTransparency = 0.1}) end)
+closeBtn.MouseLeave:Connect(function() tween(closeBtn, {BackgroundTransparency = 0.4}) end)
+
+-- minimize button
+local minimizeBtn = New("ImageButton", {
+    Size = UDim2.new(0, 26, 0, 26),
+    Position = UDim2.new(1, -66, 0.5, -13),
+    BackgroundColor3 = Theme.bg3,
+    BackgroundTransparency = 0.3,
+    Image = "rbxassetid://7072706663",
+    ImageColor3 = Theme.textSecondary,
+    ZIndex = 6,
+    Parent = header,
+})
+Corner(6, minimizeBtn)
+minimizeBtn.MouseEnter:Connect(function() tween(minimizeBtn, {BackgroundTransparency = 0.1}) end)
+minimizeBtn.MouseLeave:Connect(function() tween(minimizeBtn, {BackgroundTransparency = 0.3}) end)
+
+-- ══ SIDEBAR ═════════════════════════════
+local sidebar = New("Frame", {
+    Name             = "Sidebar",
+    Size             = UDim2.new(0, SIDEBAR_W, 1, -HEADER_H),
+    Position         = UDim2.new(0, 0, 0, HEADER_H),
+    BackgroundColor3 = Theme.bg1,
+    BackgroundTransparency = 0.1,
+    BorderSizePixel  = 0,
+    ZIndex           = 3,
+    Parent           = mainFrame,
+})
+Corner(14, sidebar)
+-- fix right corners
+New("Frame", {
+    Size = UDim2.new(0, 14, 1, 0),
+    Position = UDim2.new(1, -14, 0, 0),
+    BackgroundColor3 = Theme.bg1,
+    BackgroundTransparency = 0.1,
+    BorderSizePixel = 0,
+    ZIndex = 2,
+    Parent = sidebar,
+})
+-- fix top corners (sits under header)
+New("Frame", {
+    Size = UDim2.new(1, 0, 0, 14),
+    Position = UDim2.new(0, 0, 0, 0),
+    BackgroundColor3 = Theme.bg1,
+    BackgroundTransparency = 0.1,
+    BorderSizePixel = 0,
+    ZIndex = 2,
+    Parent = sidebar,
+})
+
+-- vertical divider
+New("Frame", {
+    Size = UDim2.new(0, 1, 1, -20),
+    Position = UDim2.new(1, -1, 0, 10),
+    BackgroundColor3 = Theme.border,
+    BackgroundTransparency = 0.4,
+    BorderSizePixel = 0,
+    ZIndex = 4,
+    Parent = sidebar,
+})
+
+local sideScroll = New("ScrollingFrame", {
+    Size = UDim2.new(1, 0, 1, -8),
+    Position = UDim2.new(0, 0, 0, 8),
+    BackgroundTransparency = 1,
+    ScrollBarThickness = 2,
+    ScrollBarImageColor3 = Theme.accent,
+    CanvasSize = UDim2.new(0, 0, 0, 0),
+    ZIndex = 3,
+    Parent = sidebar,
+})
+local sideLayout = New("UIListLayout", {
+    Padding = UDim.new(0, 4),
+    SortOrder = Enum.SortOrder.LayoutOrder,
+    Parent = sideScroll,
+})
+New("UIPadding", {PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6), Parent = sideScroll})
+sideLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    sideScroll.CanvasSize = UDim2.new(0, 0, 0, sideLayout.AbsoluteContentSize.Y + 10)
+end)
+
+-- ══ CONTENT AREA ════════════════════════
+local contentFrame = New("Frame", {
+    Name             = "Content",
+    Size             = UDim2.new(1, -SIDEBAR_W-8, 1, -HEADER_H-8),
+    Position         = UDim2.new(0, SIDEBAR_W+4, 0, HEADER_H+4),
+    BackgroundColor3 = Theme.bg2,
+    BackgroundTransparency = 0.15,
+    BorderSizePixel  = 0,
+    ZIndex           = 3,
+    Parent           = mainFrame,
+})
+Corner(10, contentFrame)
+Stroke(1, Theme.border, 0.6, contentFrame)
+
+local contentScroll = New("ScrollingFrame", {
+    Size = UDim2.new(1, 0, 1, 0),
+    BackgroundTransparency = 1,
+    ScrollBarThickness = 3,
+    ScrollBarImageColor3 = Theme.accent,
+    CanvasSize = UDim2.new(0, 0, 0, 0),
+    ZIndex = 3,
+    Parent = contentFrame,
+})
+local contentLayout = New("UIListLayout", {
+    Padding = UDim.new(0, 6),
+    SortOrder = Enum.SortOrder.LayoutOrder,
+    Parent = contentScroll,
+})
+New("UIPadding", {
+    PaddingTop    = UDim.new(0, 8),
+    PaddingLeft   = UDim.new(0, 8),
+    PaddingRight  = UDim.new(0, 10),
+    PaddingBottom = UDim.new(0, 8),
+    Parent = contentScroll,
+})
+contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    contentScroll.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 16)
+end)
+
+-- ══════════════════════════════════════
+--  REOPEN BUTTON (floating)
+-- ══════════════════════════════════════
+local reopenBtn = New("TextButton", {
+    Size = UDim2.new(0, 90, 0, 32),
+    Position = UDim2.new(0.5, -45, 0.95, -16),
+    BackgroundColor3 = Theme.bg1,
+    BackgroundTransparency = 0.1,
+    Text = "◈ MEGAHACK",
+    Font = Enum.Font.GothamBold,
+    TextSize = 11,
+    TextColor3 = Theme.accent,
+    BorderSizePixel = 0,
+    Visible = false,
+    ZIndex = 10,
+    Parent = screenGui,
+})
+Corner(8, reopenBtn)
+Stroke(1.5, Theme.accent, 0.2, reopenBtn)
+
+-- ══════════════════════════════════════
+--  ACCENT THEME UPDATER
+-- ══════════════════════════════════════
+local accentObjects = {}  -- {obj, prop, base}
+
+local function registerAccent(obj, prop)
+    table.insert(accentObjects, {obj=obj, prop=prop})
+end
+
+local function applyAccentToAll()
+    mainStroke.Color        = Theme.accent
+    headerLine.BackgroundColor3 = Theme.accent
+    logoDot.BackgroundColor3    = Theme.accent
+    logoAccent.TextColor3       = Theme.accent
+    sideScroll.ScrollBarImageColor3  = Theme.accent
+    contentScroll.ScrollBarImageColor3 = Theme.accent
+end
+
+registerAccent(mainStroke, "Color")
+
+-- ══════════════════════════════════════
+--  SIDEBAR BUTTON BUILDER
+-- ══════════════════════════════════════
+local activeSideBtn = nil
+
+local function createSideBtn(label, icon, callback)
+    local btn = New("TextButton", {
+        Size = UDim2.new(1, 0, 0, 32),
+        BackgroundColor3 = Theme.bg3,
+        BackgroundTransparency = 1,
+        Text = "",
+        BorderSizePixel = 0,
+        ZIndex = 4,
+        Parent = sideScroll,
+    })
+    Corner(8, btn)
+
+    local iconLbl = New("TextLabel", {
+        Text = icon,
+        Font = Enum.Font.GothamBold,
+        TextSize = 13,
+        TextColor3 = Theme.textMuted,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 20, 1, 0),
+        Position = UDim2.new(0, 8, 0, 0),
+        ZIndex = 5,
+        Parent = btn,
+    })
+    local textLbl = New("TextLabel", {
+        Text = label,
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = Theme.textSecondary,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -34, 1, 0),
+        Position = UDim2.new(0, 30, 0, 0),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 5,
+        Parent = btn,
+    })
+    local activeBar = New("Frame", {
+        Size = UDim2.new(0, 3, 0.6, 0),
+        Position = UDim2.new(0, 0, 0.2, 0),
+        BackgroundColor3 = Theme.accent,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ZIndex = 5,
+        Parent = btn,
+    })
+    Corner(2, activeBar)
+
+    local function setActive(on)
+        if on then
+            tween(btn,       {BackgroundTransparency = 0.5})
+            tween(iconLbl,   {TextColor3 = Theme.accent})
+            tween(textLbl,   {TextColor3 = Theme.textPrimary})
+            tween(activeBar, {BackgroundTransparency = 0})
+        else
+            tween(btn,       {BackgroundTransparency = 1})
+            tween(iconLbl,   {TextColor3 = Theme.textMuted})
+            tween(textLbl,   {TextColor3 = Theme.textSecondary})
+            tween(activeBar, {BackgroundTransparency = 1})
+        end
+    end
+
+    btn.MouseEnter:Connect(function()
+        if activeSideBtn ~= btn then
+            tween(btn, {BackgroundTransparency = 0.75})
+            tween(textLbl, {TextColor3 = Theme.textPrimary})
+        end
+    end)
+    btn.MouseLeave:Connect(function()
+        if activeSideBtn ~= btn then
+            tween(btn, {BackgroundTransparency = 1})
+            tween(textLbl, {TextColor3 = Theme.textSecondary})
+        end
+    end)
+    btn.MouseButton1Click:Connect(function()
+        if activeSideBtn and activeSideBtn ~= btn then
+            activeSideBtn._setActive(false)
+        end
+        activeSideBtn = btn
+        setActive(true)
+        callback()
+    end)
+    btn._setActive = setActive
+
+    return btn
+end
+
+-- ══════════════════════════════════════
+--  CONTENT BUILDERS
+-- ══════════════════════════════════════
+local function clearContent()
+    for _, c in ipairs(contentScroll:GetChildren()) do
+        if not c:IsA("UIListLayout") and not c:IsA("UIPadding") then
+            c:Destroy()
+        end
+    end
+end
+
+-- Section header
+local function sectionHeader(text)
+    local row = New("Frame", {
+        Size = UDim2.new(1, 0, 0, 22),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ZIndex = 4,
+        Parent = contentScroll,
+    })
+    New("TextLabel", {
+        Text = string.upper(text),
+        Font = Enum.Font.GothamBold,
+        TextSize = 9,
+        TextColor3 = Theme.accent,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 160, 1, 0),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LetterSpacing = 3,
+        ZIndex = 5,
+        Parent = row,
+    })
+    New("Frame", {
+        Size = UDim2.new(1, -170, 0, 1),
+        Position = UDim2.new(0, 164, 0.5, 0),
+        BackgroundColor3 = Theme.border,
+        BackgroundTransparency = 0.3,
+        BorderSizePixel = 0,
+        ZIndex = 4,
+        Parent = row,
+    })
+    return row
+end
+
+-- Script button (content area)
+local function scriptBtn(label, callback)
+    local btn = New("TextButton", {
+        Size = UDim2.new(1, 0, 0, 36),
+        BackgroundColor3 = Theme.bg3,
+        BackgroundTransparency = 0.4,
+        Text = "",
+        BorderSizePixel = 0,
+        ZIndex = 4,
+        Parent = contentScroll,
+    })
+    Corner(8, btn)
+    local stroke = Stroke(1, Theme.border, 0.5, btn)
+
+    New("TextLabel", {
+        Text = "▶  " .. label,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextColor3 = Theme.textPrimary,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -12, 1, 0),
+        Position = UDim2.new(0, 12, 0, 0),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 5,
+        Parent = btn,
+    })
+
+    -- right run indicator
+    local runDot = New("Frame", {
+        Size = UDim2.new(0, 6, 0, 6),
+        Position = UDim2.new(1, -14, 0.5, -3),
+        BackgroundColor3 = Theme.textMuted,
+        BackgroundTransparency = 0.4,
+        BorderSizePixel = 0,
+        ZIndex = 5,
+        Parent = btn,
+    })
+    Corner(3, runDot)
+
+    btn.MouseEnter:Connect(function()
+        tween(btn, {BackgroundTransparency = 0.15})
+        tween(stroke, {Color = Theme.accent, Transparency = 0.3})
+        tween(runDot, {BackgroundColor3 = Theme.accent, BackgroundTransparency = 0})
+    end)
+    btn.MouseLeave:Connect(function()
+        tween(btn, {BackgroundTransparency = 0.4})
+        tween(stroke, {Color = Theme.border, Transparency = 0.5})
+        tween(runDot, {BackgroundColor3 = Theme.textMuted, BackgroundTransparency = 0.4})
+    end)
+    btn.MouseButton1Click:Connect(function()
+        tween(btn, {BackgroundTransparency = 0.05}, 0.1)
+        tween(runDot, {BackgroundColor3 = Theme.success}, 0.1)
+        task.delay(0.15, function()
+            tween(btn, {BackgroundTransparency = 0.4}, 0.15)
+            task.delay(1, function()
+                tween(runDot, {BackgroundColor3 = Theme.textMuted, BackgroundTransparency = 0.4})
+            end)
+        end)
+        local ok, err = pcall(callback)
+        if not ok then notify("ERROR", tostring(err):sub(1,60), 5, Theme.error) end
+    end)
+    return btn
+end
+
+-- Info card
+local function infoCard(rows)
+    local H = math.max(#rows * 20 + 16, 36)
+    local card = New("Frame", {
+        Size = UDim2.new(1, 0, 0, H),
+        BackgroundColor3 = Theme.bg1,
+        BackgroundTransparency = 0.1,
+        BorderSizePixel = 0,
+        ZIndex = 4,
+        Parent = contentScroll,
+    })
+    Corner(8, card)
+    Stroke(1, Theme.border, 0.6, card)
+    for i, row in ipairs(rows) do
+        New("TextLabel", {
+            Text = row,
+            Font = Enum.Font.Gotham,
+            TextSize = 11,
+            TextColor3 = Theme.textSecondary,
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, -16, 0, 18),
+            Position = UDim2.new(0, 8, 0, 6 + (i-1)*20),
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 5,
+            Parent = card,
+        })
+    end
+    return card
+end
+
+-- Wide action button
+local function actionBtn(label, col, callback)
+    col = col or Theme.bg3
+    local btn = New("TextButton", {
+        Size = UDim2.new(1, 0, 0, 34),
+        BackgroundColor3 = col,
+        BackgroundTransparency = 0.35,
+        Text = label,
+        Font = Enum.Font.GothamBold,
+        TextSize = 12,
+        TextColor3 = Theme.textPrimary,
+        BorderSizePixel = 0,
+        ZIndex = 4,
+        Parent = contentScroll,
+    })
+    Corner(8, btn)
+    Stroke(1, col, 0.4, btn)
+
+    btn.MouseEnter:Connect(function() tween(btn, {BackgroundTransparency = 0.1}) end)
+    btn.MouseLeave:Connect(function() tween(btn, {BackgroundTransparency = 0.35}) end)
+    btn.MouseButton1Click:Connect(function()
+        tween(btn, {BackgroundTransparency = 0}, 0.1)
+        task.delay(0.15, function() tween(btn, {BackgroundTransparency = 0.35}) end)
+        local ok, err = pcall(callback)
+        if not ok then notify("ERROR", tostring(err):sub(1,60), 5, Theme.error) end
+    end)
+    return btn
+end
+
+-- Spacer
+local function spacer(h)
+    New("Frame", {
+        Size = UDim2.new(1, 0, 0, h or 4),
+        BackgroundTransparency = 1,
+        ZIndex = 3,
+        Parent = contentScroll,
+    })
+end
+
+-- Toggle button
+local function toggleBtn(label, initial, onChange)
+    local state = initial or false
+    local btn = New("TextButton", {
+        Size = UDim2.new(1, 0, 0, 34),
+        BackgroundColor3 = Theme.bg3,
+        BackgroundTransparency = 0.4,
+        Text = "",
+        BorderSizePixel = 0,
+        ZIndex = 4,
+        Parent = contentScroll,
+    })
+    Corner(8, btn)
+    local stroke = Stroke(1, Theme.border, 0.5, btn)
+
+    local lbl = New("TextLabel", {
+        Text = label,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextColor3 = Theme.textPrimary,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -56, 1, 0),
+        Position = UDim2.new(0, 12, 0, 0),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 5,
+        Parent = btn,
+    })
+
+    -- pill toggle
+    local track = New("Frame", {
+        Size = UDim2.new(0, 36, 0, 18),
+        Position = UDim2.new(1, -46, 0.5, -9),
+        BackgroundColor3 = state and Theme.accent or Theme.bg0,
+        BackgroundTransparency = 0.2,
+        BorderSizePixel = 0,
+        ZIndex = 5,
+        Parent = btn,
+    })
+    Corner(9, track)
+    local thumb = New("Frame", {
+        Size = UDim2.new(0, 12, 0, 12),
+        Position = UDim2.new(0, state and 21 or 3, 0.5, -6),
+        BackgroundColor3 = Theme.textPrimary,
+        BorderSizePixel = 0,
+        ZIndex = 6,
+        Parent = track,
+    })
+    Corner(6, thumb)
+
+    local function refresh()
+        tween(track, {BackgroundColor3 = state and Theme.accent or Theme.bg0})
+        tween(thumb, {Position = UDim2.new(0, state and 21 or 3, 0.5, -6)})
+        tween(stroke, {Color = state and Theme.accent or Theme.border})
+    end
+
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        refresh()
+        if onChange then onChange(state) end
+    end)
+    refresh()
+    return btn, function() return state end
+end
+
+-- ══════════════════════════════════════
+--  COLOR PICKER  (HSV sliders)
+-- ══════════════════════════════════════
+local function colorPickerPanel()
+    local panel = New("Frame", {
+        Size = UDim2.new(1, 0, 0, 120),
+        BackgroundColor3 = Theme.bg1,
+        BackgroundTransparency = 0.05,
+        BorderSizePixel = 0,
+        ZIndex = 4,
+        Parent = contentScroll,
+    })
+    Corner(10, panel)
+    Stroke(1, Theme.border, 0.5, panel)
+
+    New("TextLabel", {
+        Text = "ACCENT COLOR",
+        Font = Enum.Font.GothamBold,
+        TextSize = 9,
+        TextColor3 = Theme.accent,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -16, 0, 20),
+        Position = UDim2.new(0, 10, 0, 6),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 5,
+        Parent = panel,
+    })
+
+    -- Preview swatch
+    local preview = New("Frame", {
+        Size = UDim2.new(0, 24, 0, 24),
+        Position = UDim2.new(1, -34, 0, 8),
+        BackgroundColor3 = Theme.accent,
+        BorderSizePixel = 0,
+        ZIndex = 5,
+        Parent = panel,
+    })
+    Corner(6, preview)
+    Stroke(1, Theme.textMuted, 0.5, preview)
+
+    local sliderData = {
+        {label="HUE",   y=30,  val=Theme.accentHue},
+        {label="SAT",   y=60,  val=Theme.accentSat},
+        {label="BRITE", y=90,  val=Theme.accentVal},
+    }
+
+    local function rebuildHueTrack(track)
+        local colors = {}
+        for i = 0, 6 do
+            colors[#colors+1] = ColorSequenceKeypoint.new(i/6, Color3.fromHSV(i/6, 1, 1))
+        end
+        New("UIGradient", {Color = ColorSequence.new(colors), Rotation = 0}, track)
+    end
+
+    for i, s in ipairs(sliderData) do
+        New("TextLabel", {
+            Text = s.label,
+            Font = Enum.Font.GothamBold,
+            TextSize = 9,
+            TextColor3 = Theme.textMuted,
+            BackgroundTransparency = 1,
+            Size = UDim2.new(0, 36, 0, 18),
+            Position = UDim2.new(0, 10, 0, s.y),
+            ZIndex = 5,
+            Parent = panel,
+        })
+
+        local track = New("Frame", {
+            Size = UDim2.new(1, -80, 0, 8),
+            Position = UDim2.new(0, 48, 0, s.y+5),
+            BackgroundColor3 = Theme.bg3,
+            BorderSizePixel = 0,
+            ZIndex = 5,
+            Parent = panel,
+        })
+        Corner(4, track)
+
+        if i == 1 then rebuildHueTrack(track)
+        else
+            New("UIGradient", {
+                Color = ColorSequence.new(Theme.bg3, Theme.accent),
+                Rotation = 0,
+            }, track)
+        end
+
+        local knob = New("Frame", {
+            Size = UDim2.new(0, 14, 0, 14),
+            Position = UDim2.new(s.val, -7, 0.5, -7),
+            BackgroundColor3 = Theme.textPrimary,
+            BorderSizePixel = 0,
+            ZIndex = 6,
+            Parent = track,
+        })
+        Corner(7, knob)
+        Stroke(1.5, Theme.bg0, 0, knob)
+
+        -- drag logic
+        local dragging = false
+        knob.InputBegan:Connect(function(inp)
+            if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = true
+            end
+        end)
+        track.InputBegan:Connect(function(inp)
+            if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = true
+                local rel = (inp.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X
+                s.val = math.clamp(rel, 0, 1)
+                knob.Position = UDim2.new(s.val, -7, 0.5, -7)
+                local h, sat, v = sliderData[1].val, sliderData[2].val, sliderData[3].val
+                updateAccent(h, sat, v)
+                preview.BackgroundColor3 = Theme.accent
+                applyAccentToAll()
+            end
+        end)
+        UserInputService.InputChanged:Connect(function(inp)
+            if dragging and inp.UserInputType == Enum.UserInputType.MouseMovement then
+                local rel = (inp.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X
+                s.val = math.clamp(rel, 0, 1)
+                knob.Position = UDim2.new(s.val, -7, 0.5, -7)
+                local h, sat, v = sliderData[1].val, sliderData[2].val, sliderData[3].val
+                updateAccent(h, sat, v)
+                preview.BackgroundColor3 = Theme.accent
+                applyAccentToAll()
+            end
+        end)
+        UserInputService.InputEnded:Connect(function(inp)
+            if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = false
+            end
+        end)
+    end
+
+    return panel
+end
+
+-- ══════════════════════════════════════
+--  PRESET COLOR BUTTONS (row)
+-- ══════════════════════════════════════
+local function presetColorRow(label, colors)
+    local W_PER = math.floor((contentScroll.AbsoluteSize.X - 16) / #colors)
+
+    local row = New("Frame", {
+        Size = UDim2.new(1, 0, 0, 30),
+        BackgroundTransparency = 1,
+        ZIndex = 4,
+        Parent = contentScroll,
+    })
+    New("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        Padding = UDim.new(0, 4),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = row,
+    })
+    for _, c in ipairs(colors) do
+        local dot = New("TextButton", {
+            Size = UDim2.new(0, 24, 0, 24),
+            BackgroundColor3 = c.color,
+            Text = "",
+            BorderSizePixel = 0,
+            ZIndex = 5,
+            Parent = row,
+        })
+        Corner(6, dot)
+        Stroke(1, Theme.bg0, 0.3, dot)
+        dot.MouseButton1Click:Connect(function()
+            local h, s, v = Color3.toHSV(c.color)
+            updateAccent(h, s, v)
+            applyAccentToAll()
+            notify("THEME", "Accent: " .. c.name, 2, Theme.accent)
+        end)
+        dot.MouseEnter:Connect(function() tween(dot, {BackgroundTransparency = 0.3}) end)
+        dot.MouseLeave:Connect(function() tween(dot, {BackgroundTransparency = 0}) end)
+    end
+    return row
+end
+
+-- ══════════════════════════════════════
+--  PAGE: HOME
+-- ══════════════════════════════════════
+local function showHome()
+    clearContent()
+
+    sectionHeader("Dashboard")
+    local gameName = "Unknown"
+    pcall(function() gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name end)
+
+    infoCard({
+        "◈  Game: " .. gameName,
+        "◈  PlaceId: " .. tostring(game.PlaceId),
+        "◈  Player: " .. player.Name .. "  (#" .. player.UserId .. ")",
+        "◈  Platform: " .. platformName,
+        "◈  Scripts loaded: " .. countScripts(),
+    })
+
+    spacer(4)
+    sectionHeader("Live Stats")
+
+    local statsCard = New("Frame", {
+        Size = UDim2.new(1, 0, 0, 36),
+        BackgroundColor3 = Theme.bg1,
+        BackgroundTransparency = 0.1,
+        BorderSizePixel = 0,
+        ZIndex = 4,
+        Parent = contentScroll,
+    })
+    Corner(8, statsCard)
+    Stroke(1, Theme.border, 0.6, statsCard)
+    local fpsLbl = New("TextLabel", {
+        Text = "FPS  ·  …",
+        Font = Enum.Font.GothamBold,
+        TextSize = 12,
+        TextColor3 = Theme.accent,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0.5, 0, 1, 0),
+        Position = UDim2.new(0, 12, 0, 0),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 5,
+        Parent = statsCard,
+    })
+    local pingLbl = New("TextLabel", {
+        Text = "PING  ·  …",
+        Font = Enum.Font.GothamBold,
+        TextSize = 12,
+        TextColor3 = Theme.textSecondary,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0.5, 0, 1, 0),
+        Position = UDim2.new(0.5, 0, 0, 0),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 5,
+        Parent = statsCard,
+    })
+
+    local frames, last = 0, tick()
+    local conn = RunService.Heartbeat:Connect(function()
+        frames = frames + 1
+        if tick() - last >= 1 then
+            fpsLbl.Text = "FPS  ·  " .. frames
+            frames = 0; last = tick()
+        end
+    end)
+    statsCard.AncestryChanged:Connect(function() conn:Disconnect() end)
+
+    spacer(4)
+    sectionHeader("Info")
+    infoCard({
+        "YouTube  ·  youtube.com/@Vermax",
+        "Telegram ·  t.me/@vermax",
+        "Discord  ·  discord.gg/vermax",
+    })
+end
+
+-- ══════════════════════════════════════
+--  PAGE: SETTINGS
+-- ══════════════════════════════════════
+local function showSettings()
+    clearContent()
+
+    sectionHeader("Accent Color")
+    colorPickerPanel()
+
+    spacer(4)
+    sectionHeader("Color Presets")
+    presetColorRow("Preset", {
+        {name="Cyan",    color=Color3.fromRGB(0, 200, 255)},
+        {name="Purple",  color=Color3.fromRGB(180, 80, 255)},
+        {name="Green",   color=Color3.fromRGB(0, 220, 120)},
+        {name="Pink",    color=Color3.fromRGB(255, 80, 180)},
+        {name="Orange",  color=Color3.fromRGB(255, 150, 0)},
+        {name="Red",     color=Color3.fromRGB(255, 60, 60)},
+        {name="Gold",    color=Color3.fromRGB(220, 180, 0)},
+        {name="White",   color=Color3.fromRGB(220, 220, 255)},
+    })
+
+    spacer(8)
+    sectionHeader("Interface")
+    toggleBtn("RGB Accent  (rainbow mode)", false, function(on)
+        if on then
+            RunService.Heartbeat:Connect(function()
+                local h = (tick() % 5) / 5
+                updateAccent(h, 1, 1)
+                applyAccentToAll()
+            end)
+        end
+    end)
+
+    spacer(4)
+    sectionHeader("Server")
+    actionBtn("◈  Rejoin Server", Theme.bg3, function()
+        TeleportService:Teleport(game.PlaceId, player)
+    end)
+    actionBtn("◈  Server Hop (random)", Theme.bg3, function()
+        local data = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+        local list = data.data
+        if #list > 0 then
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, list[math.random(1, #list)].id, player)
+        else
+            notify("ERROR", "No servers found", 3, Theme.error)
+        end
+    end)
+    actionBtn("◈  Copy Server ID", Theme.bg3, function()
+        setclipboard(game.JobId)
+        notify("COPIED", "Server ID in clipboard", 2, Theme.success)
+    end)
+
+    spacer(4)
+    sectionHeader("Security")
+    actionBtn("◈  Enable Anti-Ban / Anti-Kick", Theme.accentDim, function()
+        local mt = getrawmetatable(game)
+        if not mt then notify("WARN", "getrawmetatable unavailable", 3, Theme.warn); return end
+        local old = mt.__namecall
+        setreadonly(mt, false)
+        mt.__namecall = newcclosure(function(self, ...)
+            local m = getnamecallmethod()
+            if m == "Kick" or m == "kick" or m == "Ban" or m == "ban" then
+                notify("BLOCKED", m .. " attempt intercepted", 3, Theme.success)
+                return nil
+            end
+            return old(self, ...)
+        end)
+        setreadonly(mt, true)
+        notify("PROTECTION", "Anti-ban/kick active", 3, Theme.success)
+    end)
+
+    spacer(4)
+    sectionHeader("Coordinates")
+    actionBtn("◈  Save Current Position", Theme.bg3, function()
+        local char = player.Character or player.CharacterAdded:Wait()
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then notify("ERROR", "No HRP", 3, Theme.error); return end
+        local p = root.Position
+        local txt = string.format("X:%.2f Y:%.2f Z:%.2f", p.X, p.Y, p.Z)
+        if makefolder and not isfolder("MegaHack") then makefolder("MegaHack") end
+        if writefile then writefile("MegaHack/coords.txt", txt) end
+        notify("SAVED", txt, 3, Theme.success)
+    end)
+    actionBtn("◈  Teleport to Saved Position", Theme.bg3, function()
+        if not (isfile and isfile("MegaHack/coords.txt")) then
+            notify("ERROR", "No saved coords", 3, Theme.error); return
+        end
+        local txt = readfile("MegaHack/coords.txt")
+        local x, y, z = txt:match("X:([%d%.%-]+) Y:([%d%.%-]+) Z:([%d%.%-]+)")
+        if not x then notify("ERROR", "Bad format", 3, Theme.error); return end
+        local char = player.Character or player.CharacterAdded:Wait()
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if root then
+            root.CFrame = CFrame.new(tonumber(x), tonumber(y), tonumber(z))
+            notify("TELEPORT", txt, 3, Theme.success)
+        end
+    end)
+
+    spacer(4)
+    sectionHeader("Danger Zone")
+    actionBtn("✕  Close GUI", Color3.fromRGB(180, 40, 40), function()
+        screenGui:Destroy()
+    end)
+end
+
+-- ══════════════════════════════════════
+--  PAGE: SCRIPTS (category)
+-- ══════════════════════════════════════
+local function showCategory(key, displayName)
+    clearContent()
+    sectionHeader(displayName)
+
+    local data = HubData[key]
+    if not data or #data == 0 then
+        infoCard({"⚠  No scripts loaded for: " .. displayName})
+        return
+    end
+    for _, hack in ipairs(data) do
+        if type(hack) == "table" and type(hack[1]) == "string" and type(hack[2]) == "function" then
+            scriptBtn(hack[1], hack[2])
+        end
+    end
+end
+
+-- ══════════════════════════════════════
+--  PAGE: SEARCH
+-- ══════════════════════════════════════
+local function showSearch()
+    clearContent()
+    sectionHeader("Search Scripts")
+
+    local searchRow = New("Frame", {
+        Size = UDim2.new(1, 0, 0, 36),
+        BackgroundColor3 = Theme.bg1,
+        BackgroundTransparency = 0.05,
+        BorderSizePixel = 0,
+        ZIndex = 4,
+        Parent = contentScroll,
+    })
+    Corner(8, searchRow)
+    local searchStroke = Stroke(1, Theme.border, 0.5, searchRow)
+
+    New("TextLabel", {
+        Text = "⌕",
+        Font = Enum.Font.GothamBold,
+        TextSize = 16,
+        TextColor3 = Theme.textMuted,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 28, 1, 0),
+        Position = UDim2.new(0, 8, 0, 0),
+        ZIndex = 5,
+        Parent = searchRow,
+    })
+
+    local box = New("TextBox", {
+        Size = UDim2.new(1, -40, 1, -8),
+        Position = UDim2.new(0, 34, 0, 4),
+        BackgroundTransparency = 1,
+        Text = "",
+        PlaceholderText = "Search scripts…",
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextColor3 = Theme.textPrimary,
+        PlaceholderColor3 = Theme.textMuted,
+        ZIndex = 5,
+        Parent = searchRow,
+    })
+
+    box.Focused:Connect(function() tween(searchStroke, {Color = Theme.accent, Transparency = 0.2}) end)
+    box.FocusLost:Connect(function()
+        tween(searchStroke, {Color = Theme.border, Transparency = 0.5})
+        -- rebuild results
+        for _, c in ipairs(contentScroll:GetChildren()) do
+            if c:GetAttribute("SearchResult") then c:Destroy() end
+        end
+        local q = string.lower(box.Text)
+        if #q < 1 then return end
+        local found = 0
+        for catName, hacks in pairs(HubData) do
+            if type(hacks) == "table" then
+                for _, hack in ipairs(hacks) do
+                    if type(hack) == "table" and type(hack[1]) == "string" then
+                        if string.find(string.lower(hack[1]), q) or string.find(string.lower(catName), q) then
+                            local b = scriptBtn("[" .. catName .. "]  " .. hack[1], hack[2])
+                            b:SetAttribute("SearchResult", true)
+                            found = found + 1
+                        end
+                    end
+                end
+            end
+        end
+        if found == 0 then
+            local lbl = New("TextLabel", {
+                Text = "No results for "" .. box.Text .. """,
+                Font = Enum.Font.Gotham,
+                TextSize = 12,
+                TextColor3 = Theme.textMuted,
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 30),
+                ZIndex = 4,
+                Parent = contentScroll,
+            })
+            lbl:SetAttribute("SearchResult", true)
+        end
+    end)
+end
+
+-- ══════════════════════════════════════
+--  SIDEBAR CATEGORIES
+-- ══════════════════════════════════════
+local sideEntries = {
+    {label="Home",            icon="⌂",  action=showHome},
+    {label="Search",          icon="⌕",  action=showSearch},
+    {label="Settings",        icon="⚙",  action=showSettings},
+    {label="────────────",   icon="",   action=function() end},
+    {label="MegaHack",        icon="◈",  action=function() showCategory("MegaHack",        "MegaHack")        end},
+    {label="Hacks",           icon="◈",  action=function() showCategory("Hacks",           "Hacks")           end},
+    {label="Admins",          icon="◈",  action=function() showCategory("Admins",           "Admins")          end},
+    {label="Animations",      icon="◈",  action=function() showCategory("Animations",       "Animations")      end},
+    {label="FE Scripts",      icon="◈",  action=function() showCategory("FE",               "FE Scripts")      end},
+    {label="Steal Brain",     icon="◈",  action=function() showCategory("StealBrainRoot",   "Steal Brain Root")end},
+    {label="────────────",   icon="",   action=function() end},
+    {label="Blade Ball",      icon="◈",  action=function() showCategory("BladeBall",        "Blade Ball")      end},
+    {label="Blox Fruit",      icon="◈",  action=function() showCategory("BloxFruit",        "Blox Fruit")      end},
+    {label="Brookhaven",      icon="◈",  action=function() showCategory("Brookhaven",       "Brookhaven")      end},
+    {label="MM2",             icon="◈",  action=function() showCategory("MM2",              "MM2")             end},
+    {label="Evade",           icon="◈",  action=function() showCategory("Evade",            "Evade")           end},
+    {label="Ragdoll",         icon="◈",  action=function() showCategory("RagdollEngine",    "Ragdoll Engine")  end},
+    {label="Nat.Disaster",    icon="◈",  action=function() showCategory("NaturalDisaster",  "Natural Disaster")end},
+    {label="Adopt Me",        icon="◈",  action=function() showCategory("AdoptMe",          "Adopt Me")        end},
+    {label="Tower of Hell",   icon="◈",  action=function() showCategory("TowerOfHell",      "Tower of Hell")   end},
+    {label="GrowGarden",      icon="◈",  action=function() showCategory("GrowGarden",       "GrowGarden")      end},
+    {label="Night99",         icon="◈",  action=function() showCategory("Night",            "Night99")         end},
+    {label="Weird Gun",       icon="◈",  action=function() showCategory("Weird",            "Weird Gun Game")  end},
+    {label="Duels MVS",       icon="◈",  action=function() showCategory("DuelsMVS",         "Duels MVS")       end},
+    {label="Violence Dist.",  icon="◈",  action=function() showCategory("ViolenceDistrict", "Violence District")end},
+}
+
+local firstBtn = nil
+for _, e in ipairs(sideEntries) do
+    if e.label:find("─") then
+        -- separator
+        New("Frame", {
+            Size = UDim2.new(1, -12, 0, 1),
+            BackgroundColor3 = Theme.border,
+            BackgroundTransparency = 0.5,
+            BorderSizePixel = 0,
+            ZIndex = 3,
+            Parent = sideScroll,
+        })
+    else
+        local b = createSideBtn(e.label, e.icon, e.action)
+        if not firstBtn then firstBtn = b end
+    end
+end
+
+-- ══════════════════════════════════════
+--  DRAG
+-- ══════════════════════════════════════
+local function makeDraggable(frame, handle)
+    handle = handle or frame
+    local dragging, dragStart, startPos
+    handle.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = i.Position
+            startPos = frame.Position
+            i.Changed:Connect(function()
+                if i.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(i)
+        if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+            local d = i.Position - dragStart
+            frame.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + d.X,
+                startPos.Y.Scale, startPos.Y.Offset + d.Y
+            )
+        end
+    end)
+end
+makeDraggable(mainFrame, header)
+makeDraggable(reopenBtn, reopenBtn)
+
+-- ══════════════════════════════════════
+--  CLOSE / REOPEN
+-- ══════════════════════════════════════
+closeBtn.MouseButton1Click:Connect(function()
+    tween(mainFrame, {BackgroundTransparency = 1, Size = UDim2.new(0, WIN_W, 0, 0)}, 0.25)
+    task.delay(0.3, function()
+        mainFrame.Visible = false
+        mainFrame.Size = UDim2.new(0, WIN_W, 0, WIN_H)
+        reopenBtn.Visible = true
+    end)
+end)
+
+minimizeBtn.MouseButton1Click:Connect(function()
+    local isMin = mainFrame.Size.Y.Offset == HEADER_H
+    if isMin then
+        tween(mainFrame, {Size = UDim2.new(0, WIN_W, 0, WIN_H)})
+    else
+        tween(mainFrame, {Size = UDim2.new(0, WIN_W, 0, HEADER_H)})
+    end
+end)
+
+reopenBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = true
+    reopenBtn.Visible = false
+    tween(mainFrame, {BackgroundTransparency = Theme.transparency, Size = UDim2.new(0, WIN_W, 0, WIN_H)})
+end)
+
+-- ══════════════════════════════════════
+--  OPEN ANIMATION
+-- ══════════════════════════════════════
+mainFrame.Size = UDim2.new(0, WIN_W, 0, 0)
+mainFrame.BackgroundTransparency = 1
+tween(mainFrame, {Size = UDim2.new(0, WIN_W, 0, WIN_H), BackgroundTransparency = Theme.transparency}, 0.45, Enum.EasingStyle.Back)
+
+-- ══════════════════════════════════════
+--  INIT
+-- ══════════════════════════════════════
+task.delay(0.1, function()
+    if firstBtn then
+        firstBtn.MouseButton1Click:Fire()
+    else
+        showHome()
+    end
+end)
+
+applyAccentToAll()
+notify("MEGAHACK V2", "Loaded on " .. platformName .. " · " .. countScripts() .. " scripts", 4, Theme.accent)
