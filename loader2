@@ -33,7 +33,7 @@ local function safeLoad(url)
 end
 
 -- ══════════════════════════════════════
--- PZIAISiasiaisiasiaisiaisAISIAISIASIAIS
+-- HUB DATA
 -- ══════════════════════════════════════
 local HubData = {
     Brookhaven      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/brookhaven"),
@@ -58,31 +58,48 @@ local HubData = {
     ViolenceDistrict = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/ViolenceDistrict.lua"),
 }
 
+-- ══════════════════════════════════════
+--  MODERN NOTIFICATION SYSTEM
+-- ══════════════════════════════════════
 local function createNotification(title, subtitle, duration, iconId)
     local notificationGui = Instance.new("ScreenGui")
     notificationGui.Name = "Notification"
     notificationGui.Parent = playerGui
     notificationGui.ResetOnSpawn = false
+    notificationGui.IgnoreGuiInset = true
 
     local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 260, 0, 80)
-    mainFrame.Position = UDim2.new(0.5, -130, 0, 20)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
-    mainFrame.BackgroundTransparency = 0.15
+    mainFrame.Size = UDim2.new(0, 280, 0, 80)
+    mainFrame.Position = UDim2.new(0.5, -140, 0, -100)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    mainFrame.BackgroundTransparency = 0.1
+    mainFrame.ClipsDescendants = true
     mainFrame.Parent = notificationGui
+
+    -- Modern shadow
+    local shadow = Instance.new("ImageLabel")
+    shadow.Size = UDim2.new(1, 40, 1, 40)
+    shadow.Position = UDim2.new(0, -20, 0, -20)
+    shadow.BackgroundTransparency = 1
+    shadow.Image = "rbxassetid://1316045217"
+    shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.ImageTransparency = 0.7
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(10, 10, 118, 118)
+    shadow.Parent = mainFrame
 
     local background = Instance.new("Frame")
     background.Size = UDim2.new(1, 0, 1, 0)
-    background.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    background.BackgroundTransparency = 0.2
+    background.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    background.BackgroundTransparency = 0.15
     background.Parent = mainFrame
 
     local gradient = Instance.new("UIGradient")
     gradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(35, 35, 35)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 20))
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(45, 45, 60)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 25, 35))
     })
-    gradient.Rotation = 45
+    gradient.Rotation = 90
     gradient.Parent = background
 
     local corner = Instance.new("UICorner")
@@ -94,53 +111,57 @@ local function createNotification(title, subtitle, duration, iconId)
     icon.Position = UDim2.new(0, 15, 0.5, -18)
     icon.BackgroundTransparency = 1
     icon.Image = "rbxassetid://" .. tostring(iconId or 74283928898866)
-    icon.ImageTransparency = 0.2
+    icon.ImageTransparency = 0
     icon.Parent = background
 
     local mainText = Instance.new("TextLabel")
     mainText.Text = title
     mainText.Font = Enum.Font.GothamBold
     mainText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    mainText.TextSize = 18
+    mainText.TextSize = 16
     mainText.TextXAlignment = Enum.TextXAlignment.Left
     mainText.Size = UDim2.new(0.7, 0, 0.5, 0)
-    mainText.Position = UDim2.new(0.3, 10, 0.2, 0)
+    mainText.Position = UDim2.new(0.22, 20, 0.2, 0)
     mainText.BackgroundTransparency = 1
     mainText.Parent = background
 
     local subText = Instance.new("TextLabel")
     subText.Text = subtitle
     subText.Font = Enum.Font.Gotham
-    subText.TextColor3 = Color3.fromRGB(180, 180, 180)
+    subText.TextColor3 = Color3.fromRGB(180, 180, 200)
     subText.TextSize = 13
     subText.TextXAlignment = Enum.TextXAlignment.Left
     subText.Size = UDim2.new(0.7, 0, 0.3, 0)
-    subText.Position = UDim2.new(0.3, 10, 0.55, 0)
+    subText.Position = UDim2.new(0.22, 20, 0.6, 0)
     subText.BackgroundTransparency = 1
     subText.Parent = background
 
     local progressBar = Instance.new("Frame")
     progressBar.Size = UDim2.new(1, 0, 0, 3)
     progressBar.Position = UDim2.new(0, 0, 1, -3)
-    progressBar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    progressBar.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+    progressBar.BackgroundTransparency = 0.3
     progressBar.Parent = background
 
     local progressCorner = Instance.new("UICorner")
-    progressCorner.CornerRadius = UDim.new(0, 3)
+    progressCorner.CornerRadius = UDim.new(0, 2)
     progressCorner.Parent = progressBar
 
-    local function fadeIn()
-        mainFrame.Position = UDim2.new(0.5, -130, 0, -100)
-        TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -130, 0, 20)}):Play()
-        TweenService:Create(progressBar, TweenInfo.new(duration, Enum.EasingStyle.Linear), {Size = UDim2.new(0, 0, 0, 3)}):Play()
-    end
-
-    task.spawn(fadeIn)
-    task.delay(duration, function()
-        TweenService:Create(mainFrame, TweenInfo.new(0.3), {Position = UDim2.new(0.5, -130, 0, -100)}):Play()
+    -- Animation
+    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    TweenService:Create(mainFrame, tweenInfo, {Position = UDim2.new(0.5, -140, 0, 20)}):Play()
+    
+    task.delay(duration - 0.3, function()
+        local tweenOut = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+        TweenService:Create(mainFrame, tweenOut, {Position = UDim2.new(0.5, -140, 0, -100)}):Play()
+        TweenService:Create(progressBar, tweenOut, {Size = UDim2.new(0, 0, 0, 3)}):Play()
         task.wait(0.3)
         notificationGui:Destroy()
     end)
+
+    -- Progress bar animation
+    local progressTween = TweenInfo.new(duration - 0.3, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
+    TweenService:Create(progressBar, progressTween, {Size = UDim2.new(0, 0, 0, 3)}):Play()
 end
 
 -- ══════════════════════════════════════
@@ -157,9 +178,9 @@ local function countScripts()
 end
 
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "HackGui"
+screenGui.Name = "MegaHackV2"
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-screenGui.IgnoreGuiInset = false
+screenGui.IgnoreGuiInset = true
 screenGui.ResetOnSpawn = false
 
 local function Hide_UI(gui)
@@ -185,65 +206,99 @@ end
 Hide_UI(screenGui)
 
 -- ══════════════════════════════════════
---  MODERN STYLE COLORS
+--  MODERN COLOR SCHEME
 -- ══════════════════════════════════════
 local colors = {
-    primary = Color3.fromRGB(30, 30, 35),
-    secondary = Color3.fromRGB(25, 25, 30),
-    accent = Color3.fromRGB(0, 170, 255),
-    accent2 = Color3.fromRGB(255, 70, 130),
-    text = Color3.fromRGB(255, 255, 255),
-    textDim = Color3.fromRGB(180, 180, 180),
-    stroke = Color3.fromRGB(60, 60, 70)
+    primary = Color3.fromRGB(88, 101, 242),     -- Discord blurple
+    secondary = Color3.fromRGB(114, 137, 218),  -- Lighter blurple
+    accent = Color3.fromRGB(255, 115, 250),      -- Pink
+    success = Color3.fromRGB(87, 242, 135),      -- Green
+    warning = Color3.fromRGB(254, 231, 92),      -- Yellow
+    danger = Color3.fromRGB(242, 71, 63),        -- Red
+    background = Color3.fromRGB(15, 15, 20),     -- Very dark
+    surface = Color3.fromRGB(25, 25, 35),        -- Dark surface
+    surface2 = Color3.fromRGB(35, 35, 45),       -- Lighter surface
+    text = Color3.fromRGB(255, 255, 255),        -- White
+    textDim = Color3.fromRGB(180, 180, 200),     -- Dim text
+    border = Color3.fromRGB(50, 50, 70)          -- Border color
 }
 
 -- ══════════════════════════════════════
---  MAIN FRAME
+--  MAIN FRAME - MODERN DESIGN
 -- ══════════════════════════════════════
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.BackgroundColor3 = colors.primary
-mainFrame.BackgroundTransparency = 0.05
+mainFrame.BackgroundColor3 = colors.background
+mainFrame.BackgroundTransparency = 0.1
 mainFrame.BorderSizePixel = 0
 mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-mainFrame.Size = UDim2.new(0, 450, 0, 380)
+mainFrame.Size = UDim2.new(0, 480, 0, 360)
 mainFrame.ClipsDescendants = true
 mainFrame.Parent = screenGui
 
+-- Main shadow
+local mainShadow = Instance.new("ImageLabel")
+mainShadow.Size = UDim2.new(1, 50, 1, 50)
+mainShadow.Position = UDim2.new(0, -25, 0, -25)
+mainShadow.BackgroundTransparency = 1
+mainShadow.Image = "rbxassetid://1316045217"
+mainShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+mainShadow.ImageTransparency = 0.8
+mainShadow.ScaleType = Enum.ScaleType.Slice
+mainShadow.SliceCenter = Rect.new(10, 10, 118, 118)
+mainShadow.ZIndex = 0
+mainShadow.Parent = mainFrame
+
+-- Main background with gradient
+local mainBackground = Instance.new("Frame")
+mainBackground.Size = UDim2.new(1, 0, 1, 0)
+mainBackground.BackgroundColor3 = colors.surface
+mainBackground.BackgroundTransparency = 0.15
+mainBackground.BorderSizePixel = 0
+mainBackground.Parent = mainFrame
+
 local mainGradient = Instance.new("UIGradient")
 mainGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(35, 35, 40)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 25))
+    ColorSequenceKeypoint.new(0, colors.surface),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 28))
 })
 mainGradient.Rotation = 45
-mainGradient.Parent = mainFrame
+mainGradient.Parent = mainBackground
 
-local frameCorner = Instance.new("UICorner")
-frameCorner.CornerRadius = UDim.new(0, 20)
-frameCorner.Parent = mainFrame
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 20)
+mainCorner.Parent = mainBackground
 
-local frameStroke = Instance.new("UIStroke")
-frameStroke.Thickness = 2
-frameStroke.Color = colors.stroke
-frameStroke.Transparency = 0.3
-frameStroke.Parent = mainFrame
+-- Accent border
+local borderGlow = Instance.new("Frame")
+borderGlow.Size = UDim2.new(1, 4, 1, 4)
+borderGlow.Position = UDim2.new(0, -2, 0, -2)
+borderGlow.BackgroundColor3 = colors.primary
+borderGlow.BackgroundTransparency = 0.7
+borderGlow.BorderSizePixel = 0
+borderGlow.ZIndex = 0
+borderGlow.Parent = mainFrame
+
+local borderCorner = Instance.new("UICorner")
+borderCorner.CornerRadius = UDim.new(0, 22)
+borderCorner.Parent = borderGlow
 
 -- ══════════════════════════════════════
---  HEADER
+--  HEADER - MODERN
 -- ══════════════════════════════════════
 local headerFrame = Instance.new("Frame")
 headerFrame.Name = "HeaderFrame"
-headerFrame.BackgroundColor3 = colors.secondary
-headerFrame.BackgroundTransparency = 0.1
+headerFrame.BackgroundColor3 = colors.surface2
+headerFrame.BackgroundTransparency = 0.2
 headerFrame.BorderSizePixel = 0
 headerFrame.Size = UDim2.new(1, 0, 0, 45)
 headerFrame.Parent = mainFrame
 
 local headerGradient = Instance.new("UIGradient")
 headerGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 45)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 25, 30))
+    ColorSequenceKeypoint.new(0, colors.surface2),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 40, 52))
 })
 headerGradient.Rotation = 90
 headerGradient.Parent = headerFrame
@@ -252,161 +307,200 @@ local headerCorner = Instance.new("UICorner")
 headerCorner.CornerRadius = UDim.new(0, 20)
 headerCorner.Parent = headerFrame
 
+-- Header top fix
 local headerFix = Instance.new("Frame")
 headerFix.Name = "Fixer"
-headerFix.BackgroundColor3 = colors.secondary
-headerFix.BackgroundTransparency = 0.1
+headerFix.BackgroundColor3 = colors.surface2
+headerFix.BackgroundTransparency = 0.2
 headerFix.BorderSizePixel = 0
 headerFix.Size = UDim2.new(1, 0, 0, 10)
 headerFix.Position = UDim2.new(0, 0, 0, 35)
 headerFix.Parent = headerFrame
 
+headerFix.BackgroundColor3 = colors.surface2
+local fixGradient = Instance.new("UIGradient")
+fixGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, colors.surface2),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 40, 52))
+})
+fixGradient.Rotation = 90
+fixGradient.Parent = headerFix
+
+-- Header icon
 local icon = Instance.new("ImageLabel")
 icon.Name = "Icon"
 icon.BackgroundTransparency = 1
 icon.Image = "rbxassetid://138613137853151"
-icon.Size = UDim2.new(0, 32, 0, 32)
-icon.Position = UDim2.new(0, 10, 0.5, -16)
+icon.Size = UDim2.new(0, 28, 0, 28)
+icon.Position = UDim2.new(0, 12, 0.5, -14)
 icon.Parent = headerFrame
 
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Name = "TitleLabel"
-titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "MEGA HACK"
-titleLabel.TextColor3 = colors.text
-titleLabel.TextSize = 22
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.Position = UDim2.new(0, 50, 0.5, -11)
-titleLabel.Size = UDim2.new(0, 150, 0, 22)
-titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Parent = headerFrame
+-- Header title
+local headerTitle = Instance.new("TextLabel")
+headerTitle.Text = "MEGAHACK V2"
+headerTitle.Font = Enum.Font.GothamBold
+headerTitle.TextColor3 = colors.text
+headerTitle.TextSize = 18
+headerTitle.TextTransparency = 0.1
+headerTitle.BackgroundTransparency = 1
+headerTitle.Size = UDim2.new(0, 150, 1, 0)
+headerTitle.Position = UDim2.new(0, 45, 0, 0)
+headerTitle.TextXAlignment = Enum.TextXAlignment.Left
+headerTitle.Parent = headerFrame
 
-local versionLabel = Instance.new("TextLabel")
-versionLabel.Name = "VersionLabel"
-versionLabel.BackgroundTransparency = 1
-versionLabel.Text = "v2.0"
-versionLabel.TextColor3 = colors.accent
-versionLabel.TextSize = 14
-versionLabel.Font = Enum.Font.Gotham
-versionLabel.Position = UDim2.new(0, 200, 0.5, -7)
-versionLabel.Size = UDim2.new(0, 40, 0, 14)
-versionLabel.TextXAlignment = Enum.TextXAlignment.Left
-versionLabel.Parent = headerFrame
-
+-- Close button with modern design
 local closeIcon = Instance.new("ImageButton")
 closeIcon.Name = "CloseIcon"
 closeIcon.BackgroundTransparency = 1
 closeIcon.Image = "rbxassetid://14397748477"
-closeIcon.Size = UDim2.new(0, 28, 0, 28)
-closeIcon.Position = UDim2.new(1, -38, 0.5, -14)
+closeIcon.ImageColor3 = colors.textDim
+closeIcon.Size = UDim2.new(0, 24, 0, 24)
+closeIcon.Position = UDim2.new(1, -36, 0.5, -12)
 closeIcon.Parent = headerFrame
 
--- ══════════════════════════════════════
---  REOPEN BUTTON
--- ══════════════════════════════════════
+closeIcon.MouseEnter:Connect(function()
+    TweenService:Create(closeIcon, TweenInfo.new(0.2), {ImageColor3 = colors.danger}):Play()
+end)
+
+closeIcon.MouseLeave:Connect(function()
+    TweenService:Create(closeIcon, TweenInfo.new(0.2), {ImageColor3 = colors.textDim}):Play()
+end)
+
+-- Reopen button
 local reopenButton = Instance.new("ImageButton")
 reopenButton.Size = UDim2.new(0, 55, 0, 55)
 reopenButton.Position = UDim2.new(0.5, -27.5, 0.9, -27.5)
-reopenButton.BackgroundColor3 = colors.accent
-reopenButton.BackgroundTransparency = 0.1
+reopenButton.BackgroundColor3 = colors.primary
+reopenButton.BackgroundTransparency = 0.2
 reopenButton.Image = "rbxassetid://138613137853151"
-reopenButton.ImageColor3 = colors.text
+reopenButton.ImageTransparency = 0.2
 reopenButton.Visible = false
+reopenButton.ZIndex = 2
 reopenButton.Parent = screenGui
+
+local reopenShadow = Instance.new("ImageLabel")
+reopenShadow.Size = UDim2.new(1, 20, 1, 20)
+reopenShadow.Position = UDim2.new(0, -10, 0, -10)
+reopenShadow.BackgroundTransparency = 1
+reopenShadow.Image = "rbxassetid://1316045217"
+reopenShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+reopenShadow.ImageTransparency = 0.7
+reopenShadow.ScaleType = Enum.ScaleType.Slice
+reopenShadow.SliceCenter = Rect.new(10, 10, 118, 118)
+reopenShadow.Parent = reopenButton
 
 local reopenCorner = Instance.new("UICorner")
 reopenCorner.CornerRadius = UDim.new(1, 0)
 reopenCorner.Parent = reopenButton
 
-local reopenStroke = Instance.new("UIStroke")
-reopenStroke.Thickness = 2
-reopenStroke.Color = colors.stroke
-reopenStroke.Transparency = 0.3
-reopenStroke.Parent = reopenButton
+-- Glowing effect for reopen button
+local reopenGlow = Instance.new("ImageLabel")
+reopenGlow.Size = UDim2.new(1, 10, 1, 10)
+reopenGlow.Position = UDim2.new(0, -5, 0, -5)
+reopenGlow.BackgroundTransparency = 1
+reopenGlow.Image = "rbxassetid://5028857644"
+reopenGlow.ImageColor3 = colors.primary
+reopenGlow.ImageTransparency = 0.5
+reopenGlow.Parent = reopenButton
 
 -- ══════════════════════════════════════
---  INFO PANEL
+--  CONTENT AREA
 -- ══════════════════════════════════════
-local infoPanel = Instance.new("Frame")
-infoPanel.Name = "InfoPanel"
-infoPanel.BackgroundColor3 = colors.secondary
-infoPanel.BackgroundTransparency = 0.1
-infoPanel.BorderSizePixel = 0
-infoPanel.Size = UDim2.new(1, -20, 0, 70)
-infoPanel.Position = UDim2.new(0, 10, 0, 55)
-infoPanel.Parent = mainFrame
+-- MegaHack title
+local megahackIcon = Instance.new("ImageLabel")
+megahackIcon.Name = "MegahackIcon"
+megahackIcon.BackgroundTransparency = 1
+megahackIcon.Image = "rbxassetid://138613137853151"
+megahackIcon.Size = UDim2.new(0, 32, 0, 32)
+megahackIcon.Position = UDim2.new(0, 20, 0, 55)
+megahackIcon.Parent = mainFrame
 
-local infoCorner = Instance.new("UICorner")
-infoCorner.CornerRadius = UDim.new(0, 15)
-infoCorner.Parent = infoPanel
+local iconCorner = Instance.new("UICorner")
+iconCorner.CornerRadius = UDim.new(0, 8)
+iconCorner.Parent = megahackIcon
 
-local infoGradient = Instance.new("UIGradient")
-infoGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(35, 35, 40)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 25))
-})
-infoGradient.Rotation = 135
-infoGradient.Parent = infoPanel
+local megahackLabel = Instance.new("TextLabel")
+megahackLabel.Name = "MegahackLabel"
+megahackLabel.BackgroundTransparency = 1
+megahackLabel.Text = "MEGAHACK V2"
+megahackLabel.Size = UDim2.new(0, 180, 0, 32)
+megahackLabel.Position = UDim2.new(0, 60, 0, 55)
+megahackLabel.TextSize = 26
+megahackLabel.TextColor3 = colors.text
+megahackLabel.TextTransparency = 0.1
+megahackLabel.TextXAlignment = Enum.TextXAlignment.Left
+megahackLabel.Font = Enum.Font.GothamBold
+megahackLabel.Parent = mainFrame
 
-local scriptsCount = Instance.new("TextLabel")
-scriptsCount.Name = "ScriptsCount"
-scriptsCount.BackgroundTransparency = 1
-scriptsCount.Text = "SCRIPTS: " .. countScripts()
-scriptsCount.TextColor3 = colors.accent
-scriptsCount.TextSize = 16
-scriptsCount.Font = Enum.Font.GothamBold
-scriptsCount.Position = UDim2.new(0, 15, 0, 10)
-scriptsCount.Size = UDim2.new(0.5, -15, 0, 20)
-scriptsCount.TextXAlignment = Enum.TextXAlignment.Left
-scriptsCount.Parent = infoPanel
+-- Scripts count badge
+local scriptsCount = Instance.new("Frame")
+scriptsCount.Size = UDim2.new(0, 80, 0, 24)
+scriptsCount.Position = UDim2.new(1, -100, 0, 60)
+scriptsCount.BackgroundColor3 = colors.primary
+scriptsCount.BackgroundTransparency = 0.3
+scriptsCount.Parent = mainFrame
 
-local gameInfo = Instance.new("TextLabel")
-gameInfo.Name = "GameInfo"
-gameInfo.BackgroundTransparency = 1
-gameInfo.Text = string.sub(MarketplaceService:GetProductInfo(game.PlaceId).Name, 1, 25) .. "..."
-gameInfo.TextColor3 = colors.textDim
-gameInfo.TextSize = 13
-gameInfo.Font = Enum.Font.Gotham
-gameInfo.Position = UDim2.new(0, 15, 0, 35)
-gameInfo.Size = UDim2.new(0.8, -15, 0, 20)
-gameInfo.TextXAlignment = Enum.TextXAlignment.Left
-gameInfo.Parent = infoPanel
+local scriptsCorner = Instance.new("UICorner")
+scriptsCorner.CornerRadius = UDim.new(0, 12)
+scriptsCorner.Parent = scriptsCount
 
-local playerInfo = Instance.new("TextLabel")
-playerInfo.Name = "PlayerInfo"
-playerInfo.BackgroundTransparency = 1
-playerInfo.Text = player.Name
-playerInfo.TextColor3 = colors.text
-playerInfo.TextSize = 14
-playerInfo.Font = Enum.Font.Gotham
-playerInfo.Position = UDim2.new(1, -120, 0, 15)
-playerInfo.Size = UDim2.new(0, 110, 0, 20)
-playerInfo.TextXAlignment = Enum.TextXAlignment.Right
-playerInfo.Parent = infoPanel
+local scriptsText = Instance.new("TextLabel")
+scriptsText.Text = countScripts() .. " Scripts"
+scriptsText.Font = Enum.Font.GothamBold
+scriptsText.TextColor3 = colors.text
+scriptsText.TextSize = 12
+scriptsText.BackgroundTransparency = 1
+scriptsText.Size = UDim2.new(1, 0, 1, 0)
+scriptsText.Parent = scriptsCount
 
-local platformIcon = Instance.new("ImageLabel")
-platformIcon.Name = "PlatformIcon"
-platformIcon.BackgroundTransparency = 1
-platformIcon.Image = isMobile and "rbxassetid://6026568195" or "rbxassetid://6023426924"
-platformIcon.Size = UDim2.new(0, 20, 0, 20)
-platformIcon.Position = UDim2.new(1, -30, 0, 40)
-platformIcon.Parent = infoPanel
+-- Game info
+local gameName = Instance.new("TextLabel")
+gameName.Name = "GameName"
+gameName.BackgroundTransparency = 1
+gameName.Text = MarketplaceService:GetProductInfo(game.PlaceId).Name
+gameName.Size = UDim2.new(1, -40, 0, 20)
+gameName.Position = UDim2.new(0, 20, 0, 95)
+gameName.TextSize = 14
+gameName.TextColor3 = colors.textDim
+gameName.TextXAlignment = Enum.TextXAlignment.Left
+gameName.Font = Enum.Font.Gotham
+gameName.Parent = mainFrame
 
 -- ══════════════════════════════════════
---  CATEGORIES SIDEBAR
+--  CATEGORIES PANEL
 -- ══════════════════════════════════════
+local categoriesPanel = Instance.new("Frame")
+categoriesPanel.Size = UDim2.new(0, 140, 1, -125)
+categoriesPanel.Position = UDim2.new(0, 15, 0, 120)
+categoriesPanel.BackgroundColor3 = colors.surface2
+categoriesPanel.BackgroundTransparency = 0.3
+categoriesPanel.Parent = mainFrame
+
+local categoriesCorner = Instance.new("UICorner")
+categoriesCorner.CornerRadius = UDim.new(0, 12)
+categoriesCorner.Parent = categoriesPanel
+
+local categoriesTitle = Instance.new("TextLabel")
+categoriesTitle.Text = "CATEGORIES"
+categoriesTitle.Font = Enum.Font.GothamBold
+categoriesTitle.TextColor3 = colors.textDim
+categoriesTitle.TextSize = 12
+categoriesTitle.BackgroundTransparency = 1
+categoriesTitle.Size = UDim2.new(1, 0, 0, 30)
+categoriesTitle.Parent = categoriesPanel
+
 local categoriesScroll = Instance.new("ScrollingFrame")
 categoriesScroll.Name = "CategoriesScroll"
 categoriesScroll.BackgroundTransparency = 1
-categoriesScroll.Size = UDim2.new(0, 120, 1, -135)
-categoriesScroll.Position = UDim2.new(0, 10, 0, 135)
+categoriesScroll.Size = UDim2.new(1, -10, 1, -35)
+categoriesScroll.Position = UDim2.new(0, 5, 0, 30)
 categoriesScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 categoriesScroll.ScrollBarThickness = 4
-categoriesScroll.ScrollBarImageColor3 = colors.accent
-categoriesScroll.Parent = mainFrame
+categoriesScroll.ScrollBarImageColor3 = colors.primary
+categoriesScroll.Parent = categoriesPanel
 
 local categoriesListLayout = Instance.new("UIListLayout")
-categoriesListLayout.Padding = UDim.new(0, 8)
+categoriesListLayout.Padding = UDim.new(0, 6)
 categoriesListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 categoriesListLayout.Parent = categoriesScroll
 
@@ -415,41 +509,40 @@ categoriesListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(fun
 end)
 
 -- ══════════════════════════════════════
---  CONTENT FRAME
+--  SCRIPTS PANEL
 -- ══════════════════════════════════════
-local contentFrame = Instance.new("Frame")
-contentFrame.Name = "ContentFrame"
-contentFrame.BackgroundColor3 = colors.secondary
-contentFrame.BackgroundTransparency = 0.1
-contentFrame.BorderSizePixel = 0
-contentFrame.Size = UDim2.new(0, 300, 1, -145)
-contentFrame.Position = UDim2.new(0, 140, 0, 135)
-contentFrame.Parent = mainFrame
+local scriptsPanel = Instance.new("Frame")
+scriptsPanel.Size = UDim2.new(0, 295, 1, -125)
+scriptsPanel.Position = UDim2.new(0, 165, 0, 120)
+scriptsPanel.BackgroundColor3 = colors.surface2
+scriptsPanel.BackgroundTransparency = 0.3
+scriptsPanel.Parent = mainFrame
 
-local contentCorner = Instance.new("UICorner")
-contentCorner.CornerRadius = UDim.new(0, 15)
-contentCorner.Parent = contentFrame
+local scriptsCorner2 = Instance.new("UICorner")
+scriptsCorner2.CornerRadius = UDim.new(0, 12)
+scriptsCorner2.Parent = scriptsPanel
 
-local contentGradient = Instance.new("UIGradient")
-contentGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(35, 35, 40)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 25))
-})
-contentGradient.Rotation = 45
-contentGradient.Parent = contentFrame
+local scriptsTitle = Instance.new("TextLabel")
+scriptsTitle.Text = "SCRIPTS"
+scriptsTitle.Font = Enum.Font.GothamBold
+scriptsTitle.TextColor3 = colors.textDim
+scriptsTitle.TextSize = 12
+scriptsTitle.BackgroundTransparency = 1
+scriptsTitle.Size = UDim2.new(1, 0, 0, 30)
+scriptsTitle.Parent = scriptsPanel
 
 local scrollingFrame = Instance.new("ScrollingFrame")
 scrollingFrame.Name = "ScrollingFrame"
 scrollingFrame.BackgroundTransparency = 1
-scrollingFrame.Size = UDim2.new(1, -20, 1, -20)
-scrollingFrame.Position = UDim2.new(0, 10, 0, 10)
+scrollingFrame.Size = UDim2.new(1, -10, 1, -35)
+scrollingFrame.Position = UDim2.new(0, 5, 0, 30)
 scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 scrollingFrame.ScrollBarThickness = 4
-scrollingFrame.ScrollBarImageColor3 = colors.accent
-scrollingFrame.Parent = contentFrame
+scrollingFrame.ScrollBarImageColor3 = colors.primary
+scrollingFrame.Parent = scriptsPanel
 
 local scrollingListLayout = Instance.new("UIListLayout")
-scrollingListLayout.Padding = UDim.new(0, 8)
+scrollingListLayout.Padding = UDim.new(0, 6)
 scrollingListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 scrollingListLayout.Parent = scrollingFrame
 
@@ -460,52 +553,59 @@ end)
 -- ══════════════════════════════════════
 --  MODERN BUTTON CREATOR
 -- ══════════════════════════════════════
-local function createModernButton(text, parent, callback, isCategory)
+local function createButton(text, parent, callback, isCategoryButton)
     local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, -10, 0, isCategory and 38 or 42)
-    button.BackgroundColor3 = isCategory and colors.primary or colors.accent
-    button.BackgroundTransparency = isCategory and 0.2 or 0.1
+    button.Size = UDim2.new(1, -10, 0, isCategoryButton and 32 or 38)
+    button.BackgroundColor3 = isCategoryButton and colors.surface or colors.primary
+    button.BackgroundTransparency = isCategoryButton and 0.4 or 0.3
     button.BorderSizePixel = 0
     button.Text = text
     button.TextColor3 = colors.text
-    button.TextSize = isCategory and 13 or 15
-    button.Font = isCategory and Enum.Font.GothamBold or Enum.Font.Gotham
+    button.TextSize = isCategoryButton and 13 or 15
+    button.Font = isCategoryButton and Enum.Font.GothamSemibold or Enum.Font.GothamBold
+    button.AutoButtonColor = false
     button.Parent = parent
 
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 12)
+    corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = button
 
-    if not isCategory then
+    -- Gradient for non-category buttons
+    if not isCategoryButton then
         local gradient = Instance.new("UIGradient")
         gradient.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 170, 255)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 130, 255))
+            ColorSequenceKeypoint.new(0, colors.primary),
+            ColorSequenceKeypoint.new(1, colors.secondary)
         })
         gradient.Rotation = 90
         gradient.Parent = button
     end
 
-    local buttonStroke = Instance.new("UIStroke")
-    buttonStroke.Thickness = 1
-    buttonStroke.Color = isCategory and colors.stroke or Color3.fromRGB(255, 255, 255)
-    buttonStroke.Transparency = isCategory and 0.3 or 0.8
-    buttonStroke.Parent = button
-
+    -- Hover effect
     button.MouseEnter:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = isCategory and 0.1 or 0}):Play()
-        TweenService:Create(button, TweenInfo.new(0.2), {Size = UDim2.new(1, -8, 0, isCategory and 40 or 44)}):Play()
+        if not isCategoryButton then
+            TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.1}):Play()
+        else
+            TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.2, BackgroundColor3 = colors.primary}):Play()
+        end
+        TweenService:Create(button, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
     end)
 
     button.MouseLeave:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = isCategory and 0.2 or 0.1}):Play()
-        TweenService:Create(button, TweenInfo.new(0.2), {Size = UDim2.new(1, -10, 0, isCategory and 38 or 42)}):Play()
+        if not isCategoryButton then
+            TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.3}):Play()
+        else
+            TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.4, BackgroundColor3 = colors.surface}):Play()
+            TweenService:Create(button, TweenInfo.new(0.2), {TextColor3 = colors.text}):Play()
+        end
     end)
 
+    -- Click animation
     button.MouseButton1Click:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.1), {BackgroundTransparency = isCategory and 0.3 or 0.2}):Play()
+        local tweenInfo = TweenInfo.new(0.1)
+        TweenService:Create(button, tweenInfo, {Size = UDim2.new(1, -14, 0, isCategoryButton and 30 or 36)}):Play()
         task.wait(0.1)
-        TweenService:Create(button, TweenInfo.new(0.1), {BackgroundTransparency = isCategory and 0.2 or 0.1}):Play()
+        TweenService:Create(button, tweenInfo, {Size = UDim2.new(1, -10, 0, isCategoryButton and 32 or 38)}):Play()
         callback()
     end)
 
@@ -516,10 +616,10 @@ local function createLabel(text, parent, size, position)
     local label = Instance.new("TextLabel")
     label.BackgroundTransparency = 1
     label.Text = text
-    label.Size = size or UDim2.new(1, -10, 0, 30)
-    label.Position = position or UDim2.new(0, 5, 0, 0)
+    label.Size = size or UDim2.new(1, 0, 0, 24)
+    label.Position = position or UDim2.new(0, 0, 0, 0)
     label.TextSize = 14
-    label.TextColor3 = colors.textDim
+    label.TextColor3 = colors.text
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Font = Enum.Font.Gotham
     label.TextWrapped = true
@@ -528,18 +628,18 @@ local function createLabel(text, parent, size, position)
 end
 
 -- ══════════════════════════════════════
---  CATEGORY FUNCTIONS (unchanged from original)
+--  SETTINGS AND OTHER FUNCTIONS
 -- ══════════════════════════════════════
 local rgbConnections = {}
 local settings = {
     locked = false,
     rgbAccent = false,
     rgbStroke = false,
-    transparency = 0.05,
+    transparency = 0.15,
     colors = {
-        bgColor = colors.primary,
+        bgColor = colors.background,
         textColor = colors.text,
-        strokeColor = colors.stroke,
+        strokeColor = colors.primary,
         textMode = "normal"
     }
 }
@@ -553,102 +653,6 @@ local function clearRgbConnections()
         connection:Disconnect()
     end
     rgbConnections = {}
-end
-
-local function updateAllTextColors()
-    clearRgbConnections()
-    for _, obj in pairs(mainFrame:GetDescendants()) do
-        if obj:IsA("TextButton") or obj:IsA("TextLabel") then
-            if settings.rgbAccent then
-                local connection
-                connection = RunService.Heartbeat:Connect(function(t)
-                    if not obj:IsDescendantOf(mainFrame) then
-                        connection:Disconnect()
-                        return
-                    end
-                    local hue = (tick() % 5) / 5
-                    obj.TextColor3 = Color3.fromHSV(hue, 1, 1)
-                end)
-                table.insert(rgbConnections, connection)
-            else
-                obj.TextColor3 = settings.colors.textColor
-            end
-        end
-    end
-
-    for _, obj in pairs(reopenButton:GetDescendants()) do
-        if obj:IsA("TextButton") or obj:IsA("TextLabel") then
-            if settings.rgbAccent then
-                local connection
-                connection = RunService.Heartbeat:Connect(function(t)
-                    if not obj:IsDescendantOf(reopenButton) then
-                        connection:Disconnect()
-                        return
-                    end
-                    local hue = (tick() % 5) / 5
-                    obj.TextColor3 = Color3.fromHSV(hue, 1, 1)
-                end)
-                table.insert(rgbConnections, connection)
-            else
-                obj.TextColor3 = settings.colors.textColor
-            end
-        end
-    end
-end
-
-local function updateGuiColors()
-    clearRgbConnections()
-
-    mainFrame.BackgroundColor3 = settings.colors.bgColor
-    mainFrame.BackgroundTransparency = settings.transparency
-    headerFrame.BackgroundColor3 = settings.colors.bgColor
-    headerFix.BackgroundColor3 = settings.colors.bgColor
-    reopenButton.BackgroundColor3 = settings.colors.bgColor
-    reopenButton.BackgroundTransparency = settings.transparency
-    frameStroke.Color = settings.colors.strokeColor
-    reopenStroke.Color = settings.colors.strokeColor
-
-    for _, obj in pairs(mainFrame:GetDescendants()) do
-        if obj:IsA("UIStroke") then
-            if settings.rgbStroke then
-                local connection
-                connection = RunService.Heartbeat:Connect(function(t)
-                    if not obj:IsDescendantOf(mainFrame) then
-                        connection:Disconnect()
-                        return
-                    end
-                    local hue = (tick() % 5) / 5
-                    obj.Color = Color3.fromHSV(hue, 1, 1)
-                end)
-                table.insert(rgbConnections, connection)
-            else
-                obj.Color = settings.colors.strokeColor
-                obj.Transparency = 0.5
-            end
-        end
-    end
-
-    for _, obj in pairs(reopenButton:GetDescendants()) do
-        if obj:IsA("UIStroke") then
-            if settings.rgbStroke then
-                local connection
-                connection = RunService.Heartbeat:Connect(function(t)
-                    if not obj:IsDescendantOf(reopenButton) then
-                        connection:Disconnect()
-                        return
-                    end
-                    local hue = (tick() % 5) / 5
-                    obj.Color = Color3.fromHSV(hue, 1, 1)
-                end)
-                table.insert(rgbConnections, connection)
-            else
-                obj.Color = settings.colors.strokeColor
-                obj.Transparency = 0.5
-            end
-        end
-    end
-
-    updateAllTextColors()
 end
 
 -- ══════════════════════════════════════
@@ -704,26 +708,24 @@ local function loadHacksFromCategory(categoryName)
     local data = HubData[categoryName]
 
     if not data or #data == 0 then
-        createLabel("⚠  No scripts found", scrollingFrame,
-            UDim2.new(1, -10, 0, 40), UDim2.new(0, 5, 0, 10))
+        createLabel("⚠  No scripts available", scrollingFrame,
+            UDim2.new(1, 0, 0, 40), UDim2.new(0, 10, 0, 0))
         return
     end
 
     for _, hack in ipairs(data) do
         if type(hack) == "table" and hack[1] and type(hack[1]) == "string"
         and hack[2] and type(hack[2]) == "function" then
-            createModernButton(hack[1], scrollingFrame, function()
+            createButton(hack[1], scrollingFrame, function()
                 local success, err = pcall(hack[2])
                 if not success then
                     createNotification("ERROR", "Script error: " .. tostring(err), 5, 7733968497)
                 end
-            end, false)
+            end)
         else
             warn("Invalid hack format in " .. categoryName .. ":", tostring(hack))
         end
     end
-
-    updateAllTextColors()
 end
 
 local function showAllScripts()
@@ -732,42 +734,31 @@ local function showAllScripts()
     end
 
     local searchBox = Instance.new("TextBox")
-    searchBox.Size = UDim2.new(1, -10, 0, 40)
+    searchBox.Size = UDim2.new(1, -10, 0, 38)
     searchBox.Position = UDim2.new(0, 5, 0, 0)
-    searchBox.BackgroundColor3 = colors.primary
-    searchBox.BackgroundTransparency = 0.2
+    searchBox.BackgroundColor3 = colors.surface
+    searchBox.BackgroundTransparency = 0.3
     searchBox.TextColor3 = colors.text
-    searchBox.TextSize = 15
-    searchBox.Text = "Search scripts..."
+    searchBox.TextSize = 14
+    searchBox.PlaceholderText = "Search scripts..."
+    searchBox.PlaceholderColor3 = colors.textDim
     searchBox.Font = Enum.Font.Gotham
-    searchBox.Parent = scrollingFrame
     searchBox.ClearTextOnFocus = false
+    searchBox.Parent = scrollingFrame
 
-    local searchCorner = Instance.new("UICorner")
-    searchCorner.CornerRadius = UDim.new(0, 12)
-    searchCorner.Parent = searchBox
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = searchBox
 
-    local searchStroke = Instance.new("UIStroke")
-    searchStroke.Thickness = 1
-    searchStroke.Color = colors.stroke
-    searchStroke.Transparency = 0.3
-    searchStroke.Parent = searchBox
-
-    local searchIcon = Instance.new("ImageLabel")
-    searchIcon.Size = UDim2.new(0, 20, 0, 20)
-    searchIcon.Position = UDim2.new(1, -30, 0.5, -10)
-    searchIcon.BackgroundTransparency = 1
-    searchIcon.Image = "rbxassetid://6023426924"
-    searchIcon.ImageColor3 = colors.textDim
-    searchIcon.Parent = searchBox
-
-    local resultsLabel = createLabel("Results:", scrollingFrame, UDim2.new(1, -10, 0, 30), UDim2.new(0, 5, 0, 50))
-    resultsLabel.TextSize = 16
-    resultsLabel.TextColor3 = colors.accent
+    local searchButton = createButton("🔍 Search", scrollingFrame, function()
+        updateSearchResults(searchBox.Text)
+    end)
+    searchButton.Size = UDim2.new(1, -10, 0, 38)
+    searchButton.Position = UDim2.new(0, 5, 0, 45)
 
     local function updateSearchResults(query)
         for _, child in ipairs(scrollingFrame:GetChildren()) do
-            if child ~= searchBox and child ~= resultsLabel and not child:IsA("UIListLayout") then
+            if child ~= searchBox and child ~= searchButton and not child:IsA("UIListLayout") then
                 child:Destroy()
             end
         end
@@ -777,35 +768,26 @@ local function showAllScripts()
 
         local yOffset = 90
         for _, result in ipairs(megahackResults) do
-            local button = createModernButton(result.name .. " (" .. result.category .. ")", scrollingFrame, function()
+            local button = createButton(result.name .. " (" .. result.category .. ")", scrollingFrame, function()
                 local success, err = pcall(result.func)
                 if not success then
                     createNotification("ERROR", "Script error: " .. tostring(err), 5, 7733968497)
                 end
-            end, false)
+            end)
             button.Position = UDim2.new(0, 5, 0, yOffset)
-            yOffset = yOffset + 50
+            yOffset = yOffset + 44
         end
 
         for _, result in ipairs(scriptBloxResults) do
-            local button = createModernButton(result.name .. " (ScriptBlox)", scrollingFrame, function()
-                createNotification("INFO", "Script ID: " .. result.scriptId, 5)
-            end, false)
+            local button = createButton(result.name .. " (ScriptBlox)", scrollingFrame, function()
+                createNotification("INFO", "ScriptBlox script ID: " .. result.scriptId, 5)
+            end)
             button.Position = UDim2.new(0, 5, 0, yOffset)
-            yOffset = yOffset + 50
+            yOffset = yOffset + 44
         end
 
-        if yOffset == 90 then
-            createLabel("No results found", scrollingFrame, UDim2.new(1, -10, 0, 40), UDim2.new(0, 5, 0, 90))
-        end
+        scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, yOffset + 10)
     end
-
-    searchBox.FocusLost:Connect(function()
-        updateSearchResults(searchBox.Text)
-    end)
-    searchBox.Focused:Connect(function()
-        if searchBox.Text == "Search scripts..." then searchBox.Text = "" end
-    end)
 
     updateSearchResults("")
 end
@@ -815,118 +797,174 @@ local function showHome()
         if not child:IsA("UIListLayout") then child:Destroy() end
     end
 
-    createLabel("Welcome to MegaHack v2.0", scrollingFrame, UDim2.new(1, -10, 0, 35), UDim2.new(0, 5, 0, 0)).TextSize = 22
-    createLabel("Premium GUI with " .. countScripts() .. " scripts", scrollingFrame, UDim2.new(1, -10, 0, 25), UDim2.new(0, 5, 0, 40))
-    createLabel("Player: " .. player.Name .. " | Level: " .. player:GetRankInGroup(1), scrollingFrame, UDim2.new(1, -10, 0, 25), UDim2.new(0, 5, 0, 70))
+    local welcomeLabel = createLabel("Welcome to MegaHack V2!", scrollingFrame, UDim2.new(1, -10, 0, 32), UDim2.new(0, 5, 0, 0))
+    welcomeLabel.TextSize = 20
+    welcomeLabel.Font = Enum.Font.GothamBold
+    welcomeLabel.TextColor3 = colors.text
 
-    local fpsLabel = createLabel("FPS: Calculating...", scrollingFrame, UDim2.new(1, -10, 0, 25), UDim2.new(0, 5, 0, 100))
+    local descLabel = createLabel("Premium scripts & features for everyone", scrollingFrame, UDim2.new(1, -10, 0, 24), UDim2.new(0, 5, 0, 35))
+    descLabel.TextColor3 = colors.textDim
+    descLabel.TextSize = 13
+
+    local gameLabel = createLabel("📌 " .. MarketplaceService:GetProductInfo(game.PlaceId).Name, scrollingFrame, UDim2.new(1, -10, 0, 24), UDim2.new(0, 5, 0, 70))
+    gameLabel.TextColor3 = colors.primary
+
+    local playerLabel = createLabel("👤 " .. player.Name .. " (" .. player.UserId .. ")", scrollingFrame, UDim2.new(1, -10, 0, 24), UDim2.new(0, 5, 0, 100))
+    playerLabel.TextColor3 = colors.accent
+
+    local fpsLabel = createLabel("⚡ FPS: Calculating...", scrollingFrame, UDim2.new(1, -10, 0, 24), UDim2.new(0, 5, 0, 130))
+    fpsLabel.TextColor3 = colors.success
+
     local lastTime = tick()
     local frameCount = 0
     RunService.Heartbeat:Connect(function()
         frameCount = frameCount + 1
         local currentTime = tick()
         if currentTime - lastTime >= 1 then
-            fpsLabel.Text = "FPS: " .. frameCount
+            fpsLabel.Text = "⚡ FPS: " .. frameCount
             frameCount = 0
             lastTime = currentTime
         end
     end)
 
-    local socialFrame = Instance.new("Frame")
-    socialFrame.BackgroundColor3 = colors.primary
-    socialFrame.BackgroundTransparency = 0.2
-    socialFrame.Size = UDim2.new(1, -10, 0, 120)
-    socialFrame.Position = UDim2.new(0, 5, 0, 140)
-    socialFrame.Parent = scrollingFrame
+    -- Avatar
+    local success, thumbnail = pcall(function()
+        return Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size180x180)
+    end)
+    if success then
+        local avatarFrame = Instance.new("Frame")
+        avatarFrame.Size = UDim2.new(0, 90, 0, 90)
+        avatarFrame.Position = UDim2.new(0, 5, 0, 170)
+        avatarFrame.BackgroundColor3 = colors.primary
+        avatarFrame.BackgroundTransparency = 0.3
+        avatarFrame.Parent = scrollingFrame
 
-    local socialCorner = Instance.new("UICorner")
-    socialCorner.CornerRadius = UDim.new(0, 12)
-    socialCorner.Parent = socialFrame
+        local avatarCorner = Instance.new("UICorner")
+        avatarCorner.CornerRadius = UDim.new(0, 12)
+        avatarCorner.Parent = avatarFrame
 
-    createLabel("Social Networks:", socialFrame, UDim2.new(1, -20, 0, 30), UDim2.new(0, 10, 0, 10)).TextSize = 16
-    createLabel("📺 YouTube: @Vermax", socialFrame, UDim2.new(1, -20, 0, 25), UDim2.new(0, 10, 0, 40))
-    createLabel("📱 Telegram: @vermax", socialFrame, UDim2.new(1, -20, 0, 25), UDim2.new(0, 10, 0, 65))
-    createLabel("💬 Discord: /vermax", socialFrame, UDim2.new(1, -20, 0, 25), UDim2.new(0, 10, 0, 90))
+        local avatarImage = Instance.new("ImageLabel")
+        avatarImage.Size = UDim2.new(1, -4, 1, -4)
+        avatarImage.Position = UDim2.new(0, 2, 0, 2)
+        avatarImage.BackgroundTransparency = 1
+        avatarImage.Image = thumbnail
+        avatarImage.Parent = avatarFrame
 
-    updateAllTextColors()
+        local imageCorner = Instance.new("UICorner")
+        imageCorner.CornerRadius = UDim.new(0, 10)
+        imageCorner.Parent = avatarImage
+    end
+
+    -- Quick actions
+    local quickLabel = createLabel("⚡ Quick Actions", scrollingFrame, UDim2.new(1, -10, 0, 24), UDim2.new(0, 5, 0, 280))
+    quickLabel.TextSize = 16
+    quickLabel.Font = Enum.Font.GothamBold
+    quickLabel.TextColor3 = colors.text
+
+    createButton("📋 Copy Server ID", scrollingFrame, function()
+        setclipboard(game.JobId)
+        createNotification("SUCCESS", "Server ID copied!", 2)
+    end)
+
+    createButton("🔄 Rejoin Server", scrollingFrame, function()
+        TeleportService:Teleport(game.PlaceId, player)
+    end)
+
+    createButton("🎲 Random Server", scrollingFrame, function()
+        local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+        local serverList = servers.data
+        if #serverList > 0 then
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, serverList[math.random(1, #serverList)].id, player)
+        end
+    end)
 end
 
--- ══════════════════════════════════════
---  SETTINGS FUNCTION (simplified)
--- ══════════════════════════════════════
 local function showSettings()
     for _, child in ipairs(scrollingFrame:GetChildren()) do
         if not child:IsA("UIListLayout") then child:Destroy() end
     end
 
-    createLabel("Settings", scrollingFrame, UDim2.new(1, -10, 0, 35), UDim2.new(0, 5, 0, 0)).TextSize = 22
+    local function saveAndUpdate()
+        saveSettings()
+        showSettings()
+    end
 
-    local function createToggle(text, value, callback)
-        local toggleFrame = Instance.new("Frame")
-        toggleFrame.BackgroundColor3 = colors.primary
-        toggleFrame.BackgroundTransparency = 0.2
-        toggleFrame.Size = UDim2.new(1, -10, 0, 45)
-        toggleFrame.Parent = scrollingFrame
-
-        local toggleCorner = Instance.new("UICorner")
-        toggleCorner.CornerRadius = UDim.new(0, 12)
-        toggleCorner.Parent = toggleFrame
-
-        local label = Instance.new("TextLabel")
-        label.BackgroundTransparency = 1
-        label.Text = text
-        label.TextColor3 = colors.text
-        label.TextSize = 15
-        label.Font = Enum.Font.Gotham
-        label.Position = UDim2.new(0, 15, 0, 12)
-        label.Size = UDim2.new(0.7, -15, 0, 20)
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Parent = toggleFrame
-
-        local toggleButton = Instance.new("TextButton")
-        toggleButton.Size = UDim2.new(0, 50, 0, 25)
-        toggleButton.Position = UDim2.new(1, -65, 0, 10)
-        toggleButton.BackgroundColor3 = value and colors.accent or colors.primary
-        toggleButton.BackgroundTransparency = value and 0 or 0.3
-        toggleButton.Text = ""
-        toggleButton.Parent = toggleFrame
-
-        local toggleCornerBtn = Instance.new("UICorner")
-        toggleCornerBtn.CornerRadius = UDim.new(1, 0)
-        toggleCornerBtn.Parent = toggleButton
-
-        local toggleIndicator = Instance.new("Frame")
-        toggleIndicator.Size = UDim2.new(0, 20, 0, 20)
-        toggleIndicator.Position = UDim2.new(value and 0.55 or 0.05, 0, 0.1, 0)
-        toggleIndicator.BackgroundColor3 = colors.text
-        toggleIndicator.BackgroundTransparency = 0.1
-        toggleIndicator.Parent = toggleButton
-
-        local indicatorCorner = Instance.new("UICorner")
-        indicatorCorner.CornerRadius = UDim.new(1, 0)
-        indicatorCorner.Parent = toggleIndicator
-
-        toggleButton.MouseButton1Click:Connect(function()
-            value = not value
-            TweenService:Create(toggleButton, TweenInfo.new(0.2), {BackgroundColor3 = value and colors.accent or colors.primary}):Play()
-            TweenService:Create(toggleIndicator, TweenInfo.new(0.2), {Position = UDim2.new(value and 0.55 or 0.05, 0, 0.1, 0)}):Play()
-            callback(value)
+    createButton("🎨 Background Colors", scrollingFrame, function() end).TextSize = 18
+    local bgColors = {
+        {"Dark", colors.background}, {"Darker", Color3.fromRGB(10, 10, 15)},
+        {"Surface", colors.surface}, {"Surface 2", colors.surface2},
+        {"Blurple", colors.primary}, {"Purple", Color3.fromRGB(150, 0, 255)}
+    }
+    for _, c in ipairs(bgColors) do
+        createButton(c[1], scrollingFrame, function()
+            settings.colors.bgColor = c[2]
+            saveAndUpdate()
         end)
     end
 
-    createToggle("Lock GUI", settings.locked, function(v) settings.locked = v end)
-    createToggle("RGB Accents", settings.rgbAccent, function(v) settings.rgbAccent = v; updateGuiColors() end)
-    createToggle("RGB Stroke", settings.rgbStroke, function(v) settings.rgbStroke = v; updateGuiColors() end)
+    createButton("✏️ Text Colors", scrollingFrame, function() end).TextSize = 18
+    local textColors = {
+        {"White", Color3.fromRGB(255, 255, 255)}, {"Dim", Color3.fromRGB(180, 180, 200)},
+        {"Blurple", colors.primary}, {"Pink", colors.accent},
+        {"Green", colors.success}, {"Red", colors.danger}
+    }
+    for _, c in ipairs(textColors) do
+        createButton(c[1], scrollingFrame, function()
+            settings.colors.textColor = c[2]
+            saveAndUpdate()
+        end)
+    end
 
-    createModernButton("Save Settings", scrollingFrame, function()
-        saveSettings()
-    end, false)
+    createButton("🔒 Security", scrollingFrame, function() end).TextSize = 18
+    createButton("Enable Anti-Ban/Kick", scrollingFrame, function()
+        local mt = getrawmetatable(game)
+        if mt then
+            local oldNamecall = mt.__namecall
+            setreadonly(mt, false)
+            mt.__namecall = newcclosure(function(self, ...)
+                local method = getnamecallmethod()
+                if method == "Kick" or method == "ban" then
+                    createNotification("⚠️ BLOCKED", "Kick/Ban attempt blocked", 2)
+                    return nil
+                end
+                return oldNamecall(self, ...)
+            end)
+            setreadonly(mt, true)
+            createNotification("✅ PROTECTED", "Anti-Ban/Kick enabled", 2)
+        end
+    end)
 
-    createModernButton("Close GUI", scrollingFrame, function()
-        screenGui:Destroy()
-    end, false)
+    createButton("📁 Coordinates", scrollingFrame, function() end).TextSize = 18
+    createButton("Save Coordinates", scrollingFrame, function()
+        local char = player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local pos = char.HumanoidRootPart.Position
+            writefile("MegaHack/coords.txt", tostring(pos))
+            createNotification("✅ SAVED", "Coordinates saved!", 2)
+        end
+    end)
+    
+    createButton("Load Coordinates", scrollingFrame, function()
+        if isfile("MegaHack/coords.txt") then
+            local pos = readfile("MegaHack/coords.txt")
+            local x,y,z = pos:match("(.-), (.-), (.-)")
+            if x and y and z then
+                player.Character.HumanoidRootPart.CFrame = CFrame.new(tonumber(x), tonumber(y), tonumber(z))
+                createNotification("✅ TELEPORTED", "Coordinates loaded!", 2)
+            end
+        end
+    end)
 
-    updateAllTextColors()
+    createButton("⚙️ GUI Options", scrollingFrame, function() end).TextSize = 18
+    createButton(settings.locked and "🔓 Unlock GUI" or "🔒 Lock GUI", scrollingFrame, function()
+        settings.locked = not settings.locked
+        saveAndUpdate()
+    end)
+    
+    createButton("💫 RGB Mode", scrollingFrame, function()
+        settings.rgbAccent = not settings.rgbAccent
+        saveAndUpdate()
+    end)
 end
 
 -- ══════════════════════════════════════
@@ -936,46 +974,34 @@ local categories = {
     ["🏠 Home"]             = showHome,
     ["⚙️ Settings"]         = showSettings,
     ["🔍 All Scripts"]      = showAllScripts,
-    ["💀 MegaHack"]         = function() loadHacksFromCategory("MegaHack") end,
+    ["💎 MegaHack"]         = function() loadHacksFromCategory("MegaHack") end,
     ["🛠️ Hacks"]            = function() loadHacksFromCategory("Hacks") end,
     ["🔪 MM2"]              = function() loadHacksFromCategory("MM2") end,
     ["👑 Admins"]           = function() loadHacksFromCategory("Admins") end,
     ["🎭 Animations"]       = function() loadHacksFromCategory("Animations") end,
     ["✨ FE"]               = function() loadHacksFromCategory("FE") end,
-    ["🦴 Ragdoll"]          = function() loadHacksFromCategory("RagdollEngine") end,
-    ["🌪️ Natural"]          = function() loadHacksFromCategory("NaturalDisaster") end,
+    ["💀 Ragdoll"]          = function() loadHacksFromCategory("RagdollEngine") end,
+    ["🌪️ Natural Disaster"] = function() loadHacksFromCategory("NaturalDisaster") end,
     ["🏃 Evade"]            = function() loadHacksFromCategory("Evade") end,
-    ["🏡 Brookhaven"]       = function() loadHacksFromCategory("Brookhaven") end,
+    ["🏘️ Brookhaven"]       = function() loadHacksFromCategory("Brookhaven") end,
     ["⚽ Blade Ball"]       = function() loadHacksFromCategory("BladeBall") end,
-    ["🍎 Blox Fruit"]       = function() loadHacksFromCategory("BloxFruit") end,
-    ["🧠 Brain Root"]       = function() loadHacksFromCategory("StealBrainRoot") end,
-    ["🏰 Tower"]            = function() loadHacksFromCategory("TowerOfHell") end,
+    ["🍇 Blox Fruit"]       = function() loadHacksFromCategory("BloxFruit") end,
+    ["🧠 Steal Brain"]      = function() loadHacksFromCategory("StealBrainRoot") end,
+    ["🏗️ Tower of Hell"]    = function() loadHacksFromCategory("TowerOfHell") end,
     ["🐶 Adopt Me"]         = function() loadHacksFromCategory("AdoptMe") end,
-    ["🌱 GrowGarden"]       = function() loadHacksFromCategory("GrowGarden") end,
+    ["🌱 Grow Garden"]      = function() loadHacksFromCategory("GrowGarden") end,
     ["🌙 Night"]            = function() loadHacksFromCategory("Night") end,
-    ["🔫 Weird"]            = function() loadHacksFromCategory("Weird") end,
-    ["⚔️ Duels"]            = function() loadHacksFromCategory("DuelsMVS") end,
-    ["🏙️ Violence"]         = function() loadHacksFromCategory("ViolenceDistrict") end,
+    ["🔫 Weird Gun"]        = function() loadHacksFromCategory("Weird") end,
+    ["⚔️ Duels MVS"]        = function() loadHacksFromCategory("DuelsMVS") end,
+    ["🏙️ Violence District"] = function() loadHacksFromCategory("ViolenceDistrict") end,
 }
 
-local categoryOrder = {
-    "🏠 Home", "⚙️ Settings", "🔍 All Scripts", "💀 MegaHack", "🛠️ Hacks", "👑 Admins", "🎭 Animations",
-    "✨ FE", "🧠 Brain Root", "⚽ Blade Ball", "🦴 Ragdoll", "🌪️ Natural", "🔪 MM2", "⚔️ Duels",
-    "🏃 Evade", "🍎 Blox Fruit", "🏡 Brookhaven", "🐶 Adopt Me", "🏰 Tower", "🌙 Night", "🌱 GrowGarden",
-    "🏙️ Violence", "🔫 Weird"
-}
-
-for _, categoryName in ipairs(categoryOrder) do
-    createModernButton(categoryName, categoriesScroll, function()
-        for _, child in ipairs(scrollingFrame:GetChildren()) do
-            if not child:IsA("UIListLayout") then child:Destroy() end
-        end
-        categories[categoryName]()
-    end, true)
+for categoryName, func in pairs(categories) do
+    createButton(categoryName, categoriesScroll, func, true)
 end
 
 -- ══════════════════════════════════════
---  DRAGGABLE
+--  DRAGGABLE FUNCTION
 -- ══════════════════════════════════════
 local function MakeDraggable(frame, dragPart)
     dragPart = dragPart or frame
@@ -1005,31 +1031,42 @@ end
 MakeDraggable(mainFrame, headerFrame)
 MakeDraggable(reopenButton, reopenButton)
 
+-- ══════════════════════════════════════
+--  CLOSE/REOPEN HANDLERS
+-- ══════════════════════════════════════
 closeIcon.MouseButton1Click:Connect(function()
-    TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 0, 0, 0)}):Play()
+    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+    TweenService:Create(mainFrame, tweenInfo, {Size = UDim2.new(0, 0, 0, 0)}):Play()
     task.wait(0.3)
     mainFrame.Visible = false
     reopenButton.Visible = true
-    TweenService:Create(reopenButton, TweenInfo.new(0.3), {Size = UDim2.new(0, 55, 0, 55)}):Play()
+    
+    local reopenTween = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    TweenService:Create(reopenButton, reopenTween, {Size = UDim2.new(0, 55, 0, 55)}):Play()
 end)
 
 reopenButton.MouseButton1Click:Connect(function()
-    mainFrame.Visible = true
     reopenButton.Visible = false
-    TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 450, 0, 380)}):Play()
+    mainFrame.Visible = true
+    
+    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    TweenService:Create(mainFrame, tweenInfo, {Size = UDim2.new(0, 480, 0, 360)}):Play()
 end)
 
 -- ══════════════════════════════════════
---  INITIALIZATION
+--  INITIAL ANIMATION
 -- ══════════════════════════════════════
-mainFrame.Size = UDim2.new(0, 0, 0, 0)
+mainFrame.Size = UDim2.new(0, 0, 0, 360)
+mainFrame.BackgroundTransparency = 1
 reopenButton.Size = UDim2.new(0, 0, 0, 0)
 
 task.wait(0.1)
-TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 450, 0, 380)}):Play()
-TweenService:Create(reopenButton, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 55, 0, 55)}):Play()
 
+local tweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+TweenService:Create(mainFrame, tweenInfo, {Size = UDim2.new(0, 480, 0, 360), BackgroundTransparency = 0.1}):Play()
+
+-- Show home
 showHome()
-updateGuiColors()
 
-createNotification("MEGA HACK V2", "Modern GUI loaded for " .. platformName .. "!", 4, 138613137853151)
+-- Welcome notification
+createNotification("✨ MEGAHACK V2", "Loaded successfully on " .. platformName .. "!", 4, 138613137853151)
