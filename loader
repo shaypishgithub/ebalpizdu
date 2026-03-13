@@ -1041,7 +1041,7 @@ local categories = {
     ["Ragdoll Engine"]   = function() loadHacksFromCategory("RagdollEngine") end,
     ["Natural Disaster"] = function() loadHacksFromCategory("NaturalDisaster") end,
     ["Evade"]            = function() loadHacksFromCategory("Evade") end,
-     ["3008"]        = function() loadHacksFromCategory("3008") end,
+     ["IKEA3008"]        = function() loadHacksFromCategory("IKEA3008") end,
     ["Brookhaven"]       = function() loadHacksFromCategory("Brookhaven") end,
     ["Blade Ball"]       = function() loadHacksFromCategory("BladeBall") end,
     ["Blox Fruit"]       = function() loadHacksFromCategory("BloxFruit") end,
@@ -1058,7 +1058,7 @@ local categories = {
 local categoryOrder = {
     "Home", "Settings", "All Scripts", "MegaHack", "Hacks", "Admins", "Animations", "FE",
     "Steal Brain Root", "Blade Ball", "Ragdoll Engine", "Natural Disaster",
-    "MM2","Duels MVS", "Evade","3008", "Blox Fruit", "Brookhaven", "Adopt Me", "Tower of Hell",
+    "MM2","Duels MVS", "Evade","IKEA3008", "Blox Fruit", "Brookhaven", "Adopt Me", "Tower of Hell",
     "Night99", "GrowGarden","ViolenceDistrict", "Weird Gun Game"
 }
 
