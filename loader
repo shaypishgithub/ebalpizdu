@@ -36,28 +36,28 @@ end
 -- PZIAISiasiaisiasiaisiaisAISIAISIASIAIS
 -- ══════════════════════════════════════
 local HubData = {
-    Brookhaven      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/brookhaven"),
-    Evade           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/evade"),
-    MM2             = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/MM2.lua"),
-    MegaHack        = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/megapizda"),
-    Hacks           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Hacks.lua"),
-    Admins          = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/admin"),
-    Animations      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/animation"),
-    FE              = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/FE.lua"),
-    RagdollEngine   = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/ragdoll"),
+    Brookhaven = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/brookhaven"),
+    Evade = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/evade"),
+    MM2 = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/MM2.lua"),
+    MegaHack = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/megapizda"),
+    Hacks = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Hacks.lua"),
+    Admins = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/admin"),
+    Animations = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/animation"),
+    FE = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/FE.lua"),
+    RagdollEngine = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/ragdoll"),
     NaturalDisaster = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/NaturalDisaster.lua"),
-    BloxFruit       = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/BloxFruit.lua"),
-    BladeBall       = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/BladeBall.lua"),
-    StealBrainRoot  = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/StealBrainRoot.lua"),
-    TowerOfHell     = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/tower.lua"),
-    AdoptMe         = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/adoptme"),
-    GrowGarden      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/GrowGarden.lua"),
-    Night           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Night.lua"),
-    Weird           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Weird.lua"),
-    DuelsMVS        = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/DuelsMVS.lua"),
-     ViolenceDistrict = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/ViolenceDistrict.lua"),
+    BloxFruit = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/BloxFruit.lua"),
+    BladeBall = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/BladeBall.lua"),
+    StealBrainRoot = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/StealBrainRoot.lua"),
+    TowerOfHell = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/tower.lua"),
+    AdoptMe = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/adoptme"),
+    GrowGarden = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/GrowGarden.lua"),
+    Night = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Night.lua"),
+    Weird = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Weird.lua"),
+    DuelsMVS = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/DuelsMVS.lua"),
+    ViolenceDistrict = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/ViolenceDistrict.lua"),
+    IKEA3008 = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/3008.lua"),
 }
-
 local function createNotification(title, subtitle, duration, iconId)
     local notificationGui = Instance.new("ScreenGui")
     notificationGui.Name = "Notification"
@@ -1041,6 +1041,7 @@ local categories = {
     ["Ragdoll Engine"]   = function() loadHacksFromCategory("RagdollEngine") end,
     ["Natural Disaster"] = function() loadHacksFromCategory("NaturalDisaster") end,
     ["Evade"]            = function() loadHacksFromCategory("Evade") end,
+     ["3008"]        = function() loadHacksFromCategory("3008") end,
     ["Brookhaven"]       = function() loadHacksFromCategory("Brookhaven") end,
     ["Blade Ball"]       = function() loadHacksFromCategory("BladeBall") end,
     ["Blox Fruit"]       = function() loadHacksFromCategory("BloxFruit") end,
@@ -1057,7 +1058,7 @@ local categories = {
 local categoryOrder = {
     "Home", "Settings", "All Scripts", "MegaHack", "Hacks", "Admins", "Animations", "FE",
     "Steal Brain Root", "Blade Ball", "Ragdoll Engine", "Natural Disaster",
-    "MM2","Duels MVS", "Evade", "Blox Fruit", "Brookhaven", "Adopt Me", "Tower of Hell",
+    "MM2","Duels MVS", "Evade","3008", "Blox Fruit", "Brookhaven", "Adopt Me", "Tower of Hell",
     "Night99", "GrowGarden","ViolenceDistrict", "Weird Gun Game"
 }
 
