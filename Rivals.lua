@@ -1,9 +1,9 @@
 return {
-    {"Z3US Hub [No Key] Aimbot + Silent + ESP + Skin Changer + Rage", function()
+    {"Z3US Hub [No Key] ", function()
         loadstring(game:HttpGet("https://pastefy.app/YiGY38uo/raw"))()
     end},
 
-    {"Flow Hub [NEW] Aimbot + RageBot V3 + Unlock All + Safe Rank", function()
+    {"Flow Hub [NEW]", function()
         loadstring(game:HttpGet("https://pastebin.com/raw/tffyi0uA"))()
     end},
 
