@@ -1,1072 +1,1799 @@
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-local CoreGui = game:GetService("CoreGui")
-local RunService = game:GetService("RunService")
-local MarketplaceService = game:GetService("MarketplaceService")
-local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService")
-local Lighting = game:GetService("Lighting")
-local Workspace = game:GetService("Workspace")
+--[[
+╔══════════════════════════════════════════════════════════════════╗
+║              MEGAHACK V2 — COMPLETE REDESIGN                     ║
+║  Modern · Animated · Responsive · Modular · Theme-Aware          ║
+╚══════════════════════════════════════════════════════════════════╝
 
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui", 5)
+  ARCHITECTURE OVERVIEW
+  ─────────────────────
+  1. Config         — Color themes, layout constants, feature flags
+  2. Services       — Cached Roblox service references
+  3. Utils          — Shared helper functions (tween, create, etc.)
+  4. ThemeManager   — Live theme switching + UIGradient animations
+  5. LoadingScreen  — Animated boot sequence
+  6. CategoryData   — Remote script loading (from your HubData URLs)
+  7. SearchEngine   — Real-time filtering across all loaded scripts
+  8. Navigation     — Category sidebar + content panel management
+  9. Settings       — Server tools, coordinates, protection, theming
+  10. Bootstrap     — Entry point: loads data, shows loading screen, builds UI
+]]
 
-if not playerGui then
-    warn("PlayerGui not found! Aborting script.")
-    return
+-- ════════════════════════════════════════════════════════
+--  [1] CONFIG  — Central configuration table
+-- ════════════════════════════════════════════════════════
+local Config = {
+    -- ── Layout ──────────────────────────────────────────
+    UI = {
+        width        = 480,
+        height       = 340,
+        sidebarWidth = 120,
+        headerHeight = 36,
+        cornerRadius = 14,
+        padding      = 8,
+        buttonHeight = 32,
+        buttonCorner = 8,
+        scrollBarW   = 3,
+        zIndex       = 10,
+    },
+
+    -- ── Mobile thresholds ────────────────────────────────
+    Mobile = {
+        -- On mobile the UI scales up to fill more of the screen
+        scaleFactor = 1.25,
+        buttonHeight = 40,
+    },
+
+    -- ── Animation timing ────────────────────────────────
+    Anim = {
+        openDuration   = 0.55,
+        closeDuration  = 0.35,
+        hoverDuration  = 0.18,
+        gradientSpeed  = 4,   -- seconds per full cycle
+        loadingSpeed   = 1.8,
+    },
+
+    -- ── Gradient colour stops (animated) ────────────────
+    GradientThemes = {
+        neon = {
+            Color3.fromRGB(180, 0, 255),
+            Color3.fromRGB(0, 200, 255),
+            Color3.fromRGB(0, 255, 160),
+        },
+        fire = {
+            Color3.fromRGB(255, 60, 0),
+            Color3.fromRGB(255, 180, 0),
+            Color3.fromRGB(255, 60, 0),
+        },
+        ice = {
+            Color3.fromRGB(0, 180, 255),
+            Color3.fromRGB(180, 240, 255),
+            Color3.fromRGB(0, 120, 200),
+        },
+        gold = {
+            Color3.fromRGB(255, 200, 0),
+            Color3.fromRGB(200, 130, 0),
+            Color3.fromRGB(255, 200, 0),
+        },
+        mono = {
+            Color3.fromRGB(80, 80, 80),
+            Color3.fromRGB(160, 160, 160),
+            Color3.fromRGB(80, 80, 80),
+        },
+    },
+
+    -- ── Colour Themes  (background/text/stroke/accent) ──
+    Themes = {
+        dark = {
+            name          = "Dark",
+            bg            = Color3.fromRGB(15, 15, 18),
+            bgSecondary   = Color3.fromRGB(22, 22, 28),
+            bgTertiary    = Color3.fromRGB(30, 30, 38),
+            text          = Color3.fromRGB(235, 235, 245),
+            textMuted     = Color3.fromRGB(140, 140, 160),
+            stroke        = Color3.fromRGB(50, 50, 65),
+            accent        = Color3.fromRGB(120, 80, 255),
+            accentGlow    = Color3.fromRGB(80, 40, 200),
+            danger        = Color3.fromRGB(255, 70, 70),
+            success       = Color3.fromRGB(60, 210, 130),
+            warning       = Color3.fromRGB(255, 180, 0),
+            gradKey       = "neon",
+        },
+        midnight = {
+            name          = "Midnight",
+            bg            = Color3.fromRGB(8, 10, 20),
+            bgSecondary   = Color3.fromRGB(14, 16, 32),
+            bgTertiary    = Color3.fromRGB(20, 22, 44),
+            text          = Color3.fromRGB(200, 210, 255),
+            textMuted     = Color3.fromRGB(100, 110, 160),
+            stroke        = Color3.fromRGB(40, 44, 80),
+            accent        = Color3.fromRGB(60, 130, 255),
+            accentGlow    = Color3.fromRGB(20, 80, 200),
+            danger        = Color3.fromRGB(255, 80, 80),
+            success       = Color3.fromRGB(60, 210, 130),
+            warning       = Color3.fromRGB(255, 200, 60),
+            gradKey       = "ice",
+        },
+        neon = {
+            name          = "Neon",
+            bg            = Color3.fromRGB(5, 5, 10),
+            bgSecondary   = Color3.fromRGB(10, 10, 20),
+            bgTertiary    = Color3.fromRGB(15, 15, 30),
+            text          = Color3.fromRGB(255, 255, 255),
+            textMuted     = Color3.fromRGB(180, 180, 200),
+            stroke        = Color3.fromRGB(0, 255, 160),
+            accent        = Color3.fromRGB(0, 255, 160),
+            accentGlow    = Color3.fromRGB(0, 180, 100),
+            danger        = Color3.fromRGB(255, 0, 80),
+            success       = Color3.fromRGB(0, 255, 100),
+            warning       = Color3.fromRGB(255, 200, 0),
+            gradKey       = "neon",
+        },
+        gold = {
+            name          = "Gold",
+            bg            = Color3.fromRGB(14, 10, 6),
+            bgSecondary   = Color3.fromRGB(22, 16, 8),
+            bgTertiary    = Color3.fromRGB(30, 22, 10),
+            text          = Color3.fromRGB(255, 235, 180),
+            textMuted     = Color3.fromRGB(180, 150, 100),
+            stroke        = Color3.fromRGB(180, 130, 40),
+            accent        = Color3.fromRGB(255, 200, 0),
+            accentGlow    = Color3.fromRGB(200, 140, 0),
+            danger        = Color3.fromRGB(255, 80, 40),
+            success       = Color3.fromRGB(100, 220, 100),
+            warning       = Color3.fromRGB(255, 150, 0),
+            gradKey       = "gold",
+        },
+        mono = {
+            name          = "Mono",
+            bg            = Color3.fromRGB(18, 18, 18),
+            bgSecondary   = Color3.fromRGB(26, 26, 26),
+            bgTertiary    = Color3.fromRGB(36, 36, 36),
+            text          = Color3.fromRGB(240, 240, 240),
+            textMuted     = Color3.fromRGB(140, 140, 140),
+            stroke        = Color3.fromRGB(60, 60, 60),
+            accent        = Color3.fromRGB(200, 200, 200),
+            accentGlow    = Color3.fromRGB(130, 130, 130),
+            danger        = Color3.fromRGB(200, 60, 60),
+            success       = Color3.fromRGB(80, 200, 80),
+            warning       = Color3.fromRGB(200, 180, 60),
+            gradKey       = "mono",
+        },
+    },
+
+    -- ── Remote script data sources ───────────────────────
+    Sources = {
+        Brookhaven    = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/brookhaven",
+        Evade         = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/evade",
+        MM2           = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/MM2.lua",
+        MegaHack      = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/megapizda",
+        Hacks         = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Hacks.lua",
+        Admins        = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/admin",
+        Animations    = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/animation",
+        FE            = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/FE.lua",
+        RagdollEngine = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/ragdoll",
+        NaturalDisaster = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/NaturalDisaster.lua",
+        BloxFruit     = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/BloxFruit.lua",
+        BladeBall     = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/BladeBall.lua",
+        StealBrainRoot= "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/StealBrainRoot.lua",
+        TowerOfHell   = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/tower.lua",
+        AdoptMe       = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/adoptme",
+        GrowGarden    = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/GrowGarden.lua",
+        Night         = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Night.lua",
+        Weird         = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Weird.lua",
+        DuelsMVS      = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/DuelsMVS.lua",
+        ViolenceDistrict = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/ViolenceDistrict.lua",
+        IKEA3008      = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/3008.lua",
+        Rivals        = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Rivals.lua",
+        FORSAKEN      = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/FORSAKEN.lua",
+    },
+
+    -- ── Category display order ────────────────────────────
+    CategoryOrder = {
+        "Home", "Search", "Settings",
+        "── GENERAL ──",
+        "MegaHack", "Hacks", "Admins", "Animations", "FE",
+        "── GAMES ──",
+        "MM2", "Evade", "Brookhaven", "BloxFruit", "BladeBall",
+        "AdoptMe", "TowerOfHell", "RagdollEngine", "NaturalDisaster",
+        "GrowGarden", "Night", "Weird", "DuelsMVS", "ViolenceDistrict",
+        "IKEA3008", "Rivals", "FORSAKEN", "StealBrainRoot",
+    },
+}
+
+-- ════════════════════════════════════════════════════════
+--  [2] SERVICES — Cached service references
+-- ════════════════════════════════════════════════════════
+local Services = {
+    TweenService       = game:GetService("TweenService"),
+    UserInputService   = game:GetService("UserInputService"),
+    Players            = game:GetService("Players"),
+    CoreGui            = game:GetService("CoreGui"),
+    RunService         = game:GetService("RunService"),
+    MarketplaceService = game:GetService("MarketplaceService"),
+    TeleportService    = game:GetService("TeleportService"),
+    HttpService        = game:GetService("HttpService"),
+}
+
+local Player     = Services.Players.LocalPlayer
+local PlayerGui  = Player:WaitForChild("PlayerGui", 10)
+
+-- Detect platform
+local IsMobile = Services.UserInputService.TouchEnabled
+               and not Services.UserInputService.KeyboardEnabled
+
+-- ════════════════════════════════════════════════════════
+--  [3] UTILS — Shared helpers
+-- ════════════════════════════════════════════════════════
+local Utils = {}
+
+--- Quick TweenService wrapper
+---@param obj Instance
+---@param info TweenInfo
+---@param goals table
+function Utils.tween(obj, info, goals)
+    return Services.TweenService:Create(obj, info, goals)
 end
 
-local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-local platformName = isMobile and "Mobile" or "PC"
+--- Shorthand tween + Play
+function Utils.tweenPlay(obj, info, goals)
+    local t = Utils.tween(obj, info, goals)
+    t:Play()
+    return t
+end
 
--- ══════════════════════════════════════
---  SAFE LOAD
--- ══════════════════════════════════════
-local function safeLoad(url)
+--- Build a TweenInfo with sensible defaults
+function Utils.tweenInfo(duration, style, dir, rep, rev, delay)
+    return TweenInfo.new(
+        duration or 0.3,
+        style    or Enum.EasingStyle.Quint,
+        dir      or Enum.EasingDirection.Out,
+        rep      or 0,
+        rev      or false,
+        delay    or 0
+    )
+end
+
+--- Create an Instance with properties set atomically
+---@param className string
+---@param props table
+---@param parent Instance?
+function Utils.create(className, props, parent)
+    local inst = Instance.new(className)
+    for k, v in pairs(props or {}) do
+        inst[k] = v
+    end
+    if parent then inst.Parent = parent end
+    return inst
+end
+
+--- Add a UICorner to an instance
+function Utils.corner(inst, radius)
+    return Utils.create("UICorner", {CornerRadius = UDim.new(0, radius or 8)}, inst)
+end
+
+--- Add a UIStroke to an instance
+function Utils.stroke(inst, color, thickness, transparency)
+    return Utils.create("UIStroke", {
+        Color        = color or Color3.new(),
+        Thickness    = thickness or 1,
+        Transparency = transparency or 0,
+    }, inst)
+end
+
+--- Add UIPadding
+function Utils.padding(inst, all, top, right, bottom, left)
+    local p = all or 0
+    return Utils.create("UIPadding", {
+        PaddingTop    = UDim.new(0, top    or p),
+        PaddingRight  = UDim.new(0, right  or p),
+        PaddingBottom = UDim.new(0, bottom or p),
+        PaddingLeft   = UDim.new(0, left   or p),
+    }, inst)
+end
+
+--- Add UIListLayout
+function Utils.listLayout(inst, padding, sortOrder, dir)
+    return Utils.create("UIListLayout", {
+        Padding         = UDim.new(0, padding or 6),
+        SortOrder       = sortOrder or Enum.SortOrder.LayoutOrder,
+        FillDirection   = dir or Enum.FillDirection.Vertical,
+    }, inst)
+end
+
+--- Auto-resize a ScrollingFrame to its list content
+function Utils.autoCanvasSize(scroll, layout)
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 12)
+    end)
+end
+
+--- Safe loadstring from URL
+function Utils.safeLoad(url)
     local ok, res = pcall(function()
         return loadstring(game:HttpGet(url, true))()
     end)
     if ok and res then return res end
-    warn("[MH] failed to load: " .. tostring(url))
+    warn("[MH2] load failed: " .. tostring(url))
     return {}
 end
 
--- ══════════════════════════════════════
--- HUB DATA
--- ══════════════════════════════════════
-local HubData = {
-    Brookhaven      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/brookhaven"),
-    Evade           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/evade"),
-    MM2             = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/MM2.lua"),
-    MegaHack        = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/megapizda"),
-    Hacks           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Hacks.lua"),
-    Admins          = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/admin"),
-    Animations      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/animation"),
-    FE              = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/FE.lua"),
-    RagdollEngine   = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/ragdoll"),
-    NaturalDisaster = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/NaturalDisaster.lua"),
-    BloxFruit       = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/BloxFruit.lua"),
-    BladeBall       = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/BladeBall.lua"),
-    StealBrainRoot  = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/StealBrainRoot.lua"),
-    TowerOfHell     = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/tower.lua"),
-    AdoptMe         = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/adoptme"),
-    GrowGarden      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/GrowGarden.lua"),
-    Night           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Night.lua"),
-    Weird           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Weird.lua"),
-    DuelsMVS        = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/DuelsMVS.lua"),
-    ViolenceDistrict = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/ViolenceDistrict.lua"),
-}
-
--- ══════════════════════════════════════
---  MODERN NOTIFICATION SYSTEM
--- ══════════════════════════════════════
-local function createNotification(title, subtitle, duration, iconId)
-    local notificationGui = Instance.new("ScreenGui")
-    notificationGui.Name = "Notification"
-    notificationGui.Parent = playerGui
-    notificationGui.ResetOnSpawn = false
-    notificationGui.IgnoreGuiInset = true
-
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 280, 0, 80)
-    mainFrame.Position = UDim2.new(0.5, -140, 0, -100)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-    mainFrame.BackgroundTransparency = 0.1
-    mainFrame.ClipsDescendants = true
-    mainFrame.Parent = notificationGui
-
-    -- Modern shadow
-    local shadow = Instance.new("ImageLabel")
-    shadow.Size = UDim2.new(1, 40, 1, 40)
-    shadow.Position = UDim2.new(0, -20, 0, -20)
-    shadow.BackgroundTransparency = 1
-    shadow.Image = "rbxassetid://1316045217"
-    shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-    shadow.ImageTransparency = 0.7
-    shadow.ScaleType = Enum.ScaleType.Slice
-    shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-    shadow.Parent = mainFrame
-
-    local background = Instance.new("Frame")
-    background.Size = UDim2.new(1, 0, 1, 0)
-    background.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-    background.BackgroundTransparency = 0.15
-    background.Parent = mainFrame
-
-    local gradient = Instance.new("UIGradient")
-    gradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(45, 45, 60)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 25, 35))
-    })
-    gradient.Rotation = 90
-    gradient.Parent = background
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 16)
-    corner.Parent = background
-
-    local icon = Instance.new("ImageLabel")
-    icon.Size = UDim2.new(0, 36, 0, 36)
-    icon.Position = UDim2.new(0, 15, 0.5, -18)
-    icon.BackgroundTransparency = 1
-    icon.Image = "rbxassetid://" .. tostring(iconId or 74283928898866)
-    icon.ImageTransparency = 0
-    icon.Parent = background
-
-    local mainText = Instance.new("TextLabel")
-    mainText.Text = title
-    mainText.Font = Enum.Font.GothamBold
-    mainText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    mainText.TextSize = 16
-    mainText.TextXAlignment = Enum.TextXAlignment.Left
-    mainText.Size = UDim2.new(0.7, 0, 0.5, 0)
-    mainText.Position = UDim2.new(0.22, 20, 0.2, 0)
-    mainText.BackgroundTransparency = 1
-    mainText.Parent = background
-
-    local subText = Instance.new("TextLabel")
-    subText.Text = subtitle
-    subText.Font = Enum.Font.Gotham
-    subText.TextColor3 = Color3.fromRGB(180, 180, 200)
-    subText.TextSize = 13
-    subText.TextXAlignment = Enum.TextXAlignment.Left
-    subText.Size = UDim2.new(0.7, 0, 0.3, 0)
-    subText.Position = UDim2.new(0.22, 20, 0.6, 0)
-    subText.BackgroundTransparency = 1
-    subText.Parent = background
-
-    local progressBar = Instance.new("Frame")
-    progressBar.Size = UDim2.new(1, 0, 0, 3)
-    progressBar.Position = UDim2.new(0, 0, 1, -3)
-    progressBar.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
-    progressBar.BackgroundTransparency = 0.3
-    progressBar.Parent = background
-
-    local progressCorner = Instance.new("UICorner")
-    progressCorner.CornerRadius = UDim.new(0, 2)
-    progressCorner.Parent = progressBar
-
-    -- Animation
-    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-    TweenService:Create(mainFrame, tweenInfo, {Position = UDim2.new(0.5, -140, 0, 20)}):Play()
-    
-    task.delay(duration - 0.3, function()
-        local tweenOut = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-        TweenService:Create(mainFrame, tweenOut, {Position = UDim2.new(0.5, -140, 0, -100)}):Play()
-        TweenService:Create(progressBar, tweenOut, {Size = UDim2.new(0, 0, 0, 3)}):Play()
-        task.wait(0.3)
-        notificationGui:Destroy()
-    end)
-
-    -- Progress bar animation
-    local progressTween = TweenInfo.new(duration - 0.3, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
-    TweenService:Create(progressBar, progressTween, {Size = UDim2.new(0, 0, 0, 3)}):Play()
-end
-
--- ══════════════════════════════════════
---  COUNT SCRIPTS
--- ══════════════════════════════════════
-local function countScripts()
-    local count = 0
-    for _, category in pairs(HubData) do
-        if type(category) == "table" then
-            count = count + #category
-        end
-    end
-    return count
-end
-
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "MegaHackV2"
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-screenGui.IgnoreGuiInset = true
-screenGui.ResetOnSpawn = false
-
-local function Hide_UI(gui)
-    local success, result = pcall(function()
+--- Parent GUI into a protected container
+function Utils.hideGui(gui)
+    local ok = pcall(function()
         if get_hidden_gui then
             gui.Parent = get_hidden_gui()
         elseif gethui then
             gui.Parent = gethui()
-        elseif syn and typeof(syn) == "table" and syn.protect_gui then
+        elseif syn and syn.protect_gui then
             syn.protect_gui(gui)
-            gui.Parent = CoreGui
-        elseif CoreGui:FindFirstChild("RobloxGui") then
-            gui.Parent = CoreGui.RobloxGui
+            gui.Parent = Services.CoreGui
         else
-            gui.Parent = CoreGui
+            gui.Parent = Services.CoreGui
         end
     end)
-    if not success then
-        gui.Parent = CoreGui
-        createNotification("WARNING", "GUI protection failed, using CoreGui", 3, 7733968497)
+    if not ok then gui.Parent = Services.CoreGui end
+end
+
+--- Lerp two Color3 values
+function Utils.lerpColor(a, b, t)
+    return Color3.new(
+        a.R + (b.R - a.R) * t,
+        a.G + (b.G - a.G) * t,
+        a.B + (b.B - a.B) * t
+    )
+end
+
+-- ════════════════════════════════════════════════════════
+--  [4] THEME MANAGER — Live theming + gradient animation
+-- ════════════════════════════════════════════════════════
+local ThemeManager = {}
+ThemeManager._current   = "dark"
+ThemeManager._listeners = {}   -- {fn} called on theme change
+ThemeManager._gradConns = {}   -- RunService connections for gradient anim
+
+--- Get the current theme table
+function ThemeManager.get()
+    return Config.Themes[ThemeManager._current]
+end
+
+--- Register a callback that fires when theme changes
+---@param fn function  receives (newTheme: table)
+function ThemeManager.onChange(fn)
+    table.insert(ThemeManager._listeners, fn)
+end
+
+--- Switch to a named theme
+---@param name string
+function ThemeManager.set(name)
+    if not Config.Themes[name] then return end
+    ThemeManager._current = name
+    local theme = ThemeManager.get()
+    for _, fn in ipairs(ThemeManager._listeners) do
+        pcall(fn, theme)
     end
 end
-Hide_UI(screenGui)
 
--- ══════════════════════════════════════
---  MODERN COLOR SCHEME
--- ══════════════════════════════════════
-local colors = {
-    primary = Color3.fromRGB(88, 101, 242),     -- Discord blurple
-    secondary = Color3.fromRGB(114, 137, 218),  -- Lighter blurple
-    accent = Color3.fromRGB(255, 115, 250),      -- Pink
-    success = Color3.fromRGB(87, 242, 135),      -- Green
-    warning = Color3.fromRGB(254, 231, 92),      -- Yellow
-    danger = Color3.fromRGB(242, 71, 63),        -- Red
-    background = Color3.fromRGB(15, 15, 20),     -- Very dark
-    surface = Color3.fromRGB(25, 25, 35),        -- Dark surface
-    surface2 = Color3.fromRGB(35, 35, 45),       -- Lighter surface
-    text = Color3.fromRGB(255, 255, 255),        -- White
-    textDim = Color3.fromRGB(180, 180, 200),     -- Dim text
-    border = Color3.fromRGB(50, 50, 70)          -- Border color
-}
+--- Animate a UIGradient with flowing colour cycle
+---@param gradient UIGradient
+---@param themeKey string   key in Config.GradientThemes
+---@return RBXScriptConnection  (store to disconnect later)
+function ThemeManager.animateGradient(gradient, themeKey)
+    local stops = Config.GradientThemes[themeKey] or Config.GradientThemes.neon
+    local n     = #stops
+    local t     = 0
+    local spd   = Config.Anim.gradientSpeed
 
--- ══════════════════════════════════════
---  MAIN FRAME - MODERN DESIGN
--- ══════════════════════════════════════
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-mainFrame.BackgroundColor3 = colors.background
-mainFrame.BackgroundTransparency = 0.1
-mainFrame.BorderSizePixel = 0
-mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-mainFrame.Size = UDim2.new(0, 480, 0, 360)
-mainFrame.ClipsDescendants = true
-mainFrame.Parent = screenGui
+    local conn = Services.RunService.Heartbeat:Connect(function(dt)
+        if not gradient or not gradient.Parent then return end
+        t = (t + dt / spd) % 1
 
--- Main shadow
-local mainShadow = Instance.new("ImageLabel")
-mainShadow.Size = UDim2.new(1, 50, 1, 50)
-mainShadow.Position = UDim2.new(0, -25, 0, -25)
-mainShadow.BackgroundTransparency = 1
-mainShadow.Image = "rbxassetid://1316045217"
-mainShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-mainShadow.ImageTransparency = 0.8
-mainShadow.ScaleType = Enum.ScaleType.Slice
-mainShadow.SliceCenter = Rect.new(10, 10, 118, 118)
-mainShadow.ZIndex = 0
-mainShadow.Parent = mainFrame
+        -- Smooth colour sequence across 3 key-colour stops
+        local pos1  = (t * n) % n
+        local idx   = math.floor(pos1) + 1
+        local frac  = pos1 - math.floor(pos1)
+        local c1    = stops[idx]
+        local c2    = stops[(idx % n) + 1]
+        local mid   = Utils.lerpColor(c1, c2, frac)
 
--- Main background with gradient
-local mainBackground = Instance.new("Frame")
-mainBackground.Size = UDim2.new(1, 0, 1, 0)
-mainBackground.BackgroundColor3 = colors.surface
-mainBackground.BackgroundTransparency = 0.15
-mainBackground.BorderSizePixel = 0
-mainBackground.Parent = mainFrame
+        local pos2  = ((t + 0.5) * n) % n
+        local idx2  = math.floor(pos2) + 1
+        local frac2 = pos2 - math.floor(pos2)
+        local c3    = stops[idx2]
+        local c4    = stops[(idx2 % n) + 1]
+        local end_  = Utils.lerpColor(c3, c4, frac2)
 
-local mainGradient = Instance.new("UIGradient")
-mainGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, colors.surface),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 28))
-})
-mainGradient.Rotation = 45
-mainGradient.Parent = mainBackground
-
-local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 20)
-mainCorner.Parent = mainBackground
-
--- Accent border
-local borderGlow = Instance.new("Frame")
-borderGlow.Size = UDim2.new(1, 4, 1, 4)
-borderGlow.Position = UDim2.new(0, -2, 0, -2)
-borderGlow.BackgroundColor3 = colors.primary
-borderGlow.BackgroundTransparency = 0.7
-borderGlow.BorderSizePixel = 0
-borderGlow.ZIndex = 0
-borderGlow.Parent = mainFrame
-
-local borderCorner = Instance.new("UICorner")
-borderCorner.CornerRadius = UDim.new(0, 22)
-borderCorner.Parent = borderGlow
-
--- ══════════════════════════════════════
---  HEADER - MODERN
--- ══════════════════════════════════════
-local headerFrame = Instance.new("Frame")
-headerFrame.Name = "HeaderFrame"
-headerFrame.BackgroundColor3 = colors.surface2
-headerFrame.BackgroundTransparency = 0.2
-headerFrame.BorderSizePixel = 0
-headerFrame.Size = UDim2.new(1, 0, 0, 45)
-headerFrame.Parent = mainFrame
-
-local headerGradient = Instance.new("UIGradient")
-headerGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, colors.surface2),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 40, 52))
-})
-headerGradient.Rotation = 90
-headerGradient.Parent = headerFrame
-
-local headerCorner = Instance.new("UICorner")
-headerCorner.CornerRadius = UDim.new(0, 20)
-headerCorner.Parent = headerFrame
-
--- Header top fix
-local headerFix = Instance.new("Frame")
-headerFix.Name = "Fixer"
-headerFix.BackgroundColor3 = colors.surface2
-headerFix.BackgroundTransparency = 0.2
-headerFix.BorderSizePixel = 0
-headerFix.Size = UDim2.new(1, 0, 0, 10)
-headerFix.Position = UDim2.new(0, 0, 0, 35)
-headerFix.Parent = headerFrame
-
-headerFix.BackgroundColor3 = colors.surface2
-local fixGradient = Instance.new("UIGradient")
-fixGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, colors.surface2),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 40, 52))
-})
-fixGradient.Rotation = 90
-fixGradient.Parent = headerFix
-
--- Header icon
-local icon = Instance.new("ImageLabel")
-icon.Name = "Icon"
-icon.BackgroundTransparency = 1
-icon.Image = "rbxassetid://138613137853151"
-icon.Size = UDim2.new(0, 28, 0, 28)
-icon.Position = UDim2.new(0, 12, 0.5, -14)
-icon.Parent = headerFrame
-
--- Header title
-local headerTitle = Instance.new("TextLabel")
-headerTitle.Text = "MEGAHACK V2"
-headerTitle.Font = Enum.Font.GothamBold
-headerTitle.TextColor3 = colors.text
-headerTitle.TextSize = 18
-headerTitle.TextTransparency = 0.1
-headerTitle.BackgroundTransparency = 1
-headerTitle.Size = UDim2.new(0, 150, 1, 0)
-headerTitle.Position = UDim2.new(0, 45, 0, 0)
-headerTitle.TextXAlignment = Enum.TextXAlignment.Left
-headerTitle.Parent = headerFrame
-
--- Close button with modern design
-local closeIcon = Instance.new("ImageButton")
-closeIcon.Name = "CloseIcon"
-closeIcon.BackgroundTransparency = 1
-closeIcon.Image = "rbxassetid://14397748477"
-closeIcon.ImageColor3 = colors.textDim
-closeIcon.Size = UDim2.new(0, 24, 0, 24)
-closeIcon.Position = UDim2.new(1, -36, 0.5, -12)
-closeIcon.Parent = headerFrame
-
-closeIcon.MouseEnter:Connect(function()
-    TweenService:Create(closeIcon, TweenInfo.new(0.2), {ImageColor3 = colors.danger}):Play()
-end)
-
-closeIcon.MouseLeave:Connect(function()
-    TweenService:Create(closeIcon, TweenInfo.new(0.2), {ImageColor3 = colors.textDim}):Play()
-end)
-
--- Reopen button
-local reopenButton = Instance.new("ImageButton")
-reopenButton.Size = UDim2.new(0, 55, 0, 55)
-reopenButton.Position = UDim2.new(0.5, -27.5, 0.9, -27.5)
-reopenButton.BackgroundColor3 = colors.primary
-reopenButton.BackgroundTransparency = 0.2
-reopenButton.Image = "rbxassetid://138613137853151"
-reopenButton.ImageTransparency = 0.2
-reopenButton.Visible = false
-reopenButton.ZIndex = 2
-reopenButton.Parent = screenGui
-
-local reopenShadow = Instance.new("ImageLabel")
-reopenShadow.Size = UDim2.new(1, 20, 1, 20)
-reopenShadow.Position = UDim2.new(0, -10, 0, -10)
-reopenShadow.BackgroundTransparency = 1
-reopenShadow.Image = "rbxassetid://1316045217"
-reopenShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-reopenShadow.ImageTransparency = 0.7
-reopenShadow.ScaleType = Enum.ScaleType.Slice
-reopenShadow.SliceCenter = Rect.new(10, 10, 118, 118)
-reopenShadow.Parent = reopenButton
-
-local reopenCorner = Instance.new("UICorner")
-reopenCorner.CornerRadius = UDim.new(1, 0)
-reopenCorner.Parent = reopenButton
-
--- Glowing effect for reopen button
-local reopenGlow = Instance.new("ImageLabel")
-reopenGlow.Size = UDim2.new(1, 10, 1, 10)
-reopenGlow.Position = UDim2.new(0, -5, 0, -5)
-reopenGlow.BackgroundTransparency = 1
-reopenGlow.Image = "rbxassetid://5028857644"
-reopenGlow.ImageColor3 = colors.primary
-reopenGlow.ImageTransparency = 0.5
-reopenGlow.Parent = reopenButton
-
--- ══════════════════════════════════════
---  CONTENT AREA
--- ══════════════════════════════════════
--- MegaHack title
-local megahackIcon = Instance.new("ImageLabel")
-megahackIcon.Name = "MegahackIcon"
-megahackIcon.BackgroundTransparency = 1
-megahackIcon.Image = "rbxassetid://138613137853151"
-megahackIcon.Size = UDim2.new(0, 32, 0, 32)
-megahackIcon.Position = UDim2.new(0, 20, 0, 55)
-megahackIcon.Parent = mainFrame
-
-local iconCorner = Instance.new("UICorner")
-iconCorner.CornerRadius = UDim.new(0, 8)
-iconCorner.Parent = megahackIcon
-
-local megahackLabel = Instance.new("TextLabel")
-megahackLabel.Name = "MegahackLabel"
-megahackLabel.BackgroundTransparency = 1
-megahackLabel.Text = "MEGAHACK V2"
-megahackLabel.Size = UDim2.new(0, 180, 0, 32)
-megahackLabel.Position = UDim2.new(0, 60, 0, 55)
-megahackLabel.TextSize = 26
-megahackLabel.TextColor3 = colors.text
-megahackLabel.TextTransparency = 0.1
-megahackLabel.TextXAlignment = Enum.TextXAlignment.Left
-megahackLabel.Font = Enum.Font.GothamBold
-megahackLabel.Parent = mainFrame
-
--- Scripts count badge
-local scriptsCount = Instance.new("Frame")
-scriptsCount.Size = UDim2.new(0, 80, 0, 24)
-scriptsCount.Position = UDim2.new(1, -100, 0, 60)
-scriptsCount.BackgroundColor3 = colors.primary
-scriptsCount.BackgroundTransparency = 0.3
-scriptsCount.Parent = mainFrame
-
-local scriptsCorner = Instance.new("UICorner")
-scriptsCorner.CornerRadius = UDim.new(0, 12)
-scriptsCorner.Parent = scriptsCount
-
-local scriptsText = Instance.new("TextLabel")
-scriptsText.Text = countScripts() .. " Scripts"
-scriptsText.Font = Enum.Font.GothamBold
-scriptsText.TextColor3 = colors.text
-scriptsText.TextSize = 12
-scriptsText.BackgroundTransparency = 1
-scriptsText.Size = UDim2.new(1, 0, 1, 0)
-scriptsText.Parent = scriptsCount
-
--- Game info
-local gameName = Instance.new("TextLabel")
-gameName.Name = "GameName"
-gameName.BackgroundTransparency = 1
-gameName.Text = MarketplaceService:GetProductInfo(game.PlaceId).Name
-gameName.Size = UDim2.new(1, -40, 0, 20)
-gameName.Position = UDim2.new(0, 20, 0, 95)
-gameName.TextSize = 14
-gameName.TextColor3 = colors.textDim
-gameName.TextXAlignment = Enum.TextXAlignment.Left
-gameName.Font = Enum.Font.Gotham
-gameName.Parent = mainFrame
-
--- ══════════════════════════════════════
---  CATEGORIES PANEL
--- ══════════════════════════════════════
-local categoriesPanel = Instance.new("Frame")
-categoriesPanel.Size = UDim2.new(0, 140, 1, -125)
-categoriesPanel.Position = UDim2.new(0, 15, 0, 120)
-categoriesPanel.BackgroundColor3 = colors.surface2
-categoriesPanel.BackgroundTransparency = 0.3
-categoriesPanel.Parent = mainFrame
-
-local categoriesCorner = Instance.new("UICorner")
-categoriesCorner.CornerRadius = UDim.new(0, 12)
-categoriesCorner.Parent = categoriesPanel
-
-local categoriesTitle = Instance.new("TextLabel")
-categoriesTitle.Text = "CATEGORIES"
-categoriesTitle.Font = Enum.Font.GothamBold
-categoriesTitle.TextColor3 = colors.textDim
-categoriesTitle.TextSize = 12
-categoriesTitle.BackgroundTransparency = 1
-categoriesTitle.Size = UDim2.new(1, 0, 0, 30)
-categoriesTitle.Parent = categoriesPanel
-
-local categoriesScroll = Instance.new("ScrollingFrame")
-categoriesScroll.Name = "CategoriesScroll"
-categoriesScroll.BackgroundTransparency = 1
-categoriesScroll.Size = UDim2.new(1, -10, 1, -35)
-categoriesScroll.Position = UDim2.new(0, 5, 0, 30)
-categoriesScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-categoriesScroll.ScrollBarThickness = 4
-categoriesScroll.ScrollBarImageColor3 = colors.primary
-categoriesScroll.Parent = categoriesPanel
-
-local categoriesListLayout = Instance.new("UIListLayout")
-categoriesListLayout.Padding = UDim.new(0, 6)
-categoriesListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-categoriesListLayout.Parent = categoriesScroll
-
-categoriesListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    categoriesScroll.CanvasSize = UDim2.new(0, 0, 0, categoriesListLayout.AbsoluteContentSize.Y + 10)
-end)
-
--- ══════════════════════════════════════
---  SCRIPTS PANEL
--- ══════════════════════════════════════
-local scriptsPanel = Instance.new("Frame")
-scriptsPanel.Size = UDim2.new(0, 295, 1, -125)
-scriptsPanel.Position = UDim2.new(0, 165, 0, 120)
-scriptsPanel.BackgroundColor3 = colors.surface2
-scriptsPanel.BackgroundTransparency = 0.3
-scriptsPanel.Parent = mainFrame
-
-local scriptsCorner2 = Instance.new("UICorner")
-scriptsCorner2.CornerRadius = UDim.new(0, 12)
-scriptsCorner2.Parent = scriptsPanel
-
-local scriptsTitle = Instance.new("TextLabel")
-scriptsTitle.Text = "SCRIPTS"
-scriptsTitle.Font = Enum.Font.GothamBold
-scriptsTitle.TextColor3 = colors.textDim
-scriptsTitle.TextSize = 12
-scriptsTitle.BackgroundTransparency = 1
-scriptsTitle.Size = UDim2.new(1, 0, 0, 30)
-scriptsTitle.Parent = scriptsPanel
-
-local scrollingFrame = Instance.new("ScrollingFrame")
-scrollingFrame.Name = "ScrollingFrame"
-scrollingFrame.BackgroundTransparency = 1
-scrollingFrame.Size = UDim2.new(1, -10, 1, -35)
-scrollingFrame.Position = UDim2.new(0, 5, 0, 30)
-scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-scrollingFrame.ScrollBarThickness = 4
-scrollingFrame.ScrollBarImageColor3 = colors.primary
-scrollingFrame.Parent = scriptsPanel
-
-local scrollingListLayout = Instance.new("UIListLayout")
-scrollingListLayout.Padding = UDim.new(0, 6)
-scrollingListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-scrollingListLayout.Parent = scrollingFrame
-
-scrollingListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, scrollingListLayout.AbsoluteContentSize.Y + 10)
-end)
-
--- ══════════════════════════════════════
---  MODERN BUTTON CREATOR
--- ══════════════════════════════════════
-local function createButton(text, parent, callback, isCategoryButton)
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, -10, 0, isCategoryButton and 32 or 38)
-    button.BackgroundColor3 = isCategoryButton and colors.surface or colors.primary
-    button.BackgroundTransparency = isCategoryButton and 0.4 or 0.3
-    button.BorderSizePixel = 0
-    button.Text = text
-    button.TextColor3 = colors.text
-    button.TextSize = isCategoryButton and 13 or 15
-    button.Font = isCategoryButton and Enum.Font.GothamSemibold or Enum.Font.GothamBold
-    button.AutoButtonColor = false
-    button.Parent = parent
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = button
-
-    -- Gradient for non-category buttons
-    if not isCategoryButton then
-        local gradient = Instance.new("UIGradient")
         gradient.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, colors.primary),
-            ColorSequenceKeypoint.new(1, colors.secondary)
+            ColorSequenceKeypoint.new(0,   c1),
+            ColorSequenceKeypoint.new(0.5, mid),
+            ColorSequenceKeypoint.new(1,   end_),
         })
-        gradient.Rotation = 90
-        gradient.Parent = button
+        gradient.Rotation = t * 360
+    end)
+
+    table.insert(ThemeManager._gradConns, conn)
+    return conn
+end
+
+--- Stop all gradient animations
+function ThemeManager.stopGradients()
+    for _, c in ipairs(ThemeManager._gradConns) do c:Disconnect() end
+    ThemeManager._gradConns = {}
+end
+
+-- ════════════════════════════════════════════════════════
+--  [5] LOADING SCREEN — Animated boot sequence
+-- ════════════════════════════════════════════════════════
+local LoadingScreen = {}
+
+---@param onComplete function  called when animation finishes
+function LoadingScreen.show(onComplete)
+    local theme = ThemeManager.get()
+
+    -- Root ScreenGui
+    local gui = Utils.create("ScreenGui", {
+        Name            = "MH2_Loading",
+        ZIndexBehavior  = Enum.ZIndexBehavior.Sibling,
+        IgnoreGuiInset  = true,
+        ResetOnSpawn    = false,
+    })
+    Utils.hideGui(gui)
+
+    -- Full-screen backdrop
+    local bg = Utils.create("Frame", {
+        Size                  = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3      = theme.bg,
+        BackgroundTransparency= 0,
+        BorderSizePixel       = 0,
+        ZIndex                = 1,
+    }, gui)
+
+    -- Animated gradient overlay
+    local gradFrame = Utils.create("Frame", {
+        Size                  = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3      = Color3.new(1, 1, 1),
+        BackgroundTransparency= 0.88,
+        BorderSizePixel       = 0,
+        ZIndex                = 2,
+    }, bg)
+    local grad = Utils.create("UIGradient", {Rotation = 45}, gradFrame)
+    ThemeManager.animateGradient(grad, theme.gradKey)
+
+    -- Centre card
+    local cardW, cardH = 300, 200
+    local card = Utils.create("Frame", {
+        Size                  = UDim2.new(0, cardW, 0, cardH),
+        Position              = UDim2.new(0.5, -cardW/2, 0.5, -cardH/2),
+        BackgroundColor3      = theme.bgSecondary,
+        BackgroundTransparency= 0.15,
+        BorderSizePixel       = 0,
+        ZIndex                = 3,
+    }, bg)
+    Utils.corner(card, 20)
+    local cardStroke = Utils.stroke(card, theme.accent, 1.5, 0.4)
+
+    -- Animated stroke gradient
+    local cg = Utils.create("UIGradient", {Rotation = 45}, cardStroke)
+    ThemeManager.animateGradient(cg, theme.gradKey)
+
+    -- Logo / title
+    local logoLabel = Utils.create("TextLabel", {
+        Text                 = "MEGAHACK",
+        Font                 = Enum.Font.GothamBlack,
+        TextSize             = 32,
+        TextColor3           = theme.text,
+        TextTransparency     = 0,
+        BackgroundTransparency = 1,
+        Size                 = UDim2.new(1, 0, 0, 40),
+        Position             = UDim2.new(0, 0, 0, 24),
+        ZIndex               = 4,
+    }, card)
+
+    -- Subtitle
+    local subLabel = Utils.create("TextLabel", {
+        Text                 = "V2  ·  LOADING",
+        Font                 = Enum.Font.GothamBold,
+        TextSize             = 12,
+        TextColor3           = theme.textMuted,
+        TextTransparency     = 0,
+        BackgroundTransparency = 1,
+        Size                 = UDim2.new(1, 0, 0, 20),
+        Position             = UDim2.new(0, 0, 0, 62),
+        ZIndex               = 4,
+    }, card)
+
+    -- Progress bar track
+    local barTrack = Utils.create("Frame", {
+        Size                  = UDim2.new(0.82, 0, 0, 6),
+        Position              = UDim2.new(0.09, 0, 0, 110),
+        BackgroundColor3      = theme.bgTertiary,
+        BackgroundTransparency= 0,
+        BorderSizePixel       = 0,
+        ZIndex                = 4,
+    }, card)
+    Utils.corner(barTrack, 3)
+
+    -- Progress bar fill
+    local barFill = Utils.create("Frame", {
+        Size                  = UDim2.new(0, 0, 1, 0),
+        BackgroundColor3      = theme.accent,
+        BackgroundTransparency= 0,
+        BorderSizePixel       = 0,
+        ZIndex                = 5,
+    }, barTrack)
+    Utils.corner(barFill, 3)
+    -- Animated shimmer on the fill
+    local fillGrad = Utils.create("UIGradient", {
+        Color    = ColorSequence.new({
+            ColorSequenceKeypoint.new(0,   Color3.new(1,1,1)),
+            ColorSequenceKeypoint.new(0.5, theme.accent),
+            ColorSequenceKeypoint.new(1,   Color3.new(1,1,1)),
+        }),
+        Rotation = 0,
+    }, barFill)
+    ThemeManager.animateGradient(fillGrad, theme.gradKey)
+
+    -- Status text
+    local statusLabel = Utils.create("TextLabel", {
+        Text                 = "Initializing…",
+        Font                 = Enum.Font.Gotham,
+        TextSize             = 11,
+        TextColor3           = theme.textMuted,
+        TextTransparency     = 0,
+        BackgroundTransparency = 1,
+        Size                 = UDim2.new(1, 0, 0, 16),
+        Position             = UDim2.new(0, 0, 0, 128),
+        ZIndex               = 4,
+    }, card)
+
+    -- Dot spinner row
+    local dotsFrame = Utils.create("Frame", {
+        Size                  = UDim2.new(0, 60, 0, 12),
+        Position              = UDim2.new(0.5, -30, 0, 158),
+        BackgroundTransparency= 1,
+        ZIndex                = 4,
+    }, card)
+    local dotInstances = {}
+    for i = 1, 5 do
+        local dot = Utils.create("Frame", {
+            Size                  = UDim2.new(0, 8, 0, 8),
+            Position              = UDim2.new(0, (i-1)*13, 0, 2),
+            BackgroundColor3      = theme.accent,
+            BackgroundTransparency= 0.5,
+            BorderSizePixel       = 0,
+            ZIndex                = 5,
+        }, dotsFrame)
+        Utils.corner(dot, 4)
+        dotInstances[i] = dot
     end
 
-    -- Hover effect
-    button.MouseEnter:Connect(function()
-        if not isCategoryButton then
-            TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.1}):Play()
-        else
-            TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.2, BackgroundColor3 = colors.primary}):Play()
-        end
-        TweenService:Create(button, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-    end)
-
-    button.MouseLeave:Connect(function()
-        if not isCategoryButton then
-            TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.3}):Play()
-        else
-            TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.4, BackgroundColor3 = colors.surface}):Play()
-            TweenService:Create(button, TweenInfo.new(0.2), {TextColor3 = colors.text}):Play()
+    -- Animate dots in a wave
+    local dotConn
+    local dotIdx = 0
+    dotConn = Services.RunService.Heartbeat:Connect(function(dt)
+        dotIdx = (dotIdx + dt * 5)
+        for i, d in ipairs(dotInstances) do
+            local phase = math.sin((dotIdx - i * 0.8)) * 0.5 + 0.5
+            d.BackgroundTransparency = 1 - phase * 0.9
         end
     end)
 
-    -- Click animation
-    button.MouseButton1Click:Connect(function()
-        local tweenInfo = TweenInfo.new(0.1)
-        TweenService:Create(button, tweenInfo, {Size = UDim2.new(1, -14, 0, isCategoryButton and 30 or 36)}):Play()
-        task.wait(0.1)
-        TweenService:Create(button, tweenInfo, {Size = UDim2.new(1, -10, 0, isCategoryButton and 32 or 38)}):Play()
-        callback()
-    end)
+    -- Animate the entrance
+    card.Size     = UDim2.new(0, cardW * 0.7, 0, cardH * 0.7)
+    card.Position = UDim2.new(0.5, -(cardW*0.7)/2, 0.5, -(cardH*0.7)/2)
+    card.BackgroundTransparency = 1
 
-    return button
-end
+    Utils.tweenPlay(card, Utils.tweenInfo(0.55, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size     = UDim2.new(0, cardW, 0, cardH),
+        Position = UDim2.new(0.5, -cardW/2, 0.5, -cardH/2),
+        BackgroundTransparency = 0.15,
+    })
 
-local function createLabel(text, parent, size, position)
-    local label = Instance.new("TextLabel")
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.Size = size or UDim2.new(1, 0, 0, 24)
-    label.Position = position or UDim2.new(0, 0, 0, 0)
-    label.TextSize = 14
-    label.TextColor3 = colors.text
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Font = Enum.Font.Gotham
-    label.TextWrapped = true
-    label.Parent = parent
-    return label
-end
-
--- ══════════════════════════════════════
---  SETTINGS AND OTHER FUNCTIONS
--- ══════════════════════════════════════
-local rgbConnections = {}
-local settings = {
-    locked = false,
-    rgbAccent = false,
-    rgbStroke = false,
-    transparency = 0.15,
-    colors = {
-        bgColor = colors.background,
-        textColor = colors.text,
-        strokeColor = colors.primary,
-        textMode = "normal"
+    -- Animate progress bar filling, then call onComplete
+    local statuses = {
+        "Loading themes…",
+        "Fetching scripts…",
+        "Building UI…",
+        "Applying animations…",
+        "Almost ready…",
+        "Done!",
     }
-}
+    local step     = 1
+    local totalSteps = #statuses
+    local stepTime = Config.Anim.loadingSpeed / totalSteps
 
-local function saveSettings()
-    createNotification("SETTINGS", "Settings saved!", 3)
-end
-
-local function clearRgbConnections()
-    for _, connection in pairs(rgbConnections) do
-        connection:Disconnect()
+    local function nextStep()
+        if step > totalSteps then return end
+        statusLabel.Text = statuses[step]
+        Utils.tweenPlay(barFill,
+            Utils.tweenInfo(stepTime * 0.85, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {Size = UDim2.new(step / totalSteps, 0, 1, 0)}
+        )
+        step = step + 1
+        if step <= totalSteps then
+            task.delay(stepTime, nextStep)
+        else
+            task.delay(stepTime + 0.3, function()
+                dotConn:Disconnect()
+                -- Fade out the entire screen
+                Utils.tweenPlay(bg, Utils.tweenInfo(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                    BackgroundTransparency = 1
+                })
+                Utils.tweenPlay(card, Utils.tweenInfo(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+                    Size     = UDim2.new(0, cardW * 0.6, 0, cardH * 0.6),
+                    Position = UDim2.new(0.5, -(cardW*0.6)/2, 0.5, -(cardH*0.6)/2),
+                    BackgroundTransparency = 1,
+                })
+                task.delay(0.5, function()
+                    gui:Destroy()
+                    if onComplete then onComplete() end
+                end)
+            end)
+        end
     end
-    rgbConnections = {}
+
+    task.delay(0.35, nextStep)
 end
 
--- ══════════════════════════════════════
---  SEARCH FUNCTIONS
--- ══════════════════════════════════════
-local function searchScriptsByMegahack(query)
-    local results = {}
-    for categoryName, hacks in pairs(HubData) do
-        if type(hacks) == "table" then
-            for _, hack in ipairs(hacks) do
-                if type(hack) == "table" and hack[1] and type(hack[1]) == "string" then
-                    if string.find(string.lower(hack[1]), string.lower(query)) or
-                       string.find(string.lower(categoryName), "megahack") then
-                        table.insert(results, {name = hack[1], category = categoryName, func = hack[2]})
-                    end
+-- ════════════════════════════════════════════════════════
+--  [6] CATEGORY DATA — Load remote script tables
+-- ════════════════════════════════════════════════════════
+local HubData    = {}   -- filled during boot
+local TotalScripts = 0
+
+local function loadAllData(onProgress)
+    local keys  = {}
+    for k in pairs(Config.Sources) do table.insert(keys, k) end
+    local done  = 0
+    local total = #keys
+
+    for _, key in ipairs(keys) do
+        HubData[key] = Utils.safeLoad(Config.Sources[key])
+        if type(HubData[key]) == "table" then
+            TotalScripts = TotalScripts + #HubData[key]
+        end
+        done = done + 1
+        if onProgress then onProgress(done / total) end
+        task.wait()   -- yield between loads to stay responsive
+    end
+end
+
+-- ════════════════════════════════════════════════════════
+--  [7] SEARCH ENGINE — Real-time script filtering
+-- ════════════════════════════════════════════════════════
+local SearchEngine = {}
+
+--- Build a flat index of all scripts for fast searching
+---@return table  list of {name, category, func}
+function SearchEngine.buildIndex()
+    local index = {}
+    for cat, scripts in pairs(HubData) do
+        if type(scripts) == "table" then
+            for _, entry in ipairs(scripts) do
+                if type(entry) == "table" and type(entry[1]) == "string" and type(entry[2]) == "function" then
+                    table.insert(index, {
+                        name     = entry[1],
+                        category = cat,
+                        func     = entry[2],
+                        nameLower = string.lower(entry[1]),
+                        catLower  = string.lower(cat),
+                    })
                 end
             end
         end
     end
-    return results
+    return index
 end
 
-local function searchScriptsOnScriptBlox(query)
-    local results = {}
-    local success, response = pcall(function()
-        return HttpService:GetAsync("https://scriptblox.com/api/script/search?q=" .. HttpService:UrlEncode(query))
-    end)
-    if success then
-        local data = HttpService:JSONDecode(response)
-        if data and data.result and data.result.scripts then
-            for _, script in ipairs(data.result.scripts) do
-                table.insert(results, {
-                    name = script.title,
-                    category = "ScriptBlox",
-                    scriptId = script._id
-                })
-            end
+local _index = nil   -- lazily built
+
+--- Search scripts by query string (real-time)
+---@param query string
+---@return table  list of matching {name, category, func}
+function SearchEngine.query(query)
+    if not _index then _index = SearchEngine.buildIndex() end
+    if query == "" then return _index end
+    local q   = string.lower(query)
+    local out = {}
+    for _, entry in ipairs(_index) do
+        if string.find(entry.nameLower, q, 1, true)
+        or string.find(entry.catLower,  q, 1, true) then
+            table.insert(out, entry)
         end
-    else
-        warn("Failed to search ScriptBlox: " .. response)
     end
-    return results
+    return out
 end
 
--- ══════════════════════════════════════
---  LOAD CATEGORY
--- ══════════════════════════════════════
-local function loadHacksFromCategory(categoryName)
-    for _, child in ipairs(scrollingFrame:GetChildren()) do
-        if not child:IsA("UIListLayout") then child:Destroy() end
+-- ════════════════════════════════════════════════════════
+--  [8] MAIN GUI — Build the full interface
+-- ════════════════════════════════════════════════════════
+local UI = {}   -- holds all top-level GUI instances
+local State = {
+    activeCategory  = "Home",
+    locked          = false,
+    gradientEnabled = true,
+    themeName       = "dark",
+}
+
+--  Helper: apply theme to a standard script button
+local function styleButton(btn, isCategory)
+    local theme = ThemeManager.get()
+    btn.BackgroundColor3      = theme.bgTertiary
+    btn.BackgroundTransparency = 0.1
+    btn.TextColor3            = theme.text
+    btn.Font                  = isCategory and Enum.Font.GothamBold or Enum.Font.Gotham
+    btn.TextSize               = isCategory and 12 or 13
+    btn.TextTransparency       = 0
+
+    -- Ensure clean stroke
+    local existingStroke = btn:FindFirstChildWhichIsA("UIStroke")
+    if existingStroke then
+        existingStroke.Color = theme.stroke
+        existingStroke.Transparency = 0.4
+    end
+end
+
+--  Notification system (toast)
+local NotifQueue = {}
+local NotifActive = 0
+
+local function createNotification(title, subtitle, duration, kind)
+    -- kind: "info"|"success"|"warn"|"error"
+    local theme  = ThemeManager.get()
+    kind = kind or "info"
+
+    local accentMap = {
+        info    = theme.accent,
+        success = theme.success,
+        warn    = theme.warning,
+        error   = theme.danger,
+    }
+    local accent = accentMap[kind] or theme.accent
+
+    NotifActive = NotifActive + 1
+    local slot  = NotifActive
+
+    local notifGui = Utils.create("ScreenGui", {
+        Name           = "MH2_Notif_" .. slot,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        ResetOnSpawn   = false,
+    })
+    Utils.hideGui(notifGui)
+
+    local W, H = 240, 60
+    local frame = Utils.create("Frame", {
+        Size                  = UDim2.new(0, W, 0, H),
+        Position              = UDim2.new(1, W + 10, 0, 20 + (slot - 1) * (H + 8)),
+        BackgroundColor3      = theme.bgSecondary,
+        BackgroundTransparency= 0.08,
+        BorderSizePixel       = 0,
+        ZIndex                = 20,
+    }, notifGui)
+    Utils.corner(frame, 10)
+    local fStroke = Utils.stroke(frame, accent, 1.2, 0.4)
+
+    -- Coloured left bar
+    local bar = Utils.create("Frame", {
+        Size             = UDim2.new(0, 4, 1, -12),
+        Position         = UDim2.new(0, 0, 0, 6),
+        BackgroundColor3 = accent,
+        BorderSizePixel  = 0,
+        ZIndex           = 21,
+    }, frame)
+    Utils.corner(bar, 2)
+
+    Utils.create("TextLabel", {
+        Text                 = title,
+        Font                 = Enum.Font.GothamBold,
+        TextSize             = 13,
+        TextColor3           = theme.text,
+        BackgroundTransparency = 1,
+        Size                 = UDim2.new(1, -14, 0, 22),
+        Position             = UDim2.new(0, 10, 0, 6),
+        TextXAlignment       = Enum.TextXAlignment.Left,
+        ZIndex               = 21,
+    }, frame)
+
+    Utils.create("TextLabel", {
+        Text                 = subtitle,
+        Font                 = Enum.Font.Gotham,
+        TextSize             = 11,
+        TextColor3           = theme.textMuted,
+        BackgroundTransparency = 1,
+        Size                 = UDim2.new(1, -14, 0, 20),
+        Position             = UDim2.new(0, 10, 0, 30),
+        TextXAlignment       = Enum.TextXAlignment.Left,
+        TextWrapped          = true,
+        ZIndex               = 21,
+    }, frame)
+
+    -- Slide in
+    local slideIn  = Utils.tweenInfo(0.38, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    local slideOut = Utils.tweenInfo(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+    Utils.tweenPlay(frame, slideIn, {Position = UDim2.new(1, -(W + 14), 0, 20 + (slot - 1) * (H + 8))})
+
+    task.delay(duration or 3.5, function()
+        Utils.tweenPlay(frame, slideOut, {Position = UDim2.new(1, W + 10, 0, 20 + (slot - 1) * (H + 8))})
+        task.delay(0.32, function()
+            notifGui:Destroy()
+            NotifActive = math.max(0, NotifActive - 1)
+        end)
+    end)
+end
+
+-- ── Build the main frame ─────────────────────────────────
+function UI.build()
+    local theme = ThemeManager.get()
+    local cfg   = Config.UI
+    local W, H  = cfg.width, cfg.height
+    if IsMobile then
+        W = math.floor(W * Config.Mobile.scaleFactor)
+        H = math.floor(H * Config.Mobile.scaleFactor)
     end
 
-    local data = HubData[categoryName]
+    -- Root ScreenGui
+    local screenGui = Utils.create("ScreenGui", {
+        Name            = "MH2_Main",
+        ZIndexBehavior  = Enum.ZIndexBehavior.Sibling,
+        IgnoreGuiInset  = false,
+        ResetOnSpawn    = false,
+    })
+    Utils.hideGui(screenGui)
+    UI.screenGui = screenGui
+
+    -- UIScale for mobile
+    if IsMobile then
+        Utils.create("UIScale", {Scale = 0.92}, screenGui)
+    end
+
+    -- ── Main window frame ────────────────────────────────
+    local mainFrame = Utils.create("Frame", {
+        Name                  = "MainWindow",
+        Size                  = UDim2.new(0, 0, 0, H),   -- animates open from 0 width
+        AnchorPoint           = Vector2.new(0.5, 0.5),
+        Position              = UDim2.new(0.5, 0, 0.5, 0),
+        BackgroundColor3      = theme.bg,
+        BackgroundTransparency= 0.06,
+        BorderSizePixel       = 0,
+        ZIndex                = cfg.zIndex,
+    }, screenGui)
+    Utils.corner(mainFrame, cfg.cornerRadius)
+    local mainStroke = Utils.stroke(mainFrame, theme.stroke, 1.5, 0.3)
+    UI.mainFrame  = mainFrame
+    UI.mainStroke = mainStroke
+
+    -- Animated gradient border
+    local borderGrad = Utils.create("UIGradient", {Rotation = 45}, mainStroke)
+    if State.gradientEnabled then
+        ThemeManager.animateGradient(borderGrad, theme.gradKey)
+    end
+
+    -- ── Header bar ──────────────────────────────────────
+    local header = Utils.create("Frame", {
+        Name                  = "Header",
+        Size                  = UDim2.new(1, 0, 0, cfg.headerHeight),
+        BackgroundColor3      = theme.bgSecondary,
+        BackgroundTransparency= 0.05,
+        BorderSizePixel       = 0,
+        ZIndex                = cfg.zIndex + 1,
+    }, mainFrame)
+    Utils.corner(header, cfg.cornerRadius)
+    -- Cover bottom half of header's rounded corners
+    Utils.create("Frame", {
+        Size             = UDim2.new(1, 0, 0, cfg.cornerRadius),
+        Position         = UDim2.new(0, 0, 1, -cfg.cornerRadius),
+        BackgroundColor3 = theme.bgSecondary,
+        BackgroundTransparency = 0.05,
+        BorderSizePixel  = 0,
+        ZIndex           = cfg.zIndex + 1,
+    }, header)
+    UI.header = header
+
+    -- Header gradient shimmer
+    local hGrad = Utils.create("UIGradient", {
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0,   0.85),
+            NumberSequenceKeypoint.new(0.5, 0.65),
+            NumberSequenceKeypoint.new(1,   0.85),
+        }),
+        Rotation = 0,
+    }, header)
+    -- Animate offset for shimmer
+    do
+        local t2 = 0
+        Services.RunService.Heartbeat:Connect(function(dt)
+            if not header.Parent then return end
+            t2 = (t2 + dt * 0.4) % 1
+            hGrad.Offset = Vector2.new(t2 * 2 - 1, 0)
+        end)
+    end
+
+    -- Icon + title
+    Utils.create("ImageLabel", {
+        Image                = "rbxassetid://7072717762",
+        Size                 = UDim2.new(0, 20, 0, 20),
+        Position             = UDim2.new(0, 10, 0.5, -10),
+        BackgroundTransparency = 1,
+        ZIndex               = cfg.zIndex + 2,
+    }, header)
+
+    Utils.create("TextLabel", {
+        Text                 = "MEGAHACK  V2",
+        Font                 = Enum.Font.GothamBlack,
+        TextSize             = 15,
+        TextColor3           = theme.text,
+        BackgroundTransparency = 1,
+        Size                 = UDim2.new(0.6, 0, 1, 0),
+        Position             = UDim2.new(0, 36, 0, 0),
+        TextXAlignment       = Enum.TextXAlignment.Left,
+        ZIndex               = cfg.zIndex + 2,
+    }, header)
+
+    -- Game name (right side of header)
+    local gameName = Utils.create("TextLabel", {
+        Text                 = "…",
+        Font                 = Enum.Font.Gotham,
+        TextSize             = 10,
+        TextColor3           = theme.textMuted,
+        BackgroundTransparency = 1,
+        Size                 = UDim2.new(0.35, 0, 1, 0),
+        Position             = UDim2.new(0.6, 0, 0, 0),
+        TextXAlignment       = Enum.TextXAlignment.Right,
+        ZIndex               = cfg.zIndex + 2,
+    }, header)
+    task.spawn(function()
+        local ok, info = pcall(function()
+            return Services.MarketplaceService:GetProductInfo(game.PlaceId)
+        end)
+        if ok and info then
+            gameName.Text = info.Name
+        end
+    end)
+
+    -- Close button
+    local closeBtn = Utils.create("ImageButton", {
+        Image                = "rbxassetid://14397748477",
+        Size                 = UDim2.new(0, 18, 0, 18),
+        Position             = UDim2.new(1, -26, 0.5, -9),
+        BackgroundTransparency = 1,
+        ZIndex               = cfg.zIndex + 3,
+    }, header)
+    UI.closeBtn = closeBtn
+
+    -- ── Divider below header ─────────────────────────────
+    local divider = Utils.create("Frame", {
+        Size             = UDim2.new(1, -20, 0, 1),
+        Position         = UDim2.new(0, 10, 0, cfg.headerHeight),
+        BackgroundColor3 = theme.stroke,
+        BackgroundTransparency = 0.5,
+        BorderSizePixel  = 0,
+        ZIndex           = cfg.zIndex,
+    }, mainFrame)
+
+    -- ── Sidebar ──────────────────────────────────────────
+    local sideW    = cfg.sidebarWidth
+    local contentY = cfg.headerHeight + 2
+    local contentH = H - contentY
+
+    local sidebar = Utils.create("ScrollingFrame", {
+        Name                  = "Sidebar",
+        Size                  = UDim2.new(0, sideW, 0, contentH),
+        Position              = UDim2.new(0, 0, 0, contentY),
+        BackgroundTransparency= 1,
+        BorderSizePixel       = 0,
+        CanvasSize            = UDim2.new(0, 0, 0, 0),
+        ScrollBarThickness    = cfg.scrollBarW,
+        ScrollBarImageColor3  = theme.accent,
+        ZIndex                = cfg.zIndex,
+    }, mainFrame)
+    UI.sidebar = sidebar
+
+    local sideLayout = Utils.listLayout(sidebar, 4)
+    Utils.padding(sidebar, 6)
+    Utils.autoCanvasSize(sidebar, sideLayout)
+
+    -- Sidebar divider line
+    Utils.create("Frame", {
+        Size             = UDim2.new(0, 1, 0, contentH - 12),
+        Position         = UDim2.new(0, sideW, 0, contentY + 6),
+        BackgroundColor3 = theme.stroke,
+        BackgroundTransparency = 0.5,
+        BorderSizePixel  = 0,
+        ZIndex           = cfg.zIndex,
+    }, mainFrame)
+
+    -- ── Content panel ────────────────────────────────────
+    local contentX = sideW + 4
+    local contentW = W - contentX - 6
+
+    local contentScroll = Utils.create("ScrollingFrame", {
+        Name                  = "ContentPanel",
+        Size                  = UDim2.new(0, contentW, 0, contentH),
+        Position              = UDim2.new(0, contentX, 0, contentY),
+        BackgroundTransparency= 1,
+        BorderSizePixel       = 0,
+        CanvasSize            = UDim2.new(0, 0, 0, 0),
+        ScrollBarThickness    = cfg.scrollBarW,
+        ScrollBarImageColor3  = theme.accent,
+        ZIndex                = cfg.zIndex,
+    }, mainFrame)
+    UI.contentScroll  = contentScroll
+    UI.contentWidth   = contentW
+
+    local contentLayout = Utils.listLayout(contentScroll, 5)
+    Utils.padding(contentScroll, 6, 4, 8, 8, 6)
+    Utils.autoCanvasSize(contentScroll, contentLayout)
+
+    -- ── Reopen floating button ───────────────────────────
+    local reopenBtn = Utils.create("ImageButton", {
+        Image                 = "rbxassetid://74283928898866",
+        Size                  = IsMobile
+                                    and UDim2.new(0, 60, 0, 60)
+                                    or  UDim2.new(0, 46, 0, 46),
+        Position              = UDim2.new(0.5, -23, 0.92, -23),
+        BackgroundColor3      = theme.bgSecondary,
+        BackgroundTransparency= 0.1,
+        ImageTransparency     = 0.15,
+        Visible               = false,
+        ZIndex                = cfg.zIndex + 5,
+    }, screenGui)
+    Utils.corner(reopenBtn, 50)
+    Utils.stroke(reopenBtn, theme.accent, 1.5, 0.3)
+    UI.reopenBtn = reopenBtn
+
+    -- ── Wire up close / reopen ───────────────────────────
+    closeBtn.MouseButton1Click:Connect(function()
+        local ti = Utils.tweenInfo(Config.Anim.closeDuration, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+        Utils.tweenPlay(mainFrame, ti, {Size = UDim2.new(0, 0, 0, H), BackgroundTransparency = 1})
+        task.delay(Config.Anim.closeDuration, function()
+            mainFrame.Visible = false
+            reopenBtn.Visible = true
+        end)
+    end)
+
+    reopenBtn.MouseButton1Click:Connect(function()
+        mainFrame.Visible = true
+        mainFrame.BackgroundTransparency = 1
+        mainFrame.Size = UDim2.new(0, 0, 0, H)
+        local ti = Utils.tweenInfo(Config.Anim.openDuration, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+        Utils.tweenPlay(mainFrame, ti, {Size = UDim2.new(0, W, 0, H), BackgroundTransparency = 0.06})
+        reopenBtn.Visible = false
+    end)
+
+    -- ── Draggable header ─────────────────────────────────
+    if not State.locked then
+        local dragging, dragInput, mousePos, framePos
+        header.InputBegan:Connect(function(input)
+            if State.locked then return end
+            local isTouch = input.UserInputType == Enum.UserInputType.Touch
+            local isMouse = input.UserInputType == Enum.UserInputType.MouseButton1
+            if isTouch or isMouse then
+                dragging  = true
+                mousePos  = input.Position
+                framePos  = mainFrame.Position
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        dragging = false
+                    end
+                end)
+            end
+        end)
+        header.InputChanged:Connect(function(input)
+            local isTouch = input.UserInputType == Enum.UserInputType.Touch
+            local isMouse = input.UserInputType == Enum.UserInputType.MouseMovement
+            if isTouch or isMouse then dragInput = input end
+        end)
+        Services.UserInputService.InputChanged:Connect(function(input)
+            if input == dragInput and dragging then
+                local delta   = input.Position - mousePos
+                mainFrame.Position = UDim2.new(
+                    framePos.X.Scale,
+                    framePos.X.Offset + delta.X,
+                    framePos.Y.Scale,
+                    framePos.Y.Offset + delta.Y
+                )
+            end
+        end)
+    end
+
+    -- ── Register theme change listener ───────────────────
+    ThemeManager.onChange(function(t)
+        mainFrame.BackgroundColor3      = t.bg
+        header.BackgroundColor3         = t.bgSecondary
+        mainStroke.Color                = t.stroke
+        sidebar.ScrollBarImageColor3    = t.accent
+        contentScroll.ScrollBarImageColor3 = t.accent
+        divider.BackgroundColor3        = t.stroke
+        -- Rebuild stroke gradient with new theme
+        ThemeManager.stopGradients()
+        if State.gradientEnabled then
+            ThemeManager.animateGradient(borderGrad, t.gradKey)
+        end
+        -- Re-apply all category buttons
+        UI.refreshSidebar()
+    end)
+
+    -- ── Populate sidebar ─────────────────────────────────
+    UI.sideButtons = {}
+    UI.buildSidebar()
+
+    -- ── Opening animation ────────────────────────────────
+    task.defer(function()
+        local ti = Utils.tweenInfo(Config.Anim.openDuration, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+        Utils.tweenPlay(mainFrame, ti, {Size = UDim2.new(0, W, 0, H), BackgroundTransparency = 0.06})
+    end)
+end
+
+-- ════════════════════════════════════════════════════════
+--  Sidebar — build + navigation
+-- ════════════════════════════════════════════════════════
+function UI.buildSidebar()
+    local theme   = ThemeManager.get()
+    local sidebar = UI.sidebar
+
+    for _, child in ipairs(sidebar:GetChildren()) do
+        if not child:IsA("UIListLayout") and not child:IsA("UIPadding") then
+            child:Destroy()
+        end
+    end
+    UI.sideButtons = {}
+
+    for _, name in ipairs(Config.CategoryOrder) do
+        -- Section separator labels (start with ──)
+        if name:sub(1, 2) == "──" then
+            Utils.create("TextLabel", {
+                Text                 = name,
+                Font                 = Enum.Font.GothamBold,
+                TextSize             = 9,
+                TextColor3           = theme.textMuted,
+                BackgroundTransparency = 1,
+                Size                 = UDim2.new(1, -8, 0, 18),
+                TextXAlignment       = Enum.TextXAlignment.Left,
+                ZIndex               = Config.UI.zIndex + 1,
+            }, sidebar)
+        else
+            local isActive = (name == State.activeCategory)
+            local btn = Utils.create("TextButton", {
+                Text                   = name,
+                Font                   = Enum.Font.GothamBold,
+                TextSize               = 11,
+                TextColor3             = isActive and theme.accent or theme.textMuted,
+                BackgroundColor3       = isActive and theme.bgTertiary or theme.bgSecondary,
+                BackgroundTransparency = isActive and 0 or 0.5,
+                BorderSizePixel        = 0,
+                Size                   = UDim2.new(1, -8, 0, IsMobile and 36 or 28),
+                AutoButtonColor        = false,
+                ZIndex                 = Config.UI.zIndex + 1,
+            }, sidebar)
+            Utils.corner(btn, 6)
+
+            -- Active indicator bar
+            local indicator = Utils.create("Frame", {
+                Size             = UDim2.new(0, 3, 0.7, 0),
+                Position         = UDim2.new(0, 0, 0.15, 0),
+                BackgroundColor3 = isActive and theme.accent or Color3.new(0,0,0),
+                BackgroundTransparency = isActive and 0 or 1,
+                BorderSizePixel  = 0,
+                ZIndex           = Config.UI.zIndex + 2,
+            }, btn)
+            Utils.corner(indicator, 2)
+
+            -- Hover effect
+            btn.MouseEnter:Connect(function()
+                if State.activeCategory ~= name then
+                    Utils.tweenPlay(btn, Utils.tweenInfo(Config.Anim.hoverDuration), {
+                        BackgroundTransparency = 0.25,
+                        TextColor3             = theme.text,
+                    })
+                end
+            end)
+            btn.MouseLeave:Connect(function()
+                if State.activeCategory ~= name then
+                    Utils.tweenPlay(btn, Utils.tweenInfo(Config.Anim.hoverDuration), {
+                        BackgroundTransparency = 0.5,
+                        TextColor3             = theme.textMuted,
+                    })
+                end
+            end)
+
+            btn.MouseButton1Click:Connect(function()
+                -- Click scale bounce
+                Utils.tweenPlay(btn, Utils.tweenInfo(0.08), {Size = UDim2.new(1, -12, 0, IsMobile and 33 or 25)})
+                task.delay(0.09, function()
+                    Utils.tweenPlay(btn, Utils.tweenInfo(0.12, Enum.EasingStyle.Back), {
+                        Size = UDim2.new(1, -8, 0, IsMobile and 36 or 28)
+                    })
+                end)
+
+                State.activeCategory = name
+                UI.refreshSidebar()
+                UI.navigate(name)
+            end)
+
+            UI.sideButtons[name] = {btn = btn, indicator = indicator}
+        end
+    end
+end
+
+function UI.refreshSidebar()
+    local theme = ThemeManager.get()
+    for name, data in pairs(UI.sideButtons) do
+        local isActive = (name == State.activeCategory)
+        data.btn.TextColor3             = isActive and theme.accent or theme.textMuted
+        data.btn.BackgroundColor3       = isActive and theme.bgTertiary or theme.bgSecondary
+        data.btn.BackgroundTransparency = isActive and 0 or 0.5
+        data.indicator.BackgroundColor3 = isActive and theme.accent or Color3.new(0,0,0)
+        data.indicator.BackgroundTransparency = isActive and 0 or 1
+    end
+end
+
+-- ════════════════════════════════════════════════════════
+--  Content helpers — buttons, labels, cards
+-- ════════════════════════════════════════════════════════
+local function clearContent()
+    local scroll = UI.contentScroll
+    for _, c in ipairs(scroll:GetChildren()) do
+        if not c:IsA("UIListLayout") and not c:IsA("UIPadding") then
+            c:Destroy()
+        end
+    end
+    scroll.CanvasPosition = Vector2.new(0, 0)
+end
+
+local function makeButton(text, parent, callback, accent)
+    local theme = ThemeManager.get()
+    local H_    = IsMobile and Config.Mobile.buttonHeight or Config.UI.buttonHeight
+
+    local btn = Utils.create("TextButton", {
+        Text                   = text,
+        Font                   = Enum.Font.Gotham,
+        TextSize               = 12,
+        TextColor3             = theme.text,
+        BackgroundColor3       = accent and theme.accent or theme.bgTertiary,
+        BackgroundTransparency = accent and 0.1 or 0.15,
+        BorderSizePixel        = 0,
+        Size                   = UDim2.new(1, 0, 0, H_),
+        AutoButtonColor        = false,
+        TextXAlignment         = Enum.TextXAlignment.Left,
+        ZIndex                 = Config.UI.zIndex + 1,
+    }, parent)
+    Utils.corner(btn, Config.UI.buttonCorner)
+    Utils.padding(btn, 0, 0, 0, 0, 10)
+    Utils.stroke(btn, accent and theme.accent or theme.stroke, 1, 0.5)
+
+    btn.MouseEnter:Connect(function()
+        Utils.tweenPlay(btn, Utils.tweenInfo(Config.Anim.hoverDuration), {
+            BackgroundTransparency = accent and 0.0 or 0.05,
+        })
+    end)
+    btn.MouseLeave:Connect(function()
+        Utils.tweenPlay(btn, Utils.tweenInfo(Config.Anim.hoverDuration), {
+            BackgroundTransparency = accent and 0.1 or 0.15,
+        })
+    end)
+    btn.MouseButton1Click:Connect(function()
+        Utils.tweenPlay(btn, Utils.tweenInfo(0.07), {Size = UDim2.new(1, -4, 0, H_ - 4)})
+        task.delay(0.08, function()
+            Utils.tweenPlay(btn, Utils.tweenInfo(0.12, Enum.EasingStyle.Back), {
+                Size = UDim2.new(1, 0, 0, H_)
+            })
+        end)
+        if callback then pcall(callback) end
+    end)
+
+    return btn
+end
+
+local function makeLabel(text, parent, size, textSize, color)
+    local theme = ThemeManager.get()
+    return Utils.create("TextLabel", {
+        Text                 = text,
+        Font                 = Enum.Font.Gotham,
+        TextSize             = textSize or 12,
+        TextColor3           = color or theme.textMuted,
+        BackgroundTransparency = 1,
+        Size                 = size or UDim2.new(1, 0, 0, 20),
+        TextXAlignment       = Enum.TextXAlignment.Left,
+        TextWrapped          = true,
+        ZIndex               = Config.UI.zIndex + 1,
+    }, parent)
+end
+
+local function makeSectionHeader(text, parent)
+    local theme = ThemeManager.get()
+    local row = Utils.create("Frame", {
+        BackgroundTransparency = 1,
+        Size                   = UDim2.new(1, 0, 0, 24),
+        ZIndex                 = Config.UI.zIndex + 1,
+    }, parent)
+    Utils.create("TextLabel", {
+        Text                 = string.upper(text),
+        Font                 = Enum.Font.GothamBlack,
+        TextSize             = 10,
+        TextColor3           = theme.accent,
+        BackgroundTransparency = 1,
+        Size                 = UDim2.new(0.6, 0, 1, 0),
+        TextXAlignment       = Enum.TextXAlignment.Left,
+        ZIndex               = Config.UI.zIndex + 2,
+    }, row)
+    Utils.create("Frame", {
+        Size             = UDim2.new(0.35, 0, 0, 1),
+        Position         = UDim2.new(0.63, 0, 0.5, 0),
+        BackgroundColor3 = theme.stroke,
+        BackgroundTransparency = 0.3,
+        BorderSizePixel  = 0,
+        ZIndex           = Config.UI.zIndex + 2,
+    }, row)
+    return row
+end
+
+-- ════════════════════════════════════════════════════════
+--  [8a] HOME PAGE
+-- ════════════════════════════════════════════════════════
+local function showHome()
+    clearContent()
+    local scroll  = UI.contentScroll
+    local theme   = ThemeManager.get()
+
+    -- Welcome card
+    local card = Utils.create("Frame", {
+        BackgroundColor3      = theme.bgSecondary,
+        BackgroundTransparency= 0.1,
+        BorderSizePixel       = 0,
+        Size                  = UDim2.new(1, 0, 0, 90),
+        ZIndex                = Config.UI.zIndex + 1,
+    }, scroll)
+    Utils.corner(card, 10)
+    local cg2 = Utils.create("UIGradient", {Rotation = 135}, Utils.stroke(card, theme.accent, 1, 0.5))
+    ThemeManager.animateGradient(cg2, theme.gradKey)
+
+    -- Avatar
+    local avatarImg = Utils.create("ImageLabel", {
+        Image                = "",
+        Size                 = UDim2.new(0, 60, 0, 60),
+        Position             = UDim2.new(0, 10, 0.5, -30),
+        BackgroundColor3     = theme.bgTertiary,
+        BackgroundTransparency = 0.3,
+        ZIndex               = Config.UI.zIndex + 2,
+    }, card)
+    Utils.corner(avatarImg, 50)
+    task.spawn(function()
+        local ok, url = pcall(function()
+            return Services.Players:GetUserThumbnailAsync(
+                Player.UserId,
+                Enum.ThumbnailType.HeadShot,
+                Enum.ThumbnailSize.Size180x180
+            )
+        end)
+        if ok then avatarImg.Image = url end
+    end)
+
+    Utils.create("TextLabel", {
+        Text                 = Player.Name,
+        Font                 = Enum.Font.GothamBlack,
+        TextSize             = 16,
+        TextColor3           = theme.text,
+        BackgroundTransparency = 1,
+        Size                 = UDim2.new(0.6, 0, 0, 22),
+        Position             = UDim2.new(0, 78, 0, 14),
+        TextXAlignment       = Enum.TextXAlignment.Left,
+        ZIndex               = Config.UI.zIndex + 2,
+    }, card)
+
+    Utils.create("TextLabel", {
+        Text                 = "UserID: " .. Player.UserId,
+        Font                 = Enum.Font.Gotham,
+        TextSize             = 10,
+        TextColor3           = theme.textMuted,
+        BackgroundTransparency = 1,
+        Size                 = UDim2.new(0.6, 0, 0, 16),
+        Position             = UDim2.new(0, 78, 0, 36),
+        TextXAlignment       = Enum.TextXAlignment.Left,
+        ZIndex               = Config.UI.zIndex + 2,
+    }, card)
+
+    -- Live FPS counter
+    local fpsLabel = Utils.create("TextLabel", {
+        Text                 = "FPS: —",
+        Font                 = Enum.Font.GothamBold,
+        TextSize             = 11,
+        TextColor3           = theme.success,
+        BackgroundTransparency = 1,
+        Size                 = UDim2.new(0.5, 0, 0, 16),
+        Position             = UDim2.new(0, 78, 0, 54),
+        TextXAlignment       = Enum.TextXAlignment.Left,
+        ZIndex               = Config.UI.zIndex + 2,
+    }, card)
+
+    -- Script count badge
+    Utils.create("TextLabel", {
+        Text                 = TotalScripts .. " Scripts",
+        Font                 = Enum.Font.GothamBold,
+        TextSize             = 11,
+        TextColor3           = theme.accent,
+        BackgroundTransparency = 1,
+        Size                 = UDim2.new(0.35, 0, 0, 16),
+        Position             = UDim2.new(0.62, 0, 0.5, -8),
+        TextXAlignment       = Enum.TextXAlignment.Right,
+        ZIndex               = Config.UI.zIndex + 2,
+    }, card)
+
+    -- Live FPS update
+    local frames = 0
+    local last   = tick()
+    local fpsConn
+    fpsConn = Services.RunService.Heartbeat:Connect(function()
+        if not fpsLabel.Parent then fpsConn:Disconnect() return end
+        frames = frames + 1
+        local now = tick()
+        if now - last >= 1 then
+            fpsLabel.Text = "FPS: " .. frames
+            frames = 0
+            last   = now
+        end
+    end)
+
+    -- Info rows
+    makeSectionHeader("Info", scroll)
+    makeLabel("Platform: " .. (IsMobile and "Mobile 📱" or "PC 🖥"), scroll, UDim2.new(1,0,0,18), 11)
+    makeLabel("PlaceId: " .. game.PlaceId, scroll, UDim2.new(1,0,0,18), 11)
+
+    makeSectionHeader("Links", scroll)
+    makeLabel("YouTube: youtube.com/@Vermax", scroll, UDim2.new(1,0,0,18), 11)
+    makeLabel("Telegram: t.me/@vermax",       scroll, UDim2.new(1,0,0,18), 11)
+    makeLabel("Discord:  discord.gg/vermax",   scroll, UDim2.new(1,0,0,18), 11)
+end
+
+-- ════════════════════════════════════════════════════════
+--  [8b] SEARCH PAGE
+-- ════════════════════════════════════════════════════════
+local function showSearch()
+    clearContent()
+    local scroll  = UI.contentScroll
+    local theme   = ThemeManager.get()
+    local results = {}
+
+    -- Search bar
+    local searchBox = Utils.create("TextBox", {
+        Text                   = "",
+        PlaceholderText        = "🔍  Search scripts…",
+        Font                   = Enum.Font.Gotham,
+        TextSize               = 12,
+        TextColor3             = theme.text,
+        PlaceholderColor3      = theme.textMuted,
+        BackgroundColor3       = theme.bgTertiary,
+        BackgroundTransparency = 0.1,
+        BorderSizePixel        = 0,
+        Size                   = UDim2.new(1, 0, 0, IsMobile and 40 or 32),
+        ZIndex                 = Config.UI.zIndex + 2,
+        ClearTextOnFocus       = false,
+    }, scroll)
+    Utils.corner(searchBox, 8)
+    Utils.padding(searchBox, 0, 0, 0, 0, 10)
+    local sbStroke = Utils.stroke(searchBox, theme.accent, 1, 0.5)
+
+    searchBox.Focused:Connect(function()
+        Utils.tweenPlay(sbStroke, Utils.tweenInfo(0.2), {Transparency = 0, Thickness = 1.5})
+    end)
+    searchBox.FocusLost:Connect(function()
+        Utils.tweenPlay(sbStroke, Utils.tweenInfo(0.2), {Transparency = 0.5, Thickness = 1})
+    end)
+
+    -- Results container
+    local resultsFrame = Utils.create("Frame", {
+        BackgroundTransparency = 1,
+        Size                   = UDim2.new(1, 0, 0, 0),  -- grows with layout
+        AutomaticSize          = Enum.AutomaticSize.Y,
+        ZIndex                 = Config.UI.zIndex + 1,
+    }, scroll)
+    local rLayout = Utils.listLayout(resultsFrame, 5)
+    Utils.autoCanvasSize(scroll, rLayout)
+
+    local countLabel = makeLabel("Type to search…", resultsFrame, UDim2.new(1,0,0,20), 11)
+    countLabel.TextColor3 = theme.textMuted
+
+    local function renderResults(list)
+        for _, c in ipairs(resultsFrame:GetChildren()) do
+            if c ~= rLayout and c ~= countLabel then c:Destroy() end
+        end
+
+        if #list == 0 then
+            countLabel.Text = "No results found"
+            return
+        end
+        countLabel.Text = #list .. " result" .. (#list == 1 and "" or "s") .. " found"
+
+        for i, entry in ipairs(list) do
+            if i > 80 then break end   -- cap render
+            makeButton(
+                "[" .. entry.category .. "]  " .. entry.name,
+                resultsFrame,
+                function()
+                    local ok, err = pcall(entry.func)
+                    if not ok then
+                        createNotification("Script Error", tostring(err), 5, "error")
+                    else
+                        createNotification("Executed", entry.name, 2.5, "success")
+                    end
+                end
+            )
+        end
+    end
+
+    -- Real-time search on text change
+    searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+        local q = searchBox.Text
+        if #q < 1 then
+            countLabel.Text = "Type to search…"
+            for _, c in ipairs(resultsFrame:GetChildren()) do
+                if c ~= rLayout and c ~= countLabel then c:Destroy() end
+            end
+            return
+        end
+        task.defer(function()
+            if searchBox.Text ~= q then return end  -- debounce
+            renderResults(SearchEngine.query(q))
+        end)
+    end)
+end
+
+-- ════════════════════════════════════════════════════════
+--  [8c] CATEGORY SCRIPT PAGE
+-- ════════════════════════════════════════════════════════
+local function showCategory(categoryName)
+    clearContent()
+    local scroll = UI.contentScroll
+    local theme  = ThemeManager.get()
+    local data   = HubData[categoryName]
+
+    makeSectionHeader(categoryName, scroll)
 
     if not data or #data == 0 then
-        createLabel("⚠  No scripts available", scrollingFrame,
-            UDim2.new(1, 0, 0, 40), UDim2.new(0, 10, 0, 0))
+        makeLabel("⚠  No scripts loaded for: " .. categoryName, scroll, UDim2.new(1,0,0,28), 12, theme.danger)
         return
     end
 
     for _, hack in ipairs(data) do
-        if type(hack) == "table" and hack[1] and type(hack[1]) == "string"
-        and hack[2] and type(hack[2]) == "function" then
-            createButton(hack[1], scrollingFrame, function()
-                local success, err = pcall(hack[2])
-                if not success then
-                    createNotification("ERROR", "Script error: " .. tostring(err), 5, 7733968497)
+        if type(hack) == "table" and type(hack[1]) == "string" and type(hack[2]) == "function" then
+            makeButton(hack[1], scroll, function()
+                local ok, err = pcall(hack[2])
+                if not ok then
+                    createNotification("Error", tostring(err), 5, "error")
+                else
+                    createNotification("Executed", hack[1], 2.5, "success")
                 end
             end)
-        else
-            warn("Invalid hack format in " .. categoryName .. ":", tostring(hack))
         end
     end
 end
 
-local function showAllScripts()
-    for _, child in ipairs(scrollingFrame:GetChildren()) do
-        if not child:IsA("UIListLayout") then child:Destroy() end
-    end
-
-    local searchBox = Instance.new("TextBox")
-    searchBox.Size = UDim2.new(1, -10, 0, 38)
-    searchBox.Position = UDim2.new(0, 5, 0, 0)
-    searchBox.BackgroundColor3 = colors.surface
-    searchBox.BackgroundTransparency = 0.3
-    searchBox.TextColor3 = colors.text
-    searchBox.TextSize = 14
-    searchBox.PlaceholderText = "Search scripts..."
-    searchBox.PlaceholderColor3 = colors.textDim
-    searchBox.Font = Enum.Font.Gotham
-    searchBox.ClearTextOnFocus = false
-    searchBox.Parent = scrollingFrame
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = searchBox
-
-    local searchButton = createButton("🔍 Search", scrollingFrame, function()
-        updateSearchResults(searchBox.Text)
-    end)
-    searchButton.Size = UDim2.new(1, -10, 0, 38)
-    searchButton.Position = UDim2.new(0, 5, 0, 45)
-
-    local function updateSearchResults(query)
-        for _, child in ipairs(scrollingFrame:GetChildren()) do
-            if child ~= searchBox and child ~= searchButton and not child:IsA("UIListLayout") then
-                child:Destroy()
-            end
-        end
-
-        local megahackResults = searchScriptsByMegahack(query)
-        local scriptBloxResults = searchScriptsOnScriptBlox(query)
-
-        local yOffset = 90
-        for _, result in ipairs(megahackResults) do
-            local button = createButton(result.name .. " (" .. result.category .. ")", scrollingFrame, function()
-                local success, err = pcall(result.func)
-                if not success then
-                    createNotification("ERROR", "Script error: " .. tostring(err), 5, 7733968497)
-                end
-            end)
-            button.Position = UDim2.new(0, 5, 0, yOffset)
-            yOffset = yOffset + 44
-        end
-
-        for _, result in ipairs(scriptBloxResults) do
-            local button = createButton(result.name .. " (ScriptBlox)", scrollingFrame, function()
-                createNotification("INFO", "ScriptBlox script ID: " .. result.scriptId, 5)
-            end)
-            button.Position = UDim2.new(0, 5, 0, yOffset)
-            yOffset = yOffset + 44
-        end
-
-        scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, yOffset + 10)
-    end
-
-    updateSearchResults("")
-end
-
-local function showHome()
-    for _, child in ipairs(scrollingFrame:GetChildren()) do
-        if not child:IsA("UIListLayout") then child:Destroy() end
-    end
-
-    local welcomeLabel = createLabel("Welcome to MegaHack V2!", scrollingFrame, UDim2.new(1, -10, 0, 32), UDim2.new(0, 5, 0, 0))
-    welcomeLabel.TextSize = 20
-    welcomeLabel.Font = Enum.Font.GothamBold
-    welcomeLabel.TextColor3 = colors.text
-
-    local descLabel = createLabel("Premium scripts & features for everyone", scrollingFrame, UDim2.new(1, -10, 0, 24), UDim2.new(0, 5, 0, 35))
-    descLabel.TextColor3 = colors.textDim
-    descLabel.TextSize = 13
-
-    local gameLabel = createLabel("📌 " .. MarketplaceService:GetProductInfo(game.PlaceId).Name, scrollingFrame, UDim2.new(1, -10, 0, 24), UDim2.new(0, 5, 0, 70))
-    gameLabel.TextColor3 = colors.primary
-
-    local playerLabel = createLabel("👤 " .. player.Name .. " (" .. player.UserId .. ")", scrollingFrame, UDim2.new(1, -10, 0, 24), UDim2.new(0, 5, 0, 100))
-    playerLabel.TextColor3 = colors.accent
-
-    local fpsLabel = createLabel("⚡ FPS: Calculating...", scrollingFrame, UDim2.new(1, -10, 0, 24), UDim2.new(0, 5, 0, 130))
-    fpsLabel.TextColor3 = colors.success
-
-    local lastTime = tick()
-    local frameCount = 0
-    RunService.Heartbeat:Connect(function()
-        frameCount = frameCount + 1
-        local currentTime = tick()
-        if currentTime - lastTime >= 1 then
-            fpsLabel.Text = "⚡ FPS: " .. frameCount
-            frameCount = 0
-            lastTime = currentTime
-        end
-    end)
-
-    -- Avatar
-    local success, thumbnail = pcall(function()
-        return Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size180x180)
-    end)
-    if success then
-        local avatarFrame = Instance.new("Frame")
-        avatarFrame.Size = UDim2.new(0, 90, 0, 90)
-        avatarFrame.Position = UDim2.new(0, 5, 0, 170)
-        avatarFrame.BackgroundColor3 = colors.primary
-        avatarFrame.BackgroundTransparency = 0.3
-        avatarFrame.Parent = scrollingFrame
-
-        local avatarCorner = Instance.new("UICorner")
-        avatarCorner.CornerRadius = UDim.new(0, 12)
-        avatarCorner.Parent = avatarFrame
-
-        local avatarImage = Instance.new("ImageLabel")
-        avatarImage.Size = UDim2.new(1, -4, 1, -4)
-        avatarImage.Position = UDim2.new(0, 2, 0, 2)
-        avatarImage.BackgroundTransparency = 1
-        avatarImage.Image = thumbnail
-        avatarImage.Parent = avatarFrame
-
-        local imageCorner = Instance.new("UICorner")
-        imageCorner.CornerRadius = UDim.new(0, 10)
-        imageCorner.Parent = avatarImage
-    end
-
-    -- Quick actions
-    local quickLabel = createLabel("⚡ Quick Actions", scrollingFrame, UDim2.new(1, -10, 0, 24), UDim2.new(0, 5, 0, 280))
-    quickLabel.TextSize = 16
-    quickLabel.Font = Enum.Font.GothamBold
-    quickLabel.TextColor3 = colors.text
-
-    createButton("📋 Copy Server ID", scrollingFrame, function()
-        setclipboard(game.JobId)
-        createNotification("SUCCESS", "Server ID copied!", 2)
-    end)
-
-    createButton("🔄 Rejoin Server", scrollingFrame, function()
-        TeleportService:Teleport(game.PlaceId, player)
-    end)
-
-    createButton("🎲 Random Server", scrollingFrame, function()
-        local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
-        local serverList = servers.data
-        if #serverList > 0 then
-            TeleportService:TeleportToPlaceInstance(game.PlaceId, serverList[math.random(1, #serverList)].id, player)
-        end
-    end)
-end
-
+-- ════════════════════════════════════════════════════════
+--  [8d] SETTINGS PAGE
+-- ════════════════════════════════════════════════════════
 local function showSettings()
-    for _, child in ipairs(scrollingFrame:GetChildren()) do
-        if not child:IsA("UIListLayout") then child:Destroy() end
+    clearContent()
+    local scroll = UI.contentScroll
+    local theme  = ThemeManager.get()
+
+    -- ── Theme selector ───────────────────────────────────
+    makeSectionHeader("Theme", scroll)
+    for themeKey, themeData in pairs(Config.Themes) do
+        local isActive = (themeKey == State.themeName)
+        makeButton(
+            (isActive and "✓ " or "  ") .. themeData.name,
+            scroll,
+            function()
+                State.themeName = themeKey
+                ThemeManager.set(themeKey)
+                createNotification("Theme", themeData.name .. " applied", 2, "info")
+                showSettings()
+            end,
+            isActive
+        )
     end
 
-    local function saveAndUpdate()
-        saveSettings()
-        showSettings()
-    end
+    -- ── Gradient toggle ──────────────────────────────────
+    makeSectionHeader("Effects", scroll)
+    makeButton(
+        "Animated Gradient: " .. (State.gradientEnabled and "ON" or "OFF"),
+        scroll,
+        function()
+            State.gradientEnabled = not State.gradientEnabled
+            if State.gradientEnabled then
+                ThemeManager.animateGradient(
+                    UI.mainStroke:FindFirstChildWhichIsA("UIGradient") or Utils.create("UIGradient", {Rotation=45}, UI.mainStroke),
+                    ThemeManager.get().gradKey
+                )
+            else
+                ThemeManager.stopGradients()
+            end
+            createNotification("Effects", "Gradient " .. (State.gradientEnabled and "enabled" or "disabled"), 2, "info")
+            showSettings()
+        end
+    )
 
-    createButton("🎨 Background Colors", scrollingFrame, function() end).TextSize = 18
-    local bgColors = {
-        {"Dark", colors.background}, {"Darker", Color3.fromRGB(10, 10, 15)},
-        {"Surface", colors.surface}, {"Surface 2", colors.surface2},
-        {"Blurple", colors.primary}, {"Purple", Color3.fromRGB(150, 0, 255)}
-    }
-    for _, c in ipairs(bgColors) do
-        createButton(c[1], scrollingFrame, function()
-            settings.colors.bgColor = c[2]
-            saveAndUpdate()
+    makeButton(
+        "Lock GUI Dragging: " .. (State.locked and "ON" or "OFF"),
+        scroll,
+        function()
+            State.locked = not State.locked
+            createNotification("Settings", "Drag lock " .. (State.locked and "enabled" or "disabled"), 2, "info")
+            showSettings()
+        end
+    )
+
+    -- ── Server tools ─────────────────────────────────────
+    makeSectionHeader("Server", scroll)
+
+    makeButton("Rejoin", scroll, function()
+        local ok, err = pcall(function()
+            Services.TeleportService:Teleport(game.PlaceId, Player)
         end)
-    end
+        if not ok then createNotification("Error", "Rejoin failed: " .. tostring(err), 5, "error") end
+    end)
 
-    createButton("✏️ Text Colors", scrollingFrame, function() end).TextSize = 18
-    local textColors = {
-        {"White", Color3.fromRGB(255, 255, 255)}, {"Dim", Color3.fromRGB(180, 180, 200)},
-        {"Blurple", colors.primary}, {"Pink", colors.accent},
-        {"Green", colors.success}, {"Red", colors.danger}
-    }
-    for _, c in ipairs(textColors) do
-        createButton(c[1], scrollingFrame, function()
-            settings.colors.textColor = c[2]
-            saveAndUpdate()
+    makeButton("Server Hop", scroll, function()
+        local ok, err = pcall(function()
+            local json = game:HttpGet(
+                "https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"
+            )
+            local servers = Services.HttpService:JSONDecode(json)
+            if servers.data and #servers.data > 0 then
+                local picked = servers.data[math.random(1, #servers.data)]
+                Services.TeleportService:TeleportToPlaceInstance(game.PlaceId, picked.id, Player)
+            else
+                createNotification("Error", "No public servers found", 4, "warn")
+            end
         end)
-    end
+        if not ok then createNotification("Error", tostring(err), 5, "error") end
+    end)
 
-    createButton("🔒 Security", scrollingFrame, function() end).TextSize = 18
-    createButton("Enable Anti-Ban/Kick", scrollingFrame, function()
-        local mt = getrawmetatable(game)
-        if mt then
+    makeButton("Copy Server ID", scroll, function()
+        local ok, err = pcall(function() setclipboard(game.JobId) end)
+        if ok then createNotification("Copied", "Server ID copied!", 2.5, "success")
+        else createNotification("Error", tostring(err), 5, "error") end
+    end)
+
+    -- ── Coordinates ──────────────────────────────────────
+    makeSectionHeader("Coordinates", scroll)
+
+    makeButton("Save Current Position", scroll, function()
+        local char = Player.Character or Player.CharacterAdded:Wait()
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then
+            createNotification("Error", "No HumanoidRootPart", 4, "error")
+            return
+        end
+        local p = root.Position
+        local str = string.format("X=%.2f Y=%.2f Z=%.2f", p.X, p.Y, p.Z)
+        if isfolder and not isfolder("MegaHack") then makefolder("MegaHack") end
+        if writefile then writefile("MegaHack/coords.txt", str) end
+        createNotification("Saved", str, 4, "success")
+    end)
+
+    makeButton("Teleport to Saved Position", scroll, function()
+        if not (isfile and isfile("MegaHack/coords.txt")) then
+            createNotification("Error", "No saved position found", 4, "warn")
+            return
+        end
+        local txt = readfile("MegaHack/coords.txt")
+        local x, y, z = txt:match("X=([%d%.%-]+) Y=([%d%.%-]+) Z=([%d%.%-]+)")
+        if x and y and z then
+            local char = Player.Character or Player.CharacterAdded:Wait()
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if root then
+                root.CFrame = CFrame.new(tonumber(x), tonumber(y), tonumber(z))
+                createNotification("Teleported", txt, 3, "success")
+            end
+        else
+            createNotification("Error", "Invalid saved format", 4, "error")
+        end
+    end)
+
+    -- ── Security ─────────────────────────────────────────
+    makeSectionHeader("Security", scroll)
+
+    makeButton("Enable Anti-Ban / Anti-Kick", scroll, function()
+        local ok, err = pcall(function()
+            local mt = getrawmetatable(game)
+            if not mt then error("No metatable") end
             local oldNamecall = mt.__namecall
             setreadonly(mt, false)
             mt.__namecall = newcclosure(function(self, ...)
                 local method = getnamecallmethod()
-                if method == "Kick" or method == "ban" then
-                    createNotification("⚠️ BLOCKED", "Kick/Ban attempt blocked", 2)
+                if method == "Kick" or method == "kick" then
+                    createNotification("Blocked", "Kick attempt blocked!", 3, "warn")
+                    return nil
+                end
+                if method == "Ban" or method == "ban" then
+                    createNotification("Blocked", "Ban attempt blocked!", 3, "warn")
                     return nil
                 end
                 return oldNamecall(self, ...)
             end)
             setreadonly(mt, true)
-            createNotification("✅ PROTECTED", "Anti-Ban/Kick enabled", 2)
-        end
+        end)
+        if ok then createNotification("Protection", "Anti-Ban/Kick active", 3, "success")
+        else    createNotification("Error", tostring(err), 5, "error") end
     end)
 
-    createButton("📁 Coordinates", scrollingFrame, function() end).TextSize = 18
-    createButton("Save Coordinates", scrollingFrame, function()
-        local char = player.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            local pos = char.HumanoidRootPart.Position
-            writefile("MegaHack/coords.txt", tostring(pos))
-            createNotification("✅ SAVED", "Coordinates saved!", 2)
+    makeButton("Check Executor Functions", scroll, function()
+        local check = {
+            "getrawmetatable", "setreadonly", "hookfunction", "newcclosure",
+            "loadstring", "getgc", "gethui", "setclipboard",
+            "writefile", "readfile", "makefolder", "isfolder",
+        }
+        local avail, unavail = 0, 0
+        for _, fn in ipairs(check) do
+            if _G[fn] ~= nil then avail = avail + 1 else unavail = unavail + 1 end
         end
-    end)
-    
-    createButton("Load Coordinates", scrollingFrame, function()
-        if isfile("MegaHack/coords.txt") then
-            local pos = readfile("MegaHack/coords.txt")
-            local x,y,z = pos:match("(.-), (.-), (.-)")
-            if x and y and z then
-                player.Character.HumanoidRootPart.CFrame = CFrame.new(tonumber(x), tonumber(y), tonumber(z))
-                createNotification("✅ TELEPORTED", "Coordinates loaded!", 2)
-            end
-        end
+        createNotification("Functions", avail .. " available / " .. unavail .. " missing", 5, "info")
     end)
 
-    createButton("⚙️ GUI Options", scrollingFrame, function() end).TextSize = 18
-    createButton(settings.locked and "🔓 Unlock GUI" or "🔒 Lock GUI", scrollingFrame, function()
-        settings.locked = not settings.locked
-        saveAndUpdate()
-    end)
-    
-    createButton("💫 RGB Mode", scrollingFrame, function()
-        settings.rgbAccent = not settings.rgbAccent
-        saveAndUpdate()
-    end)
+    -- ── GUI controls ─────────────────────────────────────
+    makeSectionHeader("GUI", scroll)
+
+    makeButton("Close GUI", scroll, function()
+        UI.screenGui:Destroy()
+    end, false)
 end
 
--- ══════════════════════════════════════
---  CATEGORIES
--- ══════════════════════════════════════
-local categories = {
-    ["🏠 Home"]             = showHome,
-    ["⚙️ Settings"]         = showSettings,
-    ["🔍 All Scripts"]      = showAllScripts,
-    ["💎 MegaHack"]         = function() loadHacksFromCategory("MegaHack") end,
-    ["🛠️ Hacks"]            = function() loadHacksFromCategory("Hacks") end,
-    ["🔪 MM2"]              = function() loadHacksFromCategory("MM2") end,
-    ["👑 Admins"]           = function() loadHacksFromCategory("Admins") end,
-    ["🎭 Animations"]       = function() loadHacksFromCategory("Animations") end,
-    ["✨ FE"]               = function() loadHacksFromCategory("FE") end,
-    ["💀 Ragdoll"]          = function() loadHacksFromCategory("RagdollEngine") end,
-    ["🌪️ Natural Disaster"] = function() loadHacksFromCategory("NaturalDisaster") end,
-    ["🏃 Evade"]            = function() loadHacksFromCategory("Evade") end,
-    ["🏘️ Brookhaven"]       = function() loadHacksFromCategory("Brookhaven") end,
-    ["⚽ Blade Ball"]       = function() loadHacksFromCategory("BladeBall") end,
-    ["🍇 Blox Fruit"]       = function() loadHacksFromCategory("BloxFruit") end,
-    ["🧠 Steal Brain"]      = function() loadHacksFromCategory("StealBrainRoot") end,
-    ["🏗️ Tower of Hell"]    = function() loadHacksFromCategory("TowerOfHell") end,
-    ["🐶 Adopt Me"]         = function() loadHacksFromCategory("AdoptMe") end,
-    ["🌱 Grow Garden"]      = function() loadHacksFromCategory("GrowGarden") end,
-    ["🌙 Night"]            = function() loadHacksFromCategory("Night") end,
-    ["🔫 Weird Gun"]        = function() loadHacksFromCategory("Weird") end,
-    ["⚔️ Duels MVS"]        = function() loadHacksFromCategory("DuelsMVS") end,
-    ["🏙️ Violence District"] = function() loadHacksFromCategory("ViolenceDistrict") end,
+-- ════════════════════════════════════════════════════════
+--  Navigation router
+-- ════════════════════════════════════════════════════════
+local pageMap = {
+    Home     = showHome,
+    Search   = showSearch,
+    Settings = showSettings,
 }
 
-for categoryName, func in pairs(categories) do
-    createButton(categoryName, categoriesScroll, func, true)
-end
-
--- ══════════════════════════════════════
---  DRAGGABLE FUNCTION
--- ══════════════════════════════════════
-local function MakeDraggable(frame, dragPart)
-    dragPart = dragPart or frame
-    local dragging, dragInput, mousePos, framePos
-    dragPart.InputBegan:Connect(function(input)
-        if not settings.locked and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
-            dragging = true
-            mousePos = input.Position
-            framePos = frame.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then dragging = false end
-            end)
+function UI.navigate(name)
+    -- Fade content out, swap, fade in
+    local scroll = UI.contentScroll
+    Utils.tweenPlay(scroll, Utils.tweenInfo(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        BackgroundTransparency = 1
+    })
+    task.delay(0.13, function()
+        if pageMap[name] then
+            pageMap[name]()
+        else
+            showCategory(name)
         end
-    end)
-    dragPart.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - mousePos
-            frame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
-        end
+        Utils.tweenPlay(scroll, Utils.tweenInfo(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            BackgroundTransparency = 1   -- keep transparent (content uses own BG)
+        })
     end)
 end
-MakeDraggable(mainFrame, headerFrame)
-MakeDraggable(reopenButton, reopenButton)
 
--- ══════════════════════════════════════
---  CLOSE/REOPEN HANDLERS
--- ══════════════════════════════════════
-closeIcon.MouseButton1Click:Connect(function()
-    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-    TweenService:Create(mainFrame, tweenInfo, {Size = UDim2.new(0, 0, 0, 0)}):Play()
-    task.wait(0.3)
-    mainFrame.Visible = false
-    reopenButton.Visible = true
-    
-    local reopenTween = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-    TweenService:Create(reopenButton, reopenTween, {Size = UDim2.new(0, 55, 0, 55)}):Play()
+-- ════════════════════════════════════════════════════════
+--  [10] BOOTSTRAP — Entry point
+-- ════════════════════════════════════════════════════════
+if not PlayerGui then
+    warn("[MH2] PlayerGui not found, aborting.")
+    return
+end
+
+-- 1. Show loading screen immediately
+LoadingScreen.show(function()
+    -- 2. Load all remote data (happens during loading screen animation)
+    -- (data was loaded in parallel below)
+
+    -- 3. Build main UI
+    ThemeManager.set("dark")
+    UI.build()
+
+    -- 4. Show home page
+    UI.navigate("Home")
+
+    -- 5. Welcome notification
+    createNotification(
+        "MegaHack V2",
+        "Loaded for " .. (IsMobile and "Mobile" or "PC") .. " · " .. TotalScripts .. " scripts",
+        4,
+        "success"
+    )
 end)
 
-reopenButton.MouseButton1Click:Connect(function()
-    reopenButton.Visible = false
-    mainFrame.Visible = true
-    
-    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-    TweenService:Create(mainFrame, tweenInfo, {Size = UDim2.new(0, 480, 0, 360)}):Play()
+-- Load data in the background so it's ready when the loading screen finishes
+task.spawn(function()
+    loadAllData(nil)   -- loads all HubData entries; also increments TotalScripts
 end)
-
--- ══════════════════════════════════════
---  INITIAL ANIMATION
--- ══════════════════════════════════════
-mainFrame.Size = UDim2.new(0, 0, 0, 360)
-mainFrame.BackgroundTransparency = 1
-reopenButton.Size = UDim2.new(0, 0, 0, 0)
-
-task.wait(0.1)
-
-local tweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-TweenService:Create(mainFrame, tweenInfo, {Size = UDim2.new(0, 480, 0, 360), BackgroundTransparency = 0.1}):Play()
-
--- Show home
-showHome()
-
--- Welcome notification
-createNotification("✨ MEGAHACK V2", "Loaded successfully on " .. platformName .. "!", 4, 138613137853151)
