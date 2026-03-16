@@ -1,11 +1,21 @@
--- ╔══════════════════════════════════════════════════════════════════╗
--- ║              MEGAHACK V2  ·  Complete GUI Redesign              ║
--- ║  Modular · Animated · Themed · Responsive · Mobile + PC Ready  ║
--- ╚══════════════════════════════════════════════════════════════════╝
+-- ═══════════════════════════════════════════════════════════════════════════
+--   MEGAHACK V2  |  Modern Roblox GUI System
+--   Redesigned from scratch with:
+--     • Theme Manager  (4 built-in palettes, hot-swappable)
+--     • Gradient Animator  (shimmer, hue-flow, offset-sweep)
+--     • Loading Screen  (animated progress + logo reveal)
+--     • Real-time Search  (debounced, cross-category)
+--     • Category Sidebar  (scrollable, animated active state)
+--     • Script Buttons  (run feedback, hover, spring animations)
+--     • Notification Stack  (typed: info / success / error / warning)
+--     • Drag system  (PC mouse + Mobile touch)
+--     • Keyboard shortcut  (RightCtrl toggle on PC)
+--     • Full Mobile / PC adaptation  (UIScale, responsive sizing)
+-- ═══════════════════════════════════════════════════════════════════════════
 
--- ─────────────────────────────────────────
---  SERVICES
--- ─────────────────────────────────────────
+-- ┌─────────────────────────────────────────────────────────────────────────┐
+-- │  SERVICES                                                               │
+-- └─────────────────────────────────────────────────────────────────────────┘
 local TweenService       = game:GetService("TweenService")
 local UserInputService   = game:GetService("UserInputService")
 local Players            = game:GetService("Players")
@@ -16,259 +26,359 @@ local TeleportService    = game:GetService("TeleportService")
 local HttpService        = game:GetService("HttpService")
 
 local player    = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui", 10)
-if not playerGui then warn("[MH2] PlayerGui not found – aborting.") return end
+local playerGui = player:WaitForChild("PlayerGui", 5)
+if not playerGui then
+    warn("[MH2] PlayerGui not found — aborting.")
+    return
+end
 
--- ─────────────────────────────────────────
---  PLATFORM DETECTION
--- ─────────────────────────────────────────
-local isMobile      = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-local platform      = isMobile and "Mobile" or "PC"
-local uiScaleFactor = isMobile and 1.20 or 1.0   -- enlarges everything on touch screens
+-- ┌─────────────────────────────────────────────────────────────────────────┐
+-- │  PLATFORM DETECTION                                                     │
+-- └─────────────────────────────────────────────────────────────────────────┘
+local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
--- ─────────────────────────────────────────
---  SAFE REMOTE LOAD
--- ─────────────────────────────────────────
+-- ┌─────────────────────────────────────────────────────────────────────────┐
+-- │  SAFE LOAD UTILITY                                                      │
+-- │  Silently returns {} on any network / syntax error.                     │
+-- └─────────────────────────────────────────────────────────────────────────┘
 local function safeLoad(url)
-    local ok, res = pcall(function()
+    local ok, result = pcall(function()
         return loadstring(game:HttpGet(url, true))()
     end)
-    if ok and res then return res end
+    if ok and result then return result end
     warn("[MH2] Failed to load: " .. tostring(url))
     return {}
 end
 
--- ─────────────────────────────────────────
---  REMOTE DATA  (all script packs)
--- ─────────────────────────────────────────
-local BASE = "https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/"
+-- ┌─────────────────────────────────────────────────────────────────────────┐
+-- │  HUB DATA  — remote script tables, each is {name, function}[]          │
+-- └─────────────────────────────────────────────────────────────────────────┘
 local HubData = {
-    Brookhaven       = safeLoad(BASE .. "brookhaven"),
-    Evade            = safeLoad(BASE .. "evade"),
-    MM2              = safeLoad(BASE .. "MM2.lua"),
-    MegaHack         = safeLoad(BASE .. "megapizda"),
-    Hacks            = safeLoad(BASE .. "Hacks.lua"),
-    Admins           = safeLoad(BASE .. "admin"),
-    Animations       = safeLoad(BASE .. "animation"),
-    FE               = safeLoad(BASE .. "FE.lua"),
-    RagdollEngine    = safeLoad(BASE .. "ragdoll"),
-    NaturalDisaster  = safeLoad(BASE .. "NaturalDisaster.lua"),
-    BloxFruit        = safeLoad(BASE .. "BloxFruit.lua"),
-    BladeBall        = safeLoad(BASE .. "BladeBall.lua"),
-    StealBrainRoot   = safeLoad(BASE .. "StealBrainRoot.lua"),
-    TowerOfHell      = safeLoad(BASE .. "tower.lua"),
-    AdoptMe          = safeLoad(BASE .. "adoptme"),
-    GrowGarden       = safeLoad(BASE .. "GrowGarden.lua"),
-    Night            = safeLoad(BASE .. "Night.lua"),
-    Weird            = safeLoad(BASE .. "Weird.lua"),
-    DuelsMVS         = safeLoad(BASE .. "DuelsMVS.lua"),
-    ViolenceDistrict = safeLoad(BASE .. "ViolenceDistrict.lua"),
-    IKEA3008         = safeLoad(BASE .. "3008.lua"),
-    Rivals           = safeLoad(BASE .. "Rivals.lua"),
-    FORSAKEN         = safeLoad(BASE .. "FORSAKEN.lua"),
+    Brookhaven      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/brookhaven"),
+    Evade           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/evade"),
+    MM2             = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/MM2.lua"),
+    MegaHack        = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/megapizda"),
+    Hacks           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Hacks.lua"),
+    Admins          = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/admin"),
+    Animations      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/animation"),
+    FE              = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/FE.lua"),
+    RagdollEngine   = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/ragdoll"),
+    NaturalDisaster = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/NaturalDisaster.lua"),
+    BloxFruit       = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/BloxFruit.lua"),
+    BladeBall       = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/BladeBall.lua"),
+    StealBrainRoot  = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/StealBrainRoot.lua"),
+    TowerOfHell     = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/tower.lua"),
+    AdoptMe         = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/adoptme"),
+    GrowGarden      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/GrowGarden.lua"),
+    Night           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Night.lua"),
+    Weird           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Weird.lua"),
+    DuelsMVS        = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/DuelsMVS.lua"),
+    ViolenceDistrict= safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/ViolenceDistrict.lua"),
+    IKEA3008        = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/3008.lua"),
+    Rivals          = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Rivals.lua"),
+    FORSAKEN        = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/FORSAKEN.lua"),
 }
 
--- ═══════════════════════════════════════════════════════════════════
---  ①  THEME  MANAGER
---
---  All colour decisions live in ThemeManager.Palettes.
---  Call ThemeManager.setTheme("Name") to instantly re-skin every
---  registered element.  UI constructors register themselves via
---  ThemeManager.onChanged(fn).
--- ═══════════════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════════════════════
+--  MODULE 1 · THEME MANAGER
+--  ─────────────────────────────────────────────────────────────────────────
+--  All colors are stored in keyed theme tables.
+--  Call ThemeManager.setTheme("neon") to hot-swap every element.
+--  Widgets register via ThemeManager.onThemeChanged(cb).
+-- ═══════════════════════════════════════════════════════════════════════════
 local ThemeManager = {}
+
+ThemeManager.themes = {
+
+    -- ── Dark (default) ───────────────────────────────────────────────────
+    dark = {
+        name         = "Dark",
+        bg           = Color3.fromRGB(11, 11, 18),
+        bgSecondary  = Color3.fromRGB(17, 17, 27),
+        surface      = Color3.fromRGB(22, 22, 36),
+        surfaceHover = Color3.fromRGB(30, 30, 48),
+        border       = Color3.fromRGB(42, 42, 68),
+        accent1      = Color3.fromRGB(100, 130, 255),
+        accent2      = Color3.fromRGB(200,  85, 255),
+        text         = Color3.fromRGB(235, 235, 248),
+        textMuted    = Color3.fromRGB(140, 140, 168),
+        textDim      = Color3.fromRGB( 72,  72, 100),
+        success      = Color3.fromRGB( 55, 200, 130),
+        error        = Color3.fromRGB(255,  75,  80),
+        warning      = Color3.fromRGB(255, 185,  45),
+    },
+
+    -- ── Neon ─────────────────────────────────────────────────────────────
+    neon = {
+        name         = "Neon",
+        bg           = Color3.fromRGB(  4,  4,  9),
+        bgSecondary  = Color3.fromRGB(  7,  7, 17),
+        surface      = Color3.fromRGB( 10, 10, 22),
+        surfaceHover = Color3.fromRGB( 15, 15, 30),
+        border       = Color3.fromRGB(  0, 230, 160),
+        accent1      = Color3.fromRGB(  0, 230, 160),
+        accent2      = Color3.fromRGB(  0, 190, 255),
+        text         = Color3.fromRGB(215, 255, 245),
+        textMuted    = Color3.fromRGB( 90, 190, 160),
+        textDim      = Color3.fromRGB( 40,  95,  78),
+        success      = Color3.fromRGB(  0, 255, 120),
+        error        = Color3.fromRGB(255,  50, 100),
+        warning      = Color3.fromRGB(255, 215,   0),
+    },
+
+    -- ── Crimson ──────────────────────────────────────────────────────────
+    crimson = {
+        name         = "Crimson",
+        bg           = Color3.fromRGB( 11,  4,  4),
+        bgSecondary  = Color3.fromRGB( 19,  7,  7),
+        surface      = Color3.fromRGB( 26, 10, 10),
+        surfaceHover = Color3.fromRGB( 36, 14, 14),
+        border       = Color3.fromRGB(170,  28, 28),
+        accent1      = Color3.fromRGB(220,  50,  50),
+        accent2      = Color3.fromRGB(255, 125,  40),
+        text         = Color3.fromRGB(255, 230, 230),
+        textMuted    = Color3.fromRGB(200, 130, 130),
+        textDim      = Color3.fromRGB(110,  60,  60),
+        success      = Color3.fromRGB( 75, 200, 100),
+        error        = Color3.fromRGB(255,  60,  60),
+        warning      = Color3.fromRGB(255, 180,  40),
+    },
+
+    -- ── Gold ─────────────────────────────────────────────────────────────
+    gold = {
+        name         = "Gold",
+        bg           = Color3.fromRGB(  9,  7,  2),
+        bgSecondary  = Color3.fromRGB( 17, 14,  5),
+        surface      = Color3.fromRGB( 22, 18,  6),
+        surfaceHover = Color3.fromRGB( 32, 26, 10),
+        border       = Color3.fromRGB(170, 135,  28),
+        accent1      = Color3.fromRGB(218, 175,  38),
+        accent2      = Color3.fromRGB(255, 218,  75),
+        text         = Color3.fromRGB(255, 245, 210),
+        textMuted    = Color3.fromRGB(195, 168, 105),
+        textDim      = Color3.fromRGB(110,  95,  50),
+        success      = Color3.fromRGB( 75, 200, 100),
+        error        = Color3.fromRGB(255,  75,  80),
+        warning      = Color3.fromRGB(255, 180,  40),
+    },
+}
+
+ThemeManager.current   = ThemeManager.themes.dark
 ThemeManager._listeners = {}
 
-ThemeManager.Palettes = {
-
-    -- ── Dark (default) ─────────────────────────────────────────
-    Dark = {
-        BG           = Color3.fromRGB(12,  12,  18),
-        Surface      = Color3.fromRGB(20,  20,  30),
-        Elevated     = Color3.fromRGB(30,  30,  44),
-        Border       = Color3.fromRGB(50,  50,  72),
-        Accent       = Color3.fromRGB(100, 80, 255),
-        AccentAlt    = Color3.fromRGB(60, 200, 255),
-        Text         = Color3.fromRGB(240, 240, 255),
-        TextMuted    = Color3.fromRGB(140, 140, 170),
-        Success      = Color3.fromRGB(60,  220, 130),
-        Error        = Color3.fromRGB(255, 80,  80),
-        Warning      = Color3.fromRGB(255, 190, 50),
-        GradientA    = Color3.fromRGB(100, 80, 255),
-        GradientB    = Color3.fromRGB(60, 200, 255),
-        SurfaceAlpha = 0.12,
-        ButtonAlpha  = 0.22,
-    },
-
-    -- ── Neon ───────────────────────────────────────────────────
-    Neon = {
-        BG           = Color3.fromRGB(5,    5,   5),
-        Surface      = Color3.fromRGB(10,  10,  10),
-        Elevated     = Color3.fromRGB(18,  18,  18),
-        Border       = Color3.fromRGB(0,  255, 120),
-        Accent       = Color3.fromRGB(0,  255, 120),
-        AccentAlt    = Color3.fromRGB(255, 50, 200),
-        Text         = Color3.fromRGB(220, 255, 220),
-        TextMuted    = Color3.fromRGB(100, 200, 100),
-        Success      = Color3.fromRGB(0,  255, 120),
-        Error        = Color3.fromRGB(255, 50,  50),
-        Warning      = Color3.fromRGB(255, 220,  0),
-        GradientA    = Color3.fromRGB(0,  255, 120),
-        GradientB    = Color3.fromRGB(255, 50, 200),
-        SurfaceAlpha = 0.04,
-        ButtonAlpha  = 0.10,
-    },
-
-    -- ── Midnight Blue ──────────────────────────────────────────
-    Midnight = {
-        BG           = Color3.fromRGB(4,   8,  24),
-        Surface      = Color3.fromRGB(8,  16,  40),
-        Elevated     = Color3.fromRGB(14, 26,  60),
-        Border       = Color3.fromRGB(40, 80, 160),
-        Accent       = Color3.fromRGB(50, 130, 255),
-        AccentAlt    = Color3.fromRGB(180, 100, 255),
-        Text         = Color3.fromRGB(200, 220, 255),
-        TextMuted    = Color3.fromRGB(100, 130, 200),
-        Success      = Color3.fromRGB(50,  200, 160),
-        Error        = Color3.fromRGB(255,  80,  80),
-        Warning      = Color3.fromRGB(255, 190,  50),
-        GradientA    = Color3.fromRGB(50,  130, 255),
-        GradientB    = Color3.fromRGB(180, 100, 255),
-        SurfaceAlpha = 0.08,
-        ButtonAlpha  = 0.18,
-    },
-
-    -- ── Crimson ────────────────────────────────────────────────
-    Crimson = {
-        BG           = Color3.fromRGB(14,  4,   4),
-        Surface      = Color3.fromRGB(28,  8,   8),
-        Elevated     = Color3.fromRGB(44, 14,  14),
-        Border       = Color3.fromRGB(160, 30,  30),
-        Accent       = Color3.fromRGB(255, 60,  60),
-        AccentAlt    = Color3.fromRGB(255, 160, 60),
-        Text         = Color3.fromRGB(255, 220, 220),
-        TextMuted    = Color3.fromRGB(200, 120, 120),
-        Success      = Color3.fromRGB(60,  220, 130),
-        Error        = Color3.fromRGB(255,  60,  60),
-        Warning      = Color3.fromRGB(255, 190,  50),
-        GradientA    = Color3.fromRGB(255,  60,  60),
-        GradientB    = Color3.fromRGB(255, 160,  60),
-        SurfaceAlpha = 0.08,
-        ButtonAlpha  = 0.18,
-    },
-}
-
-ThemeManager.active = "Dark"
-
--- Retrieve a colour key from the current palette
-function ThemeManager.get(key)
-    return ThemeManager.Palettes[ThemeManager.active][key]
+-- Register a callback called whenever the theme is switched
+function ThemeManager.onThemeChanged(callback)
+    table.insert(ThemeManager._listeners, callback)
 end
 
--- Switch theme and notify all registered elements
-function ThemeManager.setTheme(name)
-    if ThemeManager.Palettes[name] then
-        ThemeManager.active = name
-        for _, fn in ipairs(ThemeManager._listeners) do pcall(fn) end
+-- Apply a theme by key and notify all listeners
+function ThemeManager.setTheme(key)
+    if not ThemeManager.themes[key] then return end
+    ThemeManager.current = ThemeManager.themes[key]
+    for _, cb in ipairs(ThemeManager._listeners) do
+        pcall(cb, ThemeManager.current)
     end
 end
 
--- Register a callback to run on any theme change
-function ThemeManager.onChanged(fn)
-    table.insert(ThemeManager._listeners, fn)
-end
+-- Shorthand — get current theme color by key
+local function C(key) return ThemeManager.current[key] end
 
--- ═══════════════════════════════════════════════════════════════════
---  ②  GRADIENT  ENGINE
---
---  Attaches animated UIGradient instances to any GuiObject.
---  GradientEngine.attach()  – scrolling / shimmering gradient
---  GradientEngine.static()  – fixed directional gradient
--- ═══════════════════════════════════════════════════════════════════
-local GradientEngine = {}
-GradientEngine._conns = {}
+-- ═══════════════════════════════════════════════════════════════════════════
+--  MODULE 2 · ANIMATION UTILITIES
+-- ═══════════════════════════════════════════════════════════════════════════
+local Anim = {}
 
--- Attach an animated flowing gradient (scrolls across the element)
--- @param target  GuiObject
--- @param speed   number   – seconds per full cycle
--- @param axis    "X"|"Y"
-function GradientEngine.attach(target, speed, axis)
-    speed = speed or 3
-    axis  = axis  or "X"
-
-    local grad    = Instance.new("UIGradient")
-    grad.Rotation = (axis == "Y") and 90 or 0
-    grad.Parent   = target
-
-    local function refreshColors()
-        local ca = ThemeManager.get("GradientA")
-        local cb = ThemeManager.get("GradientB")
-        grad.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0,   ca),
-            ColorSequenceKeypoint.new(0.5, cb),
-            ColorSequenceKeypoint.new(1,   ca),
-        })
-    end
-    refreshColors()
-    ThemeManager.onChanged(refreshColors)
-
-    -- Scroll offset sinusoidally
-    local t    = 0
-    local conn = RunService.Heartbeat:Connect(function(dt)
-        if not target or not target.Parent then return end
-        t     = (t + dt / speed) % 1
-        local s = math.sin(t * math.pi * 2) * 0.45
-        grad.Offset = (axis == "X") and Vector2.new(s, 0) or Vector2.new(0, s)
-    end)
-    table.insert(GradientEngine._conns, conn)
-    return grad
-end
-
--- Static directional gradient
-function GradientEngine.static(target, rotation)
-    local grad = Instance.new("UIGradient")
-    grad.Rotation = rotation or 90
-    local function refreshColors()
-        grad.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, ThemeManager.get("GradientA")),
-            ColorSequenceKeypoint.new(1, ThemeManager.get("GradientB")),
-        })
-    end
-    refreshColors()
-    ThemeManager.onChanged(refreshColors)
-    grad.Parent = target
-    return grad
-end
-
--- ═══════════════════════════════════════════════════════════════════
---  ③  TWEEN  HELPERS
--- ═══════════════════════════════════════════════════════════════════
-local function tween(obj, props, t, style, dir)
-    TweenService:Create(obj,
-        TweenInfo.new(
-            t     or 0.25,
-            style or Enum.EasingStyle.Quint,
-            dir   or Enum.EasingDirection.Out
-        ),
+function Anim.tween(inst, props, dur, style, dir)
+    local t = TweenService:Create(
+        inst,
+        TweenInfo.new(dur or 0.25, style or Enum.EasingStyle.Quart, dir or Enum.EasingDirection.Out),
         props
-    ):Play()
+    )
+    t:Play()
+    return t
 end
 
--- ═══════════════════════════════════════════════════════════════════
---  ④  GUI  PROTECTION  (hide from anti-cheat scanners)
--- ═══════════════════════════════════════════════════════════════════
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name           = "MegaHackV2"
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-screenGui.IgnoreGuiInset = true
-screenGui.ResetOnSpawn   = false
+-- Springy overshoot — good for button press feedback
+function Anim.spring(inst, props, dur)
+    return Anim.tween(inst, props, dur or 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+end
 
-local function protectGui(gui)
-    pcall(function()
-        if get_hidden_gui then
-            gui.Parent = get_hidden_gui()
-        elseif gethui then
+-- ═══════════════════════════════════════════════════════════════════════════
+--  MODULE 3 · UI FACTORY
+--  ─────────────────────────────────────────────────────────────────────────
+--  Consistent, centrally-styled element constructors.
+--  All sizing / color choices come from the active theme.
+-- ═══════════════════════════════════════════════════════════════════════════
+local Factory = {}
+
+function Factory.corner(parent, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius or 8)
+    c.Parent = parent
+    return c
+end
+
+function Factory.stroke(parent, color, thickness, transparency)
+    local s = Instance.new("UIStroke")
+    s.Color        = color        or Color3.fromRGB(60, 60, 90)
+    s.Thickness    = thickness    or 1
+    s.Transparency = transparency or 0
+    s.Parent = parent
+    return s
+end
+
+function Factory.padding(parent, top, bottom, left, right)
+    local p = Instance.new("UIPadding")
+    p.PaddingTop    = UDim.new(0, top    or 6)
+    p.PaddingBottom = UDim.new(0, bottom or 6)
+    p.PaddingLeft   = UDim.new(0, left   or 8)
+    p.PaddingRight  = UDim.new(0, right  or 8)
+    p.Parent = parent
+    return p
+end
+
+function Factory.listLayout(parent, dir, spacing, align)
+    local l = Instance.new("UIListLayout")
+    l.FillDirection       = dir     or Enum.FillDirection.Vertical
+    l.Padding             = UDim.new(0, spacing or 6)
+    l.SortOrder           = Enum.SortOrder.LayoutOrder
+    l.HorizontalAlignment = align   or Enum.HorizontalAlignment.Left
+    l.Parent = parent
+    return l
+end
+
+function Factory.gradient(parent, colorA, colorB, rotation)
+    local g = Instance.new("UIGradient")
+    g.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, colorA),
+        ColorSequenceKeypoint.new(1, colorB),
+    })
+    g.Rotation = rotation or 90
+    g.Parent = parent
+    return g
+end
+
+-- Frame builder — accepts a props table
+function Factory.frame(p)
+    local f = Instance.new("Frame")
+    f.BackgroundColor3     = p.bg            or Color3.fromRGB(20, 20, 30)
+    f.BackgroundTransparency = p.transparency or 0
+    f.BorderSizePixel      = 0
+    f.Size                 = p.size          or UDim2.new(1, 0, 0, 40)
+    f.Position             = p.position      or UDim2.new(0, 0, 0, 0)
+    f.AnchorPoint          = p.anchor        or Vector2.new(0, 0)
+    f.ZIndex               = p.zIndex        or 2
+    f.Name                 = p.name          or "Frame"
+    f.ClipsDescendants     = p.clip          or false
+    f.Parent               = p.parent
+    if p.corner  then Factory.corner(f, p.corner) end
+    if p.stroke  then Factory.stroke(f, p.strokeColor, p.strokeWidth) end
+    return f
+end
+
+-- TextLabel builder
+function Factory.label(p)
+    local l = Instance.new("TextLabel")
+    l.BackgroundTransparency = 1
+    l.Text           = p.text     or ""
+    l.TextColor3     = p.color    or Color3.fromRGB(235, 235, 248)
+    l.TextSize       = p.size     or 14
+    l.Font           = p.font     or Enum.Font.GothamMedium
+    l.TextXAlignment = p.alignX   or Enum.TextXAlignment.Left
+    l.TextYAlignment = p.alignY   or Enum.TextYAlignment.Center
+    l.TextWrapped    = p.wrap     or false
+    l.RichText       = p.rich     or false
+    l.Size           = p.sizeUDim or UDim2.new(1, 0, 0, 20)
+    l.Position       = p.position or UDim2.new(0, 0, 0, 0)
+    l.ZIndex         = p.zIndex   or 2
+    l.Name           = p.name     or "Label"
+    l.Parent         = p.parent
+    return l
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════
+--  MODULE 4 · GRADIENT ANIMATOR
+--  ─────────────────────────────────────────────────────────────────────────
+--  Three independent effects usable on any UIGradient:
+--    • hueFlow   — full hue rotation over time
+--    • offsetSweep — horizontal shimmer pass
+--    • shimmer   — branded two-color shimmer with a bright highlight band
+-- ═══════════════════════════════════════════════════════════════════════════
+local GradientAnimator = {}
+GradientAnimator._active = {}
+
+-- Hue cycle (full rainbow drift)
+function GradientAnimator.hueFlow(gradient, speed)
+    speed = speed or 0.5
+    local conn = RunService.Heartbeat:Connect(function()
+        if not gradient or not gradient.Parent then return end
+        local h1 = (tick() * speed) % 1
+        gradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0,   Color3.fromHSV(h1,               0.85, 1)),
+            ColorSequenceKeypoint.new(0.5, Color3.fromHSV((h1 + 0.22) % 1, 0.75, 1)),
+            ColorSequenceKeypoint.new(1,   Color3.fromHSV((h1 + 0.42) % 1, 0.85, 1)),
+        })
+    end)
+    table.insert(GradientAnimator._active, conn)
+    return conn
+end
+
+-- Offset sweep (the gradient slides left↔right)
+function GradientAnimator.offsetSweep(gradient, speed)
+    speed = speed or 0.9
+    local conn = RunService.Heartbeat:Connect(function()
+        if not gradient or not gradient.Parent then return end
+        gradient.Offset = Vector2.new(math.sin(tick() * speed) * 0.45, 0)
+    end)
+    table.insert(GradientAnimator._active, conn)
+    return conn
+end
+
+-- Shimmer — a bright band sweeps across the gradient
+function GradientAnimator.shimmer(gradient, colorA, colorB, speed)
+    speed = speed or 1.4
+    local conn = RunService.Heartbeat:Connect(function()
+        if not gradient or not gradient.Parent then return end
+        local t   = (tick() * speed) % 1
+        local pos = math.abs(math.sin(t * math.pi))    -- 0→1→0
+        local mid = math.clamp(pos, 0.05, 0.95)
+        local lo  = math.clamp(mid - 0.12, 0.01, 0.93)
+        local hi  = math.clamp(mid + 0.12, 0.07, 0.99)
+        gradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0,  colorA),
+            ColorSequenceKeypoint.new(lo, colorA),
+            ColorSequenceKeypoint.new(mid,Color3.new(1, 1, 1):Lerp(colorB, 0.25)),
+            ColorSequenceKeypoint.new(hi, colorB),
+            ColorSequenceKeypoint.new(1,  colorB),
+        })
+    end)
+    table.insert(GradientAnimator._active, conn)
+    return conn
+end
+
+function GradientAnimator.stopAll()
+    for _, c in ipairs(GradientAnimator._active) do
+        if c then c:Disconnect() end
+    end
+    GradientAnimator._active = {}
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════
+--  SCREEN GUI ROOT
+-- ═══════════════════════════════════════════════════════════════════════════
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name             = "MegaHackV2"
+screenGui.ZIndexBehavior   = Enum.ZIndexBehavior.Sibling
+screenGui.IgnoreGuiInset   = true
+screenGui.ResetOnSpawn     = false
+
+-- Hide from detection layers (tries multiple executor APIs)
+local function hideGui(gui)
+    local ok = pcall(function()
+        if gethui then
             gui.Parent = gethui()
+        elseif get_hidden_gui then
+            gui.Parent = get_hidden_gui()
         elseif syn and syn.protect_gui then
             syn.protect_gui(gui)
             gui.Parent = CoreGui
@@ -276,1171 +386,1457 @@ local function protectGui(gui)
             gui.Parent = CoreGui
         end
     end)
-    -- fallback
-    if not gui.Parent then gui.Parent = CoreGui end
+    if not ok then gui.Parent = CoreGui end
 end
-protectGui(screenGui)
+hideGui(screenGui)
 
--- ═══════════════════════════════════════════════════════════════════
---  ⑤  UI  FACTORY  (thin wrappers that auto-hook into ThemeManager)
--- ═══════════════════════════════════════════════════════════════════
-local UI = {}
+-- Global UIScale for mobile/PC sizing
+local uiScale    = Instance.new("UIScale")
+uiScale.Scale    = isMobile and 0.82 or 1
+uiScale.Parent   = screenGui
 
--- Frame
-function UI.frame(p)
-    local f = Instance.new("Frame")
-    f.BackgroundColor3       = p.bg    or ThemeManager.get("Surface")
-    f.BackgroundTransparency = p.alpha or ThemeManager.get("SurfaceAlpha")
-    f.BorderSizePixel        = 0
-    f.Size                   = p.size  or UDim2.new(1,0,1,0)
-    f.Position               = p.pos   or UDim2.new(0,0,0,0)
-    f.ZIndex                 = p.z     or 2
-    f.Name                   = p.name  or "Frame"
-    if p.clip ~= nil then f.ClipsDescendants = p.clip end
-    if p.parent then f.Parent = p.parent end
-    return f
-end
+-- ═══════════════════════════════════════════════════════════════════════════
+--  MODULE 5 · LOADING SCREEN
+--  ─────────────────────────────────────────────────────────────────────────
+--  Sequence: fade-in → logo reveal → shimmer bar → progress steps → slide-out
+-- ═══════════════════════════════════════════════════════════════════════════
+local LoadingScreen = {}
 
--- UICorner
-function UI.corner(parent, r)
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, r or 10)
-    c.Parent = parent
-    return c
-end
+function LoadingScreen.show(onComplete)
 
--- UIStroke
-function UI.stroke(parent, thickness, color, alpha)
-    local s = Instance.new("UIStroke")
-    s.Thickness    = thickness or 1.5
-    s.Color        = color or ThemeManager.get("Border")
-    s.Transparency = alpha or 0.3
-    s.Parent       = parent
-    ThemeManager.onChanged(function()
-        if s and s.Parent then s.Color = ThemeManager.get("Border") end
-    end)
-    return s
-end
+    -- Full-screen overlay
+    local overlay = Factory.frame({
+        name         = "LoadingOverlay",
+        bg           = C("bg"),
+        size         = UDim2.new(1, 0, 1, 0),
+        zIndex       = 100,
+        parent       = screenGui,
+        clip         = true,
+    })
 
--- TextLabel
-function UI.label(p)
-    local l = Instance.new("TextLabel")
-    l.BackgroundTransparency = 1
-    l.Text             = p.text   or ""
-    l.TextColor3       = p.color  or ThemeManager.get(p.muted and "TextMuted" or "Text")
-    l.TextSize         = p.size   or 14
-    l.Font             = p.font   or Enum.Font.GothamBold
-    l.TextTransparency = p.alpha  or 0
-    l.TextXAlignment   = p.xalign or Enum.TextXAlignment.Left
-    l.TextYAlignment   = p.yalign or Enum.TextYAlignment.Center
-    l.TextWrapped      = p.wrap   or false
-    l.RichText         = p.rich   or false
-    l.Size             = p.sz     or UDim2.new(1,0,0,24)
-    l.Position         = p.pos    or UDim2.new(0,0,0,0)
-    l.ZIndex           = p.z      or 2
-    l.Name             = p.name   or "Label"
-    if p.parent then l.Parent = p.parent end
-    ThemeManager.onChanged(function()
-        if l and l.Parent then
-            l.TextColor3 = ThemeManager.get(p.muted and "TextMuted" or "Text")
-        end
-    end)
-    return l
-end
+    -- Animated diagonal background shimmer
+    local bgGrad = Instance.new("UIGradient")
+    bgGrad.Rotation = 135
+    bgGrad.Parent   = overlay
+    GradientAnimator.shimmer(bgGrad, C("bg"), C("bgSecondary"), 0.35)
 
--- TextButton  (full hover + press micro-animation)
-function UI.button(p)
-    local btn = Instance.new("TextButton")
-    btn.BackgroundColor3       = p.bg    or ThemeManager.get("Elevated")
-    btn.BackgroundTransparency = p.alpha or ThemeManager.get("ButtonAlpha")
-    btn.BorderSizePixel        = 0
-    btn.Text                   = p.text  or "Button"
-    btn.TextColor3             = p.color or ThemeManager.get("Text")
-    btn.TextSize               = p.tsize or 13
-    btn.Font                   = p.font  or Enum.Font.GothamBold
-    btn.TextTransparency       = 0
-    btn.AutoButtonColor        = false
-    btn.Size                   = p.size  or UDim2.new(1, -16, 0, 36)
-    btn.Position               = p.pos   or UDim2.new(0, 8, 0, 0)
-    btn.ZIndex                 = p.z     or 3
-    btn.Name                   = p.name  or "Btn"
-    if p.parent then btn.Parent = p.parent end
+    -- ── Logo card ────────────────────────────────────────────────────────
+    local logoCard = Factory.frame({
+        bg           = C("surface"),
+        size         = UDim2.new(0, 300, 0, 100),
+        position     = UDim2.new(0.5, 0, 0.38, 0),
+        anchor       = Vector2.new(0.5, 0.5),
+        corner       = 16,
+        zIndex       = 101,
+        parent       = overlay,
+    })
+    Factory.stroke(logoCard, C("accent1"), 1, 0.35)
+    local logoCardGrad = Instance.new("UIGradient")
+    logoCardGrad.Rotation = 135
+    logoCardGrad.Parent   = logoCard
+    GradientAnimator.shimmer(logoCardGrad, C("surface"), C("bgSecondary"), 0.6)
 
-    UI.corner(btn, p.radius or 8)
-    local stk = UI.stroke(btn, 1, ThemeManager.get("Border"), 0.55)
+    local logoText = Factory.label({
+        text     = "MEGAHACK",
+        color    = C("text"),
+        size     = 36,
+        font     = Enum.Font.GothamBlack,
+        alignX   = Enum.TextXAlignment.Center,
+        sizeUDim = UDim2.new(1, -20, 0, 52),
+        position = UDim2.new(0, 10, 0, 8),
+        zIndex   = 102,
+        parent   = logoCard,
+    })
+    -- Gradient colors on logo text label itself
+    local logoGrad = Factory.gradient(logoText, C("accent1"), C("accent2"), 0)
+    GradientAnimator.offsetSweep(logoGrad, 0.7)
 
-    local baseAlpha = p.alpha or ThemeManager.get("ButtonAlpha")
-    local baseSize  = p.size  or UDim2.new(1, -16, 0, 36)
+    Factory.label({
+        text     = "V 2.0  ·  ULTRA EDITION",
+        color    = C("textMuted"),
+        size     = 11,
+        font     = Enum.Font.GothamMedium,
+        alignX   = Enum.TextXAlignment.Center,
+        sizeUDim = UDim2.new(1, -20, 0, 20),
+        position = UDim2.new(0, 10, 0, 64),
+        zIndex   = 102,
+        parent   = logoCard,
+    })
 
-    btn.MouseEnter:Connect(function()
-        tween(btn, {BackgroundTransparency = math.max(0, baseAlpha - 0.12)}, 0.14)
-        tween(stk, {Transparency = 0.1, Color = ThemeManager.get("Accent")}, 0.14)
-        tween(btn, {TextColor3 = ThemeManager.get("Accent")}, 0.14)
-    end)
-    btn.MouseLeave:Connect(function()
-        tween(btn, {BackgroundTransparency = baseAlpha}, 0.2)
-        tween(stk, {Transparency = 0.55, Color = ThemeManager.get("Border")}, 0.2)
-        tween(btn, {TextColor3 = ThemeManager.get("Text")}, 0.2)
-    end)
-    btn.MouseButton1Down:Connect(function()
-        tween(btn, {Size = UDim2.new(baseSize.X.Scale, baseSize.X.Offset + 4,
-                                     baseSize.Y.Scale, baseSize.Y.Offset - 4)}, 0.07,
-              Enum.EasingStyle.Sine)
-    end)
-    btn.MouseButton1Up:Connect(function()
-        tween(btn, {Size = baseSize}, 0.14, Enum.EasingStyle.Back)
-    end)
+    -- ── Progress bar ─────────────────────────────────────────────────────
+    local barBg = Factory.frame({
+        bg       = C("surface"),
+        size     = UDim2.new(0, 320, 0, 6),
+        position = UDim2.new(0.5, 0, 0.60, 0),
+        anchor   = Vector2.new(0.5, 0.5),
+        corner   = 3,
+        zIndex   = 101,
+        parent   = overlay,
+    })
+    Factory.stroke(barBg, C("border"), 1, 0.4)
 
-    if p.callback then
-        btn.MouseButton1Click:Connect(function() pcall(p.callback) end)
+    local barFill = Factory.frame({
+        bg     = C("accent1"),
+        size   = UDim2.new(0, 0, 1, 0),
+        corner = 3,
+        zIndex = 102,
+        parent = barBg,
+    })
+    -- Shimmer on bar fill
+    local barGrad = Instance.new("UIGradient")
+    barGrad.Rotation = 0
+    barGrad.Parent   = barFill
+    GradientAnimator.shimmer(barGrad, C("accent1"), C("accent2"), 2.5)
+
+    -- ── Status text ───────────────────────────────────────────────────────
+    local statusLabel = Factory.label({
+        text     = "Initializing systems...",
+        color    = C("textMuted"),
+        size     = 11,
+        font     = Enum.Font.Gotham,
+        alignX   = Enum.TextXAlignment.Center,
+        sizeUDim = UDim2.new(0, 320, 0, 20),
+        position = UDim2.new(0.5, 0, 0.66, 0),
+        anchor   = Vector2.new(0.5, 0.5),
+        zIndex   = 101,
+        parent   = overlay,
+    })
+
+    -- ── Bouncing dots ────────────────────────────────────────────────────
+    local dotsRow = Factory.frame({
+        bg           = Color3.new(0,0,0),
+        transparency = 1,
+        size         = UDim2.new(0, 50, 0, 10),
+        position     = UDim2.new(0.5, 0, 0.74, 0),
+        anchor       = Vector2.new(0.5, 0.5),
+        zIndex       = 101,
+        parent       = overlay,
+    })
+    Factory.listLayout(dotsRow, Enum.FillDirection.Horizontal, 9, Enum.HorizontalAlignment.Center)
+    for i = 1, 3 do
+        local dot = Factory.frame({
+            bg     = C("accent1"),
+            size   = UDim2.new(0, 8, 0, 8),
+            corner = 4,
+            zIndex = 102,
+            parent = dotsRow,
+        })
+        -- Each dot pulses with an offset delay
+        task.spawn(function()
+            while dot and dot.Parent do
+                task.wait(0.35 * i - 0.35)
+                if not (dot and dot.Parent) then break end
+                Anim.tween(dot, {BackgroundTransparency = 0}, 0.25)
+                task.wait(0.25)
+                if not (dot and dot.Parent) then break end
+                Anim.tween(dot, {BackgroundTransparency = 0.75}, 0.25)
+                task.wait(0.55)
+            end
+        end)
     end
 
-    ThemeManager.onChanged(function()
-        if btn and btn.Parent then
-            btn.BackgroundColor3 = ThemeManager.get("Elevated")
-            btn.TextColor3       = ThemeManager.get("Text")
-            stk.Color            = ThemeManager.get("Border")
+    -- ── Intro animation ───────────────────────────────────────────────────
+    overlay.BackgroundTransparency = 1
+    logoCard.BackgroundTransparency = 1
+    logoText.TextTransparency = 1
+    statusLabel.TextTransparency = 1
+
+    Anim.tween(overlay,  {BackgroundTransparency = 0}, 0.5)
+    task.wait(0.35)
+    Anim.spring(logoCard,  {BackgroundTransparency = 0, Size = UDim2.new(0, 300, 0, 100)}, 0.55)
+    task.wait(0.2)
+    Anim.tween(logoText,   {TextTransparency = 0}, 0.45)
+    task.wait(0.15)
+    Anim.tween(statusLabel,{TextTransparency = 0}, 0.3)
+
+    -- ── Progress steps ───────────────────────────────────────────────────
+    local steps = {
+        { 0.18, "Loading services..."      },
+        { 0.35, "Fetching script modules..." },
+        { 0.52, "Building UI components..."  },
+        { 0.68, "Applying theme system..."   },
+        { 0.83, "Registering categories..."  },
+        { 1.00, "Ready!"                     },
+    }
+    for _, step in ipairs(steps) do
+        task.wait(0.28)
+        Anim.tween(barFill, {Size = UDim2.new(step[1], 0, 1, 0)}, 0.38, Enum.EasingStyle.Quart)
+        if statusLabel and statusLabel.Parent then
+            statusLabel.Text = step[2]
+        end
+    end
+
+    task.wait(0.5)
+
+    -- ── Outro: slide-up fade ──────────────────────────────────────────────
+    Anim.tween(overlay, {Position = UDim2.new(0, 0, -1, 0)}, 0.65, Enum.EasingStyle.Quart)
+    task.wait(0.7)
+    overlay:Destroy()
+
+    if onComplete then onComplete() end
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════
+--  MODULE 6 · NOTIFICATION SYSTEM
+--  ─────────────────────────────────────────────────────────────────────────
+--  Up to 5 stacked toasts slide in from the right.
+--  Types: "info" | "success" | "error" | "warning"
+-- ═══════════════════════════════════════════════════════════════════════════
+local activeNotifs = 0
+local MAX_NOTIFS   = 5
+
+local function notify(title, message, notifType, duration)
+    if activeNotifs >= MAX_NOTIFS then return end
+    activeNotifs += 1
+    duration    = duration    or 3.5
+    notifType   = notifType   or "info"
+
+    local accentMap = {
+        info    = C("accent1"),
+        success = C("success"),
+        error   = C("error"),
+        warning = C("warning"),
+    }
+    local accent = accentMap[notifType] or C("accent1")
+    local slot   = activeNotifs
+
+    -- Card
+    local card = Factory.frame({
+        name         = "Notif_" .. tostring(slot),
+        bg           = C("surface"),
+        size         = UDim2.new(0, 288, 0, 62),
+        position     = UDim2.new(1, 12, 1, -(68 * slot)),
+        anchor       = Vector2.new(0, 1),
+        corner       = 10,
+        zIndex       = 200,
+        parent       = screenGui,
+    })
+    Factory.stroke(card, accent, 1, 0.25)
+
+    -- Left accent bar
+    Factory.frame({
+        bg       = accent,
+        size     = UDim2.new(0, 3, 0.6, 0),
+        position = UDim2.new(0, 6, 0.2, 0),
+        corner   = 2,
+        zIndex   = 201,
+        parent   = card,
+    })
+
+    Factory.label({
+        text     = title,
+        color    = C("text"),
+        size     = 13,
+        font     = Enum.Font.GothamBold,
+        sizeUDim = UDim2.new(1, -28, 0, 22),
+        position = UDim2.new(0, 18, 0, 8),
+        zIndex   = 201,
+        parent   = card,
+    })
+
+    Factory.label({
+        text     = message,
+        color    = C("textMuted"),
+        size     = 11,
+        font     = Enum.Font.Gotham,
+        sizeUDim = UDim2.new(1, -28, 0, 24),
+        position = UDim2.new(0, 18, 0, 30),
+        zIndex   = 201,
+        wrap     = true,
+        parent   = card,
+    })
+
+    -- Progress drain bar
+    local drain = Factory.frame({
+        bg     = accent,
+        size   = UDim2.new(1, -14, 0, 2),
+        position = UDim2.new(0, 7, 1, -4),
+        corner = 1,
+        zIndex = 201,
+        parent = card,
+    })
+
+    -- Slide in
+    Anim.spring(card, {Position = UDim2.new(1, -298, 1, -(68 * slot))}, 0.45)
+    -- Drain bar
+    Anim.tween(drain, {Size = UDim2.new(0, 0, 0, 2)}, duration, Enum.EasingStyle.Linear)
+
+    task.delay(duration, function()
+        Anim.tween(card, {Position = UDim2.new(1, 12, 1, -(68 * slot))}, 0.3)
+        task.wait(0.35)
+        if card and card.Parent then card:Destroy() end
+        activeNotifs = math.max(0, activeNotifs - 1)
+    end)
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════
+--  MAIN WINDOW LAYOUT
+--  ─────────────────────────────────────────────────────────────────────────
+--  ┌──────────────────────────────────┐
+--  │ HEADER (drag handle)             │
+--  ├──────────┬───────────────────────┤
+--  │          │ [Search Bar         ] │
+--  │ SIDEBAR  ├───────────────────────┤
+--  │ (scroll) │ SCRIPTS SCROLL        │
+--  │          │                       │
+--  └──────────┴───────────────────────┘
+-- ═══════════════════════════════════════════════════════════════════════════
+local W         = isMobile and 370 or 530
+local H         = isMobile and 430 or 370
+local SIDEBAR_W = isMobile and 105 or 132
+local HEADER_H  = 44
+local SEARCH_H  = 36
+
+-- ── Root window ──────────────────────────────────────────────────────────
+local mainWin = Factory.frame({
+    name         = "MainWindow",
+    bg           = C("bg"),
+    size         = UDim2.new(0, W, 0, H),
+    position     = UDim2.new(0.5, 0, 0.5, 0),
+    anchor       = Vector2.new(0.5, 0.5),
+    corner       = 14,
+    zIndex       = 10,
+    parent       = screenGui,
+})
+Factory.stroke(mainWin, C("border"), 1, 0.2)
+
+-- Window background gradient (slow animated drift)
+local winBgGrad = Instance.new("UIGradient")
+winBgGrad.Rotation = 135
+winBgGrad.Parent   = mainWin
+do
+    local conn = RunService.Heartbeat:Connect(function()
+        if not winBgGrad or not winBgGrad.Parent then return end
+        local t = tick() * 0.12
+        winBgGrad.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0,   C("bg")),
+            ColorSequenceKeypoint.new(0.55, C("bgSecondary")),
+            ColorSequenceKeypoint.new(1,   C("surface")),
+        })
+        winBgGrad.Offset = Vector2.new(math.sin(t) * 0.04, math.cos(t * 0.65) * 0.04)
+    end)
+end
+
+-- ── Header ───────────────────────────────────────────────────────────────
+local header = Factory.frame({
+    name         = "Header",
+    bg           = C("bgSecondary"),
+    size         = UDim2.new(1, 0, 0, HEADER_H),
+    corner       = 14,
+    zIndex       = 11,
+    parent       = mainWin,
+})
+-- Square off bottom corners (top-rounded only)
+Factory.frame({
+    bg           = C("bgSecondary"),
+    size         = UDim2.new(1, 0, 0, 14),
+    position     = UDim2.new(0, 0, 1, -14),
+    zIndex       = 11,
+    parent       = header,
+})
+Factory.stroke(header, C("border"), 1, 0.5)
+
+-- Bottom accent line on header with animated gradient
+local accentLine = Factory.frame({
+    bg           = C("accent1"),
+    size         = UDim2.new(1, 0, 0, 1),
+    position     = UDim2.new(0, 0, 1, -1),
+    zIndex       = 12,
+    parent       = header,
+})
+local accentLineGrad = Factory.gradient(accentLine, C("accent1"), C("accent2"), 0)
+GradientAnimator.offsetSweep(accentLineGrad, 1.1)
+
+-- Header icon
+local hIcon = Instance.new("ImageLabel")
+hIcon.Size                = UDim2.new(0, 26, 0, 26)
+hIcon.Position            = UDim2.new(0, 10, 0.5, -13)
+hIcon.BackgroundTransparency = 1
+hIcon.Image               = "rbxassetid://7072717762"
+hIcon.ZIndex              = 13
+hIcon.Parent              = header
+
+-- Title label (gradient colored)
+local titleLbl = Factory.label({
+    text     = "MEGAHACK",
+    color    = C("text"),
+    size     = 17,
+    font     = Enum.Font.GothamBlack,
+    sizeUDim = UDim2.new(0, 130, 1, 0),
+    position = UDim2.new(0, 44, 0, 0),
+    zIndex   = 13,
+    parent   = header,
+})
+Factory.gradient(titleLbl, C("accent1"), C("accent2"), 0)
+
+-- Version badge
+local vBadge = Factory.frame({
+    bg       = C("surface"),
+    size     = UDim2.new(0, 38, 0, 17),
+    position = UDim2.new(0, 180, 0.5, -8),
+    corner   = 9,
+    zIndex   = 13,
+    parent   = header,
+})
+Factory.stroke(vBadge, C("accent1"), 1, 0.45)
+Factory.label({
+    text     = "v2.0",
+    color    = C("accent1"),
+    size     = 10,
+    font     = Enum.Font.GothamBold,
+    alignX   = Enum.TextXAlignment.Center,
+    sizeUDim = UDim2.new(1, 0, 1, 0),
+    zIndex   = 14,
+    parent   = vBadge,
+})
+
+-- Minimize button
+local minBtn = Instance.new("TextButton")
+minBtn.Size                = UDim2.new(0, 20, 0, 20)
+minBtn.Position            = UDim2.new(1, -48, 0.5, -10)
+minBtn.BackgroundColor3    = C("surface")
+minBtn.BackgroundTransparency = 0.4
+minBtn.BorderSizePixel     = 0
+minBtn.Text                = "─"
+minBtn.TextColor3          = C("textMuted")
+minBtn.TextSize            = 11
+minBtn.Font                = Enum.Font.GothamBold
+minBtn.ZIndex              = 13
+minBtn.Parent              = header
+Factory.corner(minBtn, 5)
+
+-- Close button
+local closeBtn = Instance.new("ImageButton")
+closeBtn.Size                 = UDim2.new(0, 20, 0, 20)
+closeBtn.Position             = UDim2.new(1, -24, 0.5, -10)
+closeBtn.BackgroundTransparency = 1
+closeBtn.Image                = "rbxassetid://14397748477"
+closeBtn.ImageColor3          = C("textMuted")
+closeBtn.ZIndex               = 13
+closeBtn.Parent               = header
+
+-- ── Content Area (below header) ──────────────────────────────────────────
+local contentArea = Factory.frame({
+    bg           = Color3.new(0,0,0),
+    transparency = 1,
+    size         = UDim2.new(1, 0, 1, -HEADER_H),
+    position     = UDim2.new(0, 0, 0, HEADER_H),
+    zIndex       = 10,
+    parent       = mainWin,
+})
+
+-- ── Sidebar ───────────────────────────────────────────────────────────────
+local sidebar = Factory.frame({
+    name         = "Sidebar",
+    bg           = C("bgSecondary"),
+    size         = UDim2.new(0, SIDEBAR_W, 1, 0),
+    zIndex       = 11,
+    parent       = contentArea,
+})
+
+-- Sidebar right-edge gradient border
+local sideBorder = Factory.frame({
+    bg       = C("border"),
+    size     = UDim2.new(0, 1, 1, 0),
+    position = UDim2.new(1, -1, 0, 0),
+    zIndex   = 12,
+    parent   = sidebar,
+})
+Factory.gradient(sideBorder, C("accent1"):Lerp(Color3.new(0,0,0), 0.6), C("bgSecondary"), 90)
+
+-- Sidebar scrolling frame
+local sideScroll = Instance.new("ScrollingFrame")
+sideScroll.Size              = UDim2.new(1, -2, 1, -6)
+sideScroll.Position          = UDim2.new(0, 1, 0, 3)
+sideScroll.BackgroundTransparency = 1
+sideScroll.ScrollBarThickness = 0
+sideScroll.CanvasSize        = UDim2.new(0, 0, 0, 0)
+sideScroll.ZIndex            = 12
+sideScroll.Parent            = sidebar
+Factory.padding(sideScroll, 4, 4, 4, 4)
+
+local sideList = Factory.listLayout(sideScroll, nil, 3)
+sideList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    sideScroll.CanvasSize = UDim2.new(0, 0, 0, sideList.AbsoluteContentSize.Y + 8)
+end)
+
+-- ── Main Panel (right of sidebar) ────────────────────────────────────────
+local mainPanel = Factory.frame({
+    bg           = Color3.new(0,0,0),
+    transparency = 1,
+    size         = UDim2.new(1, -SIDEBAR_W, 1, 0),
+    position     = UDim2.new(0, SIDEBAR_W, 0, 0),
+    zIndex       = 10,
+    parent       = contentArea,
+})
+
+-- Search bar container
+local searchCont = Factory.frame({
+    name         = "SearchBar",
+    bg           = C("surface"),
+    size         = UDim2.new(1, -14, 0, SEARCH_H),
+    position     = UDim2.new(0, 7, 0, 7),
+    corner       = 9,
+    zIndex       = 11,
+    parent       = mainPanel,
+})
+local searchStroke = Factory.stroke(searchCont, C("border"), 1, 0.35)
+
+-- Magnifier icon (sprite sheet icon)
+local magIcon = Instance.new("ImageLabel")
+magIcon.Size                 = UDim2.new(0, 15, 0, 15)
+magIcon.Position             = UDim2.new(0, 9, 0.5, -7)
+magIcon.BackgroundTransparency = 1
+magIcon.Image                = "rbxassetid://3926305904"
+magIcon.ImageRectOffset      = Vector2.new(964, 324)
+magIcon.ImageRectSize        = Vector2.new(36, 36)
+magIcon.ImageColor3          = C("textDim")
+magIcon.ZIndex               = 12
+magIcon.Parent               = searchCont
+
+local searchBox = Instance.new("TextBox")
+searchBox.Size               = UDim2.new(1, -36, 1, 0)
+searchBox.Position           = UDim2.new(0, 28, 0, 0)
+searchBox.BackgroundTransparency = 1
+searchBox.TextColor3         = C("text")
+searchBox.TextSize           = isMobile and 12 or 13
+searchBox.Font               = Enum.Font.Gotham
+searchBox.PlaceholderText    = "Search scripts..."
+searchBox.PlaceholderColor3  = C("textDim")
+searchBox.Text               = ""
+searchBox.ZIndex             = 12
+searchBox.ClearTextOnFocus   = false
+searchBox.Parent             = searchCont
+
+-- Script list scroll frame
+local scriptScroll = Instance.new("ScrollingFrame")
+scriptScroll.Size            = UDim2.new(1, -8, 1, -(SEARCH_H + 18))
+scriptScroll.Position        = UDim2.new(0, 4, 0, SEARCH_H + 11)
+scriptScroll.BackgroundTransparency = 1
+scriptScroll.ScrollBarThickness = 3
+scriptScroll.ScrollBarImageColor3 = C("border")
+scriptScroll.CanvasSize      = UDim2.new(0, 0, 0, 0)
+scriptScroll.ZIndex          = 11
+scriptScroll.Parent          = mainPanel
+Factory.padding(scriptScroll, 2, 6, 2, 2)
+
+local scriptList = Factory.listLayout(scriptScroll, nil, 4)
+scriptList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    scriptScroll.CanvasSize = UDim2.new(0, 0, 0, scriptList.AbsoluteContentSize.Y + 10)
+end)
+
+-- ── Reopen button (shown when window is hidden) ───────────────────────────
+local reopenBtn = Instance.new("ImageButton")
+reopenBtn.Size               = UDim2.new(0, 46, 0, 46)
+reopenBtn.Position           = UDim2.new(0.5, -23, 0.92, -23)
+reopenBtn.BackgroundColor3   = C("surface")
+reopenBtn.BackgroundTransparency = 0.1
+reopenBtn.Image              = "rbxassetid://7072717762"
+reopenBtn.ImageTransparency  = 0.1
+reopenBtn.Visible            = false
+reopenBtn.ZIndex             = 10
+reopenBtn.Parent             = screenGui
+Factory.corner(reopenBtn, 23)
+local reopenStroke = Factory.stroke(reopenBtn, C("accent1"), 2, 0.2)
+
+-- Pulse glow on reopen button
+task.spawn(function()
+    while reopenBtn and reopenBtn.Parent do
+        if reopenBtn.Visible then
+            Anim.tween(reopenBtn, {BackgroundTransparency = 0.45}, 0.85, Enum.EasingStyle.Sine)
+            task.wait(0.85)
+            if reopenBtn.Visible then
+                Anim.tween(reopenBtn, {BackgroundTransparency = 0.1}, 0.85, Enum.EasingStyle.Sine)
+            end
+        end
+        task.wait(0.85)
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════════════════════
+--  MODULE 7 · SIDEBAR BUTTON
+-- ═══════════════════════════════════════════════════════════════════════════
+local activeSideBtn = nil
+
+local function makeSideBtn(label, onClickCb)
+    local ROW_H = isMobile and 38 or 33
+
+    local btn = Instance.new("TextButton")
+    btn.Size                 = UDim2.new(1, 0, 0, ROW_H)
+    btn.BackgroundColor3     = C("surfaceHover")
+    btn.BackgroundTransparency = 1
+    btn.BorderSizePixel      = 0
+    btn.Text                 = ""
+    btn.ZIndex               = 13
+    btn.Parent               = sideScroll
+    Factory.corner(btn, 6)
+
+    -- Colored left-edge "active" indicator
+    local activeBar = Factory.frame({
+        bg       = C("accent1"),
+        size     = UDim2.new(0, 3, 0.55, 0),
+        position = UDim2.new(0, 0, 0.225, 0),
+        corner   = 2,
+        zIndex   = 14,
+        parent   = btn,
+    })
+    activeBar.Visible = false
+
+    local lbl = Factory.label({
+        text     = label,
+        color    = C("textMuted"),
+        size     = isMobile and 10 or 11,
+        font     = Enum.Font.GothamMedium,
+        alignX   = Enum.TextXAlignment.Center,
+        sizeUDim = UDim2.new(1, -4, 1, 0),
+        position = UDim2.new(0, 2, 0, 0),
+        zIndex   = 14,
+        parent   = btn,
+    })
+
+    -- Make this button look "selected"
+    local function activate()
+        activeBar.Visible = true
+        Anim.tween(btn, {BackgroundTransparency = 0.62}, 0.18)
+        Anim.tween(lbl, {TextColor3 = C("accent1")}, 0.18)
+    end
+
+    -- Make this button look "idle"
+    local function deactivate()
+        activeBar.Visible = false
+        Anim.tween(btn, {BackgroundTransparency = 1}, 0.18)
+        Anim.tween(lbl, {TextColor3 = C("textMuted")}, 0.18)
+    end
+
+    btn.MouseEnter:Connect(function()
+        if activeSideBtn ~= btn then
+            Anim.tween(btn, {BackgroundTransparency = 0.82}, 0.12)
+            Anim.tween(lbl, {TextColor3 = C("text")}, 0.12)
         end
     end)
+
+    btn.MouseLeave:Connect(function()
+        if activeSideBtn ~= btn then
+            Anim.tween(btn, {BackgroundTransparency = 1}, 0.12)
+            Anim.tween(lbl, {TextColor3 = C("textMuted")}, 0.12)
+        end
+    end)
+
+    btn.MouseButton1Click:Connect(function()
+        -- Deactivate previous
+        if activeSideBtn and activeSideBtn ~= btn then
+            -- Access the deactivate closure stored on the button
+            if activeSideBtn._deactivate then activeSideBtn._deactivate() end
+        end
+        activeSideBtn = btn
+        activate()
+
+        -- Press spring
+        Anim.spring(btn, {Size = UDim2.new(0.95, 0, 0, ROW_H - 2)}, 0.12)
+        task.delay(0.12, function()
+            Anim.spring(btn, {Size = UDim2.new(1, 0, 0, ROW_H)}, 0.22)
+        end)
+
+        onClickCb()
+    end)
+
+    btn._deactivate = deactivate
     return btn
 end
 
--- ScrollingFrame
-function UI.scroll(p)
-    local sf = Instance.new("ScrollingFrame")
-    sf.BackgroundTransparency  = 1
-    sf.Size                    = p.size  or UDim2.new(1,0,1,0)
-    sf.Position                = p.pos   or UDim2.new(0,0,0,0)
-    sf.CanvasSize              = UDim2.new(0,0,0,0)
-    sf.ScrollBarThickness      = p.bar   or 3
-    sf.ScrollBarImageColor3    = ThemeManager.get("Accent")
-    sf.BorderSizePixel         = 0
-    sf.ElasticBehavior         = Enum.ElasticBehavior.Always
-    sf.ZIndex                  = p.z     or 2
-    sf.Name                    = p.name  or "Scroll"
-    if p.parent then sf.Parent = p.parent end
-    ThemeManager.onChanged(function()
-        if sf and sf.Parent then sf.ScrollBarImageColor3 = ThemeManager.get("Accent") end
-    end)
-    return sf
+-- ═══════════════════════════════════════════════════════════════════════════
+--  MODULE 8 · SCRIPT BUTTON
+-- ═══════════════════════════════════════════════════════════════════════════
+local function clearScripts()
+    for _, child in ipairs(scriptScroll:GetChildren()) do
+        if not child:IsA("UIListLayout") and not child:IsA("UIPadding") then
+            child:Destroy()
+        end
+    end
 end
 
--- UIListLayout (auto-resizes parent canvas if ScrollingFrame)
-function UI.list(parent, padding)
-    local l = Instance.new("UIListLayout")
-    l.Padding              = UDim.new(0, padding or 8)
-    l.SortOrder            = Enum.SortOrder.LayoutOrder
-    l.FillDirection        = Enum.FillDirection.Vertical
-    l.HorizontalAlignment  = Enum.HorizontalAlignment.Center
-    l.Parent               = parent
-    l:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        if parent:IsA("ScrollingFrame") then
-            parent.CanvasSize = UDim2.new(0, 0, 0, l.AbsoluteContentSize.Y + 14)
+local function showEmptyState(msg)
+    local wrap = Factory.frame({
+        bg           = Color3.new(0,0,0),
+        transparency = 1,
+        size         = UDim2.new(1, 0, 0, 70),
+        zIndex       = 11,
+        parent       = scriptScroll,
+    })
+    Factory.label({
+        text     = msg or "Nothing here.",
+        color    = C("textDim"),
+        size     = 12,
+        font     = Enum.Font.Gotham,
+        alignX   = Enum.TextXAlignment.Center,
+        sizeUDim = UDim2.new(1, -20, 1, 0),
+        position = UDim2.new(0, 10, 0, 0),
+        zIndex   = 12,
+        parent   = wrap,
+    })
+end
+
+local CARD_H = isMobile and 44 or 38
+
+local function makeScriptBtn(name, callback, tagText)
+    local card = Factory.frame({
+        bg       = C("surface"),
+        size     = UDim2.new(1, 0, 0, CARD_H),
+        corner   = 8,
+        zIndex   = 11,
+        parent   = scriptScroll,
+    })
+    Factory.stroke(card, C("border"), 1, 0.55)
+
+    -- Script name
+    Factory.label({
+        text     = name,
+        color    = C("text"),
+        size     = isMobile and 11 or 12,
+        font     = Enum.Font.GothamMedium,
+        sizeUDim = UDim2.new(1, -92, 1, 0),
+        position = UDim2.new(0, 11, 0, 0),
+        zIndex   = 12,
+        parent   = card,
+    })
+
+    -- Optional category tag badge
+    if tagText then
+        local tag = Factory.frame({
+            bg       = C("surface"),
+            size     = UDim2.new(0, 56, 0, 17),
+            position = UDim2.new(1, -68, 0.5, -8),
+            corner   = 9,
+            zIndex   = 12,
+            parent   = card,
+        })
+        Factory.stroke(tag, C("accent2"), 1, 0.45)
+        Factory.label({
+            text     = tagText:sub(1, 8),
+            color    = C("accent2"),
+            size     = 9,
+            font     = Enum.Font.GothamBold,
+            alignX   = Enum.TextXAlignment.Center,
+            sizeUDim = UDim2.new(1, 0, 1, 0),
+            zIndex   = 13,
+            parent   = tag,
+        })
+    end
+
+    -- RUN button
+    local runBtnW = isMobile and 48 or 42
+    local runBtnH = isMobile and 26 or 22
+    local runOffX = tagText and (runBtnW + 62) or (runBtnW + 8)
+
+    local runBtn = Instance.new("TextButton")
+    runBtn.Size               = UDim2.new(0, runBtnW, 0, runBtnH)
+    runBtn.Position           = UDim2.new(1, -runOffX, 0.5, -runBtnH/2)
+    runBtn.BackgroundColor3   = C("accent1")
+    runBtn.BackgroundTransparency = 0.08
+    runBtn.BorderSizePixel    = 0
+    runBtn.Text               = "▶ RUN"
+    runBtn.TextColor3         = Color3.new(1, 1, 1)
+    runBtn.TextSize           = 9
+    runBtn.Font               = Enum.Font.GothamBold
+    runBtn.ZIndex             = 12
+    runBtn.Parent             = card
+    Factory.corner(runBtn, 6)
+    local runGrad = Factory.gradient(runBtn, C("accent1"), C("accent2"), 45)
+
+    -- Run button hover
+    runBtn.MouseEnter:Connect(function()
+        Anim.tween(runBtn, {BackgroundTransparency = 0}, 0.12)
+    end)
+    runBtn.MouseLeave:Connect(function()
+        Anim.tween(runBtn, {BackgroundTransparency = 0.08}, 0.12)
+    end)
+
+    -- Run button click
+    runBtn.MouseButton1Click:Connect(function()
+        -- Bounce press
+        Anim.spring(runBtn, {Size = UDim2.new(0, runBtnW - 4, 0, runBtnH - 3)}, 0.1)
+        task.delay(0.12, function()
+            Anim.spring(runBtn, {Size = UDim2.new(0, runBtnW, 0, runBtnH)}, 0.22)
+        end)
+
+        local ok, err = pcall(callback)
+        if ok then
+            notify("Executed", name, "success", 2.5)
+            Anim.tween(card, {BackgroundColor3 = C("success")}, 0.12)
+            task.delay(0.18, function()
+                Anim.tween(card, {BackgroundColor3 = C("surface")}, 0.5)
+            end)
+        else
+            notify("Script Error", tostring(err):sub(1, 70), "error", 5)
+            Anim.tween(card, {BackgroundColor3 = C("error")}, 0.12)
+            task.delay(0.18, function()
+                Anim.tween(card, {BackgroundColor3 = C("surface")}, 0.5)
+            end)
         end
     end)
-    return l
+
+    -- Card hover glow
+    card.InputBegan:Connect(function(inp)
+        if inp.UserInputType == Enum.UserInputType.MouseMovement then
+            Anim.tween(card, {BackgroundColor3 = C("surfaceHover")}, 0.12)
+        end
+    end)
+    card.InputEnded:Connect(function(inp)
+        if inp.UserInputType == Enum.UserInputType.MouseMovement then
+            Anim.tween(card, {BackgroundColor3 = C("surface")}, 0.12)
+        end
+    end)
+
+    return card
 end
 
--- UIPadding
-function UI.pad(parent, top, right, bottom, left)
-    local p = Instance.new("UIPadding")
-    p.PaddingTop    = UDim.new(0, top    or 8)
-    p.PaddingRight  = UDim.new(0, right  or 8)
-    p.PaddingBottom = UDim.new(0, bottom or 8)
-    p.PaddingLeft   = UDim.new(0, left   or 8)
-    p.Parent        = parent
-    return p
-end
+-- ═══════════════════════════════════════════════════════════════════════════
+--  MODULE 9 · CONTENT RENDERER
+--  ─────────────────────────────────────────────────────────────────────────
+--  Each view function clears the right panel and rebuilds it.
+-- ═══════════════════════════════════════════════════════════════════════════
+local ContentRenderer = {}
 
--- ═══════════════════════════════════════════════════════════════════
---  ⑥  NOTIFICATION  SYSTEM
---
---  Queue-aware slide-in toasts, one per slot (max 4 simultaneous).
---  Usage: notify(title, body, kind, duration)
---         kind = "info" | "success" | "warn" | "error"
--- ═══════════════════════════════════════════════════════════════════
-local Notif = {}
-Notif._active  = 0
-Notif._queue   = {}
-Notif._MAX     = 4
-Notif._H       = 64
-Notif._W       = 280
-Notif._GAP     = 8
-Notif._MARGIN  = 18
-
-local NOTIF_ICONS = {
-    info    = "rbxassetid://7733960981",
-    success = "rbxassetid://7072717762",
-    warn    = "rbxassetid://7733968497",
-    error   = "rbxassetid://7733968497",
-}
-local NOTIF_COLORS = {
-    info    = function() return ThemeManager.get("Accent")   end,
-    success = function() return ThemeManager.get("Success")  end,
-    warn    = function() return ThemeManager.get("Warning")  end,
-    error   = function() return ThemeManager.get("Error")    end,
-}
-
-function Notif.push(title, body, kind, dur)
-    kind = kind or "info"
-    dur  = dur  or 3.5
-    if Notif._active >= Notif._MAX then
-        table.insert(Notif._queue, {title, body, kind, dur})
+-- Load all scripts from one HubData category
+function ContentRenderer.loadCategory(key)
+    clearScripts()
+    local data = HubData[key]
+    if not data or #data == 0 then
+        showEmptyState("⚠  No scripts for: " .. tostring(key))
         return
     end
-    Notif._active = Notif._active + 1
-    local slot = Notif._active
-
-    local ng = Instance.new("ScreenGui")
-    ng.Name = "MH2_Toast"
-    ng.ZIndexBehavior  = Enum.ZIndexBehavior.Sibling
-    ng.ResetOnSpawn    = false
-    protectGui(ng)
-
-    local W, H = Notif._W, Notif._H
-    local yBase = -(Notif._MARGIN + (slot-1)*(H + Notif._GAP) + H)
-
-    local frame = UI.frame({
-        size  = UDim2.new(0, W, 0, H),
-        pos   = UDim2.new(1, W+20, 1, yBase),   -- start off-screen right
-        bg    = ThemeManager.get("Surface"),
-        alpha = 0.04,
-        z     = 10,
-        parent= ng,
-    })
-    UI.corner(frame, 12)
-    UI.stroke(frame, 1.5, NOTIF_COLORS[kind](), 0.15)
-
-    -- Left accent bar
-    local bar = UI.frame({
-        size  = UDim2.new(0, 3, 1, -16),
-        pos   = UDim2.new(0, 8, 0, 8),
-        bg    = NOTIF_COLORS[kind](),
-        alpha = 0,
-        z     = 11,
-        parent= frame,
-    })
-    UI.corner(bar, 3)
-
-    -- Icon
-    local ico = Instance.new("ImageLabel")
-    ico.Size                   = UDim2.new(0, 26, 0, 26)
-    ico.Position               = UDim2.new(0, 18, 0.5, -13)
-    ico.BackgroundTransparency = 1
-    ico.Image                  = NOTIF_ICONS[kind] or NOTIF_ICONS.info
-    ico.ZIndex                 = 11
-    ico.Parent                 = frame
-
-    -- Title / body
-    UI.label({text=title, size=13, font=Enum.Font.GothamBold,
-        sz=UDim2.new(1,-68,0,18), pos=UDim2.new(0,52,0,10), z=11, parent=frame})
-    UI.label({text=body, size=11, font=Enum.Font.Gotham, muted=true,
-        sz=UDim2.new(1,-68,0,16), pos=UDim2.new(0,52,0,32), z=11, parent=frame})
-
-    -- Progress drain bar
-    local pbBg = UI.frame({
-        size   = UDim2.new(1,0,0,2),
-        pos    = UDim2.new(0,0,1,-2),
-        bg     = ThemeManager.get("Border"),
-        alpha  = 0.5,
-        z      = 12,
-        parent = frame,
-    })
-    local pbFill = UI.frame({
-        size   = UDim2.new(1,0,1,0),
-        bg     = NOTIF_COLORS[kind](),
-        alpha  = 0,
-        z      = 13,
-        parent = pbBg,
-    })
-    UI.corner(pbBg, 2)
-
-    -- Slide in
-    local targetPos = UDim2.new(1, -(W + Notif._MARGIN), 1, yBase)
-    tween(frame, {Position = targetPos}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-    tween(pbFill, {Size = UDim2.new(0,0,1,0)}, dur, Enum.EasingStyle.Linear)
-
-    task.delay(dur, function()
-        tween(frame, {Position = UDim2.new(1, W+20, 1, yBase)},
-            0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
-        task.wait(0.38)
-        ng:Destroy()
-        Notif._active = Notif._active - 1
-        if #Notif._queue > 0 then
-            Notif.push(table.unpack(table.remove(Notif._queue, 1)))
+    for _, entry in ipairs(data) do
+        if type(entry) == "table"
+            and type(entry[1]) == "string"
+            and type(entry[2]) == "function"
+        then
+            makeScriptBtn(entry[1], entry[2])
         end
-    end)
+    end
 end
 
--- Convenience alias used throughout the script
-local function notify(t, b, k, d) Notif.push(t, b, k, d) end
-
--- ═══════════════════════════════════════════════════════════════════
---  ⑦  LOADING  SCREEN
---
---  Shown before the main UI appears.  Runs phased progress with
---  animated progress bar, shimmering logo, and smooth exit.
---  onComplete() is called once the screen fades out.
--- ═══════════════════════════════════════════════════════════════════
-local function buildLoadingScreen(onComplete)
-    local lg = Instance.new("ScreenGui")
-    lg.Name           = "MH2_Load"
-    lg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    lg.IgnoreGuiInset = true
-    lg.ResetOnSpawn   = false
-    protectGui(lg)
-
-    -- Full-screen backdrop
-    local bg = UI.frame({
-        size   = UDim2.new(1,0,1,0),
-        bg     = ThemeManager.get("BG"),
-        alpha  = 0,
-        z      = 1,
-        parent = lg,
-    })
-    GradientEngine.static(bg, 135)
-    ThemeManager.onChanged(function()
-        if bg and bg.Parent then bg.BackgroundColor3 = ThemeManager.get("BG") end
-    end)
-
-    -- Centre card
-    local card = UI.frame({
-        size   = UDim2.new(0, 320, 0, 210),
-        pos    = UDim2.new(0.5, -160, 0.5, -130),
-        bg     = ThemeManager.get("Surface"),
-        alpha  = 0.04,
-        z      = 2,
-        parent = lg,
-    })
-    UI.corner(card, 18)
-    local cardStroke = UI.stroke(card, 2, ThemeManager.get("Accent"), 0.1)
-    GradientEngine.attach(cardStroke, 2, "X")
-
-    -- Logo label with shimmer gradient
-    local logoLbl = UI.label({
-        text   = "MEGAHACK",
-        size   = 38,
-        font   = Enum.Font.GothamBlack,
-        sz     = UDim2.new(1,0,0,52),
-        pos    = UDim2.new(0,0,0,24),
-        xalign = Enum.TextXAlignment.Center,
-        z      = 3,
-        parent = card,
-    })
-    GradientEngine.static(logoLbl, 0)
-
-    UI.label({
-        text   = "V 2.0",
-        color  = ThemeManager.get("AccentAlt"),
-        size   = 13,
-        font   = Enum.Font.GothamBold,
-        sz     = UDim2.new(1,0,0,18),
-        pos    = UDim2.new(0,0,0,78),
-        xalign = Enum.TextXAlignment.Center,
-        z      = 3,
-        parent = card,
-    })
-
-    -- Status label
-    local statusLbl = UI.label({
-        text   = "Initialising…",
-        color  = ThemeManager.get("TextMuted"),
-        size   = 12,
-        font   = Enum.Font.Gotham,
-        sz     = UDim2.new(1,0,0,16),
-        pos    = UDim2.new(0,0,0,104),
-        xalign = Enum.TextXAlignment.Center,
-        z      = 3,
-        parent = card,
-        muted  = true,
-    })
-
-    -- Progress track
-    local track = UI.frame({
-        size   = UDim2.new(0, 250, 0, 6),
-        pos    = UDim2.new(0.5, -125, 0, 132),
-        bg     = ThemeManager.get("Elevated"),
-        alpha  = 0.2,
-        z      = 3,
-        parent = card,
-    })
-    UI.corner(track, 4)
-    local fill = UI.frame({
-        size   = UDim2.new(0, 0, 1, 0),
-        bg     = ThemeManager.get("Accent"),
-        alpha  = 0,
-        z      = 4,
-        parent = track,
-    })
-    UI.corner(fill, 4)
-    GradientEngine.attach(fill, 1.2, "X")
-
-    -- Platform badge
-    UI.label({
-        text   = platform .. "  ·  " .. player.Name,
-        color  = ThemeManager.get("AccentAlt"),
-        size   = 10,
-        font   = Enum.Font.Gotham,
-        sz     = UDim2.new(1,0,0,14),
-        pos    = UDim2.new(0,0,0,162),
-        xalign = Enum.TextXAlignment.Center,
-        z      = 3,
-        parent = card,
-        muted  = true,
-    })
-
-    -- Run phased progress animation
-    local phases = {
-        {0.12, "Loading modules"},
-        {0.32, "Fetching scripts"},
-        {0.62, "Building interface"},
-        {0.86, "Applying theme"},
-        {1.00, "Done!"},
-    }
-
-    task.spawn(function()
-        for _, phase in ipairs(phases) do
-            statusLbl.Text = phase[2]
-            tween(fill, {Size = UDim2.new(phase[1], 0, 1, 0)}, 0.45, Enum.EasingStyle.Quint)
-            task.wait(0.42)
+-- Dump every script from every category, tagged with category name
+function ContentRenderer.loadAll()
+    clearScripts()
+    local count = 0
+    for catName, hacks in pairs(HubData) do
+        if type(hacks) == "table" then
+            for _, entry in ipairs(hacks) do
+                if type(entry) == "table"
+                    and type(entry[1]) == "string"
+                    and type(entry[2]) == "function"
+                then
+                    makeScriptBtn(entry[1], entry[2], catName:sub(1, 8))
+                    count += 1
+                end
+            end
         end
-        task.wait(0.2)
-        -- Slide card up and fade backdrop
-        tween(card, {Position = UDim2.new(0.5, -160, -0.5, -130)},
-            0.48, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-        tween(bg, {BackgroundTransparency = 1}, 0.52, Enum.EasingStyle.Quint)
-        task.wait(0.55)
-        lg:Destroy()
-        if onComplete then onComplete() end
-    end)
+    end
+    if count == 0 then showEmptyState("No scripts loaded.") end
 end
 
--- ═══════════════════════════════════════════════════════════════════
---  ⑧  SEARCH  ENGINE
---
---  Scans all HubData categories in O(n) time.
---  Returns list of {name, category, func} sorted by relevance.
--- ═══════════════════════════════════════════════════════════════════
-local SearchEngine = {}
-
-function SearchEngine.query(text)
-    local results = {}
-    local q = text:lower():gsub("%s+", "")
-    if q == "" then return results end
-
-    for catName, scripts in pairs(HubData) do
-        if type(scripts) == "table" then
-            for _, entry in ipairs(scripts) do
+-- Real-time search across all HubData
+function ContentRenderer.search(query)
+    clearScripts()
+    query = string.lower(query)
+    if #query == 0 then
+        showEmptyState("Type to search across all scripts...")
+        return
+    end
+    local found = 0
+    for catName, hacks in pairs(HubData) do
+        if type(hacks) == "table" then
+            for _, entry in ipairs(hacks) do
                 if type(entry) == "table" and type(entry[1]) == "string" then
-                    if entry[1]:lower():gsub("%s+",""):find(q, 1, true) then
-                        table.insert(results, {
-                            name     = entry[1],
-                            category = catName,
-                            func     = entry[2],
-                        })
+                    if string.find(string.lower(entry[1]), query, 1, true) then
+                        makeScriptBtn(entry[1], entry[2], catName:sub(1, 8))
+                        found += 1
                     end
                 end
             end
         end
     end
-    return results
+    if found == 0 then
+        showEmptyState('No results for "' .. query .. '"')
+    end
 end
 
--- ═══════════════════════════════════════════════════════════════════
---  ⑨  MAIN  GUI  CONSTRUCTION
--- ═══════════════════════════════════════════════════════════════════
+-- Home dashboard
+function ContentRenderer.home()
+    clearScripts()
 
--- ── Layout constants ─────────────────────────────────────────────
-local GUI_W    = isMobile and 420 or 540
-local GUI_H    = isMobile and 370 or 430
-local CAT_W    = 122
-local HEADER_H = 46
-
--- ── Root frame ───────────────────────────────────────────────────
-local mainFrame = UI.frame({
-    size   = UDim2.new(0, GUI_W, 0, GUI_H),
-    pos    = UDim2.new(0.5, -GUI_W/2, 0.5, -GUI_H/2),
-    bg     = ThemeManager.get("Surface"),
-    alpha  = ThemeManager.get("SurfaceAlpha"),
-    z      = 2,
-    name   = "Main",
-    parent = screenGui,
-    clip   = true,
-})
-UI.corner(mainFrame, 16)
-local mainStroke = UI.stroke(mainFrame, 1.5, ThemeManager.get("Border"), 0.25)
-ThemeManager.onChanged(function()
-    if mainFrame and mainFrame.Parent then
-        mainFrame.BackgroundColor3       = ThemeManager.get("Surface")
-        mainFrame.BackgroundTransparency = ThemeManager.get("SurfaceAlpha")
-        mainStroke.Color                 = ThemeManager.get("Border")
-    end
-end)
-
--- Global UIScale for mobile enlargement
-local uiScaleInst = Instance.new("UIScale")
-uiScaleInst.Scale  = uiScaleFactor
-uiScaleInst.Parent = mainFrame
-
--- Subtle background gradient overlay
-local bgOverlay = UI.frame({
-    size   = UDim2.new(1,0,1,0),
-    bg     = ThemeManager.get("BG"),
-    alpha  = 0.55,
-    z      = 1,
-    parent = mainFrame,
-})
-GradientEngine.static(bgOverlay, 145)
-ThemeManager.onChanged(function()
-    if bgOverlay and bgOverlay.Parent then
-        bgOverlay.BackgroundColor3 = ThemeManager.get("BG")
-    end
-end)
-
--- ── Header ───────────────────────────────────────────────────────
-local header = UI.frame({
-    size   = UDim2.new(1,0,0,HEADER_H),
-    bg     = ThemeManager.get("BG"),
-    alpha  = 0.08,
-    z      = 4,
-    name   = "Header",
-    parent = mainFrame,
-})
-ThemeManager.onChanged(function()
-    if header and header.Parent then
-        header.BackgroundColor3 = ThemeManager.get("BG")
-    end
-end)
-
--- Animated 2-px accent underline on header
-local headerLine = UI.frame({
-    size   = UDim2.new(1,0,0,2),
-    pos    = UDim2.new(0,0,1,-2),
-    bg     = ThemeManager.get("Accent"),
-    alpha  = 0,
-    z      = 5,
-    parent = header,
-})
-GradientEngine.attach(headerLine, 2, "X")
-
--- Logo icon
-local logoIco = Instance.new("ImageLabel")
-logoIco.Size                   = UDim2.new(0, 26, 0, 26)
-logoIco.Position               = UDim2.new(0, 10, 0.5, -13)
-logoIco.BackgroundTransparency = 1
-logoIco.Image                  = "rbxassetid://7072717762"
-logoIco.ZIndex                 = 6
-logoIco.Parent                 = header
-
--- Logo text
-UI.label({
-    text   = "MEGAHACK  V2",
-    size   = 15,
-    font   = Enum.Font.GothamBlack,
-    sz     = UDim2.new(0, 160, 1, 0),
-    pos    = UDim2.new(0, 44, 0, 0),
-    z      = 6,
-    parent = header,
-})
-
--- Game name (centred)
-local ok_gi, gi = pcall(function() return MarketplaceService:GetProductInfo(game.PlaceId) end)
-local gameTitle  = ok_gi and gi.Name or ("PlaceId " .. game.PlaceId)
-UI.label({
-    text   = "▸ " .. gameTitle,
-    size   = 10,
-    font   = Enum.Font.Gotham,
-    sz     = UDim2.new(0, 200, 1, 0),
-    pos    = UDim2.new(0.5, -100, 0, 0),
-    xalign = Enum.TextXAlignment.Center,
-    z      = 6,
-    parent = header,
-    muted  = true,
-})
-
--- Close / minimise buttons
-local function mkIconBtn(img, xOff)
-    local b = Instance.new("ImageButton")
-    b.Size                   = UDim2.new(0, 24, 0, 24)
-    b.Position               = UDim2.new(1, xOff, 0.5, -12)
-    b.BackgroundTransparency = 1
-    b.Image                  = img
-    b.ImageTransparency      = 0.25
-    b.ZIndex                 = 6
-    b.Parent                 = header
-    b.MouseEnter:Connect(function() tween(b,{ImageTransparency=0},0.1) end)
-    b.MouseLeave:Connect(function() tween(b,{ImageTransparency=0.25},0.15) end)
-    return b
-end
-local closeBtn = mkIconBtn("rbxassetid://14397748477", -36)
-local minBtn   = mkIconBtn("rbxassetid://7072717762",  -66)
-
--- ── Reopen bubble ────────────────────────────────────────────────
-local reopenBtn = Instance.new("ImageButton")
-reopenBtn.Size                   = UDim2.new(0, 56, 0, 56)
-reopenBtn.Position               = UDim2.new(0.5, -28, 0.92, -28)
-reopenBtn.BackgroundColor3       = ThemeManager.get("Surface")
-reopenBtn.BackgroundTransparency = 0.08
-reopenBtn.Image                  = "rbxassetid://74283928898866"
-reopenBtn.ImageTransparency      = 0.1
-reopenBtn.Visible                = false
-reopenBtn.ZIndex                 = 2
-reopenBtn.Parent                 = screenGui
-UI.corner(reopenBtn, 28)
-UI.stroke(reopenBtn, 2, ThemeManager.get("Accent"), 0.15)
-ThemeManager.onChanged(function()
-    if reopenBtn and reopenBtn.Parent then
-        reopenBtn.BackgroundColor3 = ThemeManager.get("Surface")
-    end
-end)
-
--- ── Sidebar (category navigation) ───────────────────────────────
-local sidebar = UI.frame({
-    size   = UDim2.new(0, CAT_W, 1, -(HEADER_H + 10)),
-    pos    = UDim2.new(0, 6, 0, HEADER_H + 5),
-    bg     = ThemeManager.get("BG"),
-    alpha  = 0.28,
-    z      = 3,
-    name   = "Sidebar",
-    parent = mainFrame,
-})
-UI.corner(sidebar, 12)
-ThemeManager.onChanged(function()
-    if sidebar and sidebar.Parent then
-        sidebar.BackgroundColor3 = ThemeManager.get("BG")
-    end
-end)
-
-local catScroll = UI.scroll({
-    size   = UDim2.new(1,0,1,0),
-    bar    = 2,
-    z      = 3,
-    parent = sidebar,
-})
-UI.pad(catScroll, 6, 4, 6, 4)
-UI.list(catScroll, 5)
-
--- ── Content panel ────────────────────────────────────────────────
-local contentPanel = UI.frame({
-    size   = UDim2.new(1, -(CAT_W + 18), 1, -(HEADER_H + 10)),
-    pos    = UDim2.new(0, CAT_W + 12, 0, HEADER_H + 5),
-    bg     = ThemeManager.get("BG"),
-    alpha  = 0.28,
-    z      = 3,
-    name   = "Content",
-    parent = mainFrame,
-    clip   = true,
-})
-UI.corner(contentPanel, 12)
-ThemeManager.onChanged(function()
-    if contentPanel and contentPanel.Parent then
-        contentPanel.BackgroundColor3 = ThemeManager.get("BG")
-    end
-end)
-
--- ── Search bar ───────────────────────────────────────────────────
-local searchBar = Instance.new("TextBox")
-searchBar.Size                   = UDim2.new(1, -12, 0, 32)
-searchBar.Position               = UDim2.new(0, 6, 0, 6)
-searchBar.BackgroundColor3       = ThemeManager.get("Elevated")
-searchBar.BackgroundTransparency = ThemeManager.get("ButtonAlpha")
-searchBar.TextColor3             = ThemeManager.get("Text")
-searchBar.PlaceholderColor3      = ThemeManager.get("TextMuted")
-searchBar.PlaceholderText        = "  Search all scripts…"
-searchBar.TextSize               = 13
-searchBar.Font                   = Enum.Font.Gotham
-searchBar.ClearTextOnFocus       = false
-searchBar.ZIndex                 = 4
-searchBar.Parent                 = contentPanel
-UI.corner(searchBar, 8)
-UI.stroke(searchBar, 1, ThemeManager.get("Border"), 0.45)
-ThemeManager.onChanged(function()
-    if searchBar and searchBar.Parent then
-        searchBar.BackgroundColor3 = ThemeManager.get("Elevated")
-        searchBar.TextColor3       = ThemeManager.get("Text")
-        searchBar.PlaceholderColor3= ThemeManager.get("TextMuted")
-    end
-end)
-
--- ── Content scroll area ──────────────────────────────────────────
-local contentScroll = UI.scroll({
-    size   = UDim2.new(1, -6, 1, -46),
-    pos    = UDim2.new(0, 3, 0, 44),
-    bar    = 3,
-    z      = 3,
-    parent = contentPanel,
-})
-UI.pad(contentScroll, 6, 8, 6, 8)
-UI.list(contentScroll, 6)
-
--- ════════════════════════════════════════
---  HELPER: clear the content scroll area
--- ════════════════════════════════════════
-local function clearContent()
-    for _, c in ipairs(contentScroll:GetChildren()) do
-        if not c:IsA("UIListLayout") and not c:IsA("UIPadding") then
-            c:Destroy()
-        end
-    end
-    contentScroll.CanvasPosition = Vector2.new(0, 0)
-end
-
--- Section header inside content area
-local function sectionLbl(text)
-    local lbl = UI.label({
-        text   = text:upper(),
-        color  = ThemeManager.get("Accent"),
-        size   = 10,
-        font   = Enum.Font.GothamBold,
-        sz     = UDim2.new(1,0,0,20),
-        z      = 4,
-        parent = contentScroll,
-        muted  = false,
+    -- Welcome banner card
+    local banner = Factory.frame({
+        bg     = C("surface"),
+        size   = UDim2.new(1, 0, 0, 72),
+        corner = 10,
+        zIndex = 11,
+        parent = scriptScroll,
     })
-    return lbl
-end
+    Factory.stroke(banner, C("accent1"), 1, 0.4)
+    local bannerGrad = Instance.new("UIGradient")
+    bannerGrad.Rotation = 135
+    bannerGrad.Parent   = banner
+    GradientAnimator.shimmer(bannerGrad, C("surface"), C("bgSecondary"), 0.42)
 
--- Script/action button inside content area
-local function contentBtn(text, cb)
-    return UI.button({
-        text     = text,
-        size     = UDim2.new(1, 0, 0, isMobile and 40 or 36),
-        pos      = UDim2.new(0, 0, 0, 0),
-        tsize    = 12,
-        z        = 4,
-        parent   = contentScroll,
-        callback = cb,
+    Factory.label({
+        text     = "Welcome to MegaHack v2",
+        color    = C("text"),
+        size     = 15,
+        font     = Enum.Font.GothamBlack,
+        sizeUDim = UDim2.new(1, -18, 0, 26),
+        position = UDim2.new(0, 12, 0, 10),
+        zIndex   = 12,
+        parent   = banner,
     })
-end
-
--- ════════════════════════════════════════
---  PAGES
--- ════════════════════════════════════════
-
--- ── Home ─────────────────────────────────────────────────────────
-local function pageHome()
-    clearContent()
-
-    -- Player card
-    local card = UI.frame({
-        size   = UDim2.new(1,0,0,100),
-        bg     = ThemeManager.get("Elevated"),
-        alpha  = ThemeManager.get("ButtonAlpha"),
-        z      = 4,
-        parent = contentScroll,
+    Factory.label({
+        text     = "Select a category from the left, or use the search bar above.",
+        color    = C("textMuted"),
+        size     = 11,
+        font     = Enum.Font.Gotham,
+        sizeUDim = UDim2.new(1, -18, 0, 32),
+        position = UDim2.new(0, 12, 0, 36),
+        zIndex   = 12,
+        wrap     = true,
+        parent   = banner,
     })
-    UI.corner(card, 12)
 
-    local avOk, avUrl = pcall(function()
-        return Players:GetUserThumbnailAsync(
+    -- Stat cards row
+    local statsRow = Factory.frame({
+        bg           = Color3.new(0,0,0),
+        transparency = 1,
+        size         = UDim2.new(1, 0, 0, 52),
+        zIndex       = 11,
+        parent       = scriptScroll,
+    })
+    Factory.listLayout(statsRow, Enum.FillDirection.Horizontal, 5)
+
+    -- Count total scripts
+    local totalSc = 0
+    for _, v in pairs(HubData) do
+        if type(v) == "table" then totalSc += #v end
+    end
+    local gameName = "Unknown"
+    pcall(function()
+        gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name:sub(1, 14)
+    end)
+
+    local statDefs = {
+        { label = "Scripts",  value = tostring(totalSc) },
+        { label = "Game",     value = gameName          },
+        { label = "Platform", value = isMobile and "Mobile" or "PC" },
+    }
+    for _, sd in ipairs(statDefs) do
+        local card = Factory.frame({
+            bg     = C("surface"),
+            size   = UDim2.new(0.33, -4, 1, 0),
+            corner = 8,
+            zIndex = 12,
+            parent = statsRow,
+        })
+        Factory.stroke(card, C("border"), 1, 0.5)
+        Factory.label({
+            text     = sd.value,
+            color    = C("accent1"),
+            size     = 15,
+            font     = Enum.Font.GothamBold,
+            alignX   = Enum.TextXAlignment.Center,
+            sizeUDim = UDim2.new(1, 0, 0, 24),
+            position = UDim2.new(0, 0, 0, 6),
+            zIndex   = 13,
+            parent   = card,
+        })
+        Factory.label({
+            text     = sd.label,
+            color    = C("textMuted"),
+            size     = 9,
+            font     = Enum.Font.Gotham,
+            alignX   = Enum.TextXAlignment.Center,
+            sizeUDim = UDim2.new(1, 0, 0, 16),
+            position = UDim2.new(0, 0, 0, 30),
+            zIndex   = 13,
+            parent   = card,
+        })
+    end
+
+    -- Player info card
+    local playerCard = Factory.frame({
+        bg     = C("surface"),
+        size   = UDim2.new(1, 0, 0, 66),
+        corner = 9,
+        zIndex = 11,
+        parent = scriptScroll,
+    })
+    Factory.stroke(playerCard, C("border"), 1, 0.5)
+
+    local avatarImg = Instance.new("ImageLabel")
+    avatarImg.Size               = UDim2.new(0, 46, 0, 46)
+    avatarImg.Position           = UDim2.new(0, 10, 0.5, -23)
+    avatarImg.BackgroundColor3   = C("bgSecondary")
+    avatarImg.ZIndex             = 12
+    avatarImg.Parent             = playerCard
+    Factory.corner(avatarImg, 23)
+    Factory.stroke(avatarImg, C("accent1"), 2, 0.25)
+    pcall(function()
+        avatarImg.Image = Players:GetUserThumbnailAsync(
             player.UserId,
             Enum.ThumbnailType.HeadShot,
             Enum.ThumbnailSize.Size180x180
         )
     end)
-    if avOk then
-        local av = Instance.new("ImageLabel")
-        av.Size                   = UDim2.new(0, 68, 0, 68)
-        av.Position               = UDim2.new(0, 12, 0.5, -34)
-        av.BackgroundTransparency = 1
-        av.Image                  = avUrl
-        av.ZIndex                 = 5
-        av.Parent                 = card
-        UI.corner(av, 34)
-        UI.stroke(av, 2, ThemeManager.get("Accent"), 0.1)
-    end
 
-    UI.label({text=player.Name, size=14, font=Enum.Font.GothamBlack,
-        sz=UDim2.new(0.65,0,0,20), pos=UDim2.new(0,92,0,18), z=5, parent=card})
-    UI.label({text="UserId: "..player.UserId, size=10, font=Enum.Font.Gotham, muted=true,
-        sz=UDim2.new(0.65,0,0,14), pos=UDim2.new(0,92,0,42), z=5, parent=card})
-    UI.label({text=gameTitle, size=10, font=Enum.Font.Gotham,
-        color=ThemeManager.get("AccentAlt"),
-        sz=UDim2.new(0.65,0,0,14), pos=UDim2.new(0,92,0,58), z=5, parent=card, wrap=true})
-
-    -- Stats row
-    local stats = UI.frame({
-        size   = UDim2.new(1,0,0,50),
-        bg     = ThemeManager.get("Elevated"),
-        alpha  = ThemeManager.get("ButtonAlpha"),
-        z      = 4,
-        parent = contentScroll,
+    Factory.label({
+        text     = player.Name,
+        color    = C("text"),
+        size     = 13,
+        font     = Enum.Font.GothamBold,
+        sizeUDim = UDim2.new(1, -80, 0, 22),
+        position = UDim2.new(0, 68, 0, 10),
+        zIndex   = 12,
+        parent   = playerCard,
     })
-    UI.corner(stats, 10)
-
-    local totalScripts = 0
-    for _, v in pairs(HubData) do
-        if type(v) == "table" then totalScripts += #v end
-    end
-
-    local function statCol(label, value, xFrac)
-        local col = UI.frame({size=UDim2.new(0.33,0,1,0), pos=UDim2.new(xFrac,0,0,0),
-            bg=Color3.new(), alpha=1, z=5, parent=stats})
-        UI.label({text=value, size=15, font=Enum.Font.GothamBlack,
-            sz=UDim2.new(1,0,0,22), pos=UDim2.new(0,0,0,5),
-            xalign=Enum.TextXAlignment.Center, z=6, parent=col})
-        UI.label({text=label, size=9, font=Enum.Font.Gotham, muted=true,
-            sz=UDim2.new(1,0,0,14), pos=UDim2.new(0,0,0,28),
-            xalign=Enum.TextXAlignment.Center, z=6, parent=col})
-    end
-    statCol("Scripts",   tostring(totalScripts), 0)
-    statCol("Place ID",  tostring(game.PlaceId), 0.33)
-    statCol("Platform",  platform,               0.66)
+    Factory.label({
+        text     = "UserId: " .. tostring(player.UserId) .. "  |  PlaceId: " .. game.PlaceId,
+        color    = C("textMuted"),
+        size     = 10,
+        font     = Enum.Font.Gotham,
+        sizeUDim = UDim2.new(1, -80, 0, 18),
+        position = UDim2.new(0, 68, 0, 34),
+        zIndex   = 12,
+        parent   = playerCard,
+    })
 
     -- Live FPS card
-    local fpsCard = UI.frame({
-        size   = UDim2.new(1,0,0,36),
-        bg     = ThemeManager.get("Elevated"),
-        alpha  = ThemeManager.get("ButtonAlpha"),
-        z      = 4,
-        parent = contentScroll,
+    local fpsCard = Factory.frame({
+        bg     = C("surface"),
+        size   = UDim2.new(1, 0, 0, 38),
+        corner = 8,
+        zIndex = 11,
+        parent = scriptScroll,
     })
-    UI.corner(fpsCard, 8)
-    local fpsLbl = UI.label({
-        text   = "FPS  —  calculating…",
-        size   = 12, font=Enum.Font.Gotham, muted=true,
-        sz=UDim2.new(1,-16,1,0), pos=UDim2.new(0,8,0,0), z=5, parent=fpsCard,
+    Factory.stroke(fpsCard, C("border"), 1, 0.5)
+
+    local fpsLbl = Factory.label({
+        text     = "FPS: --",
+        color    = C("accent1"),
+        size     = 12,
+        font     = Enum.Font.GothamBold,
+        sizeUDim = UDim2.new(0.45, 0, 1, 0),
+        position = UDim2.new(0, 12, 0, 0),
+        zIndex   = 12,
+        parent   = fpsCard,
     })
-    local _lt, _fr = tick(), 0
-    RunService.Heartbeat:Connect(function()
-        _fr += 1
-        if tick()-_lt >= 1 then
-            if fpsLbl and fpsLbl.Parent then fpsLbl.Text = "FPS  " .. _fr end
-            _fr, _lt = 0, tick()
+    Factory.label({
+        text     = "Server: " .. tostring(game.JobId):sub(1, 12) .. "...",
+        color    = C("textDim"),
+        size     = 10,
+        font     = Enum.Font.Gotham,
+        alignX   = Enum.TextXAlignment.Right,
+        sizeUDim = UDim2.new(0.55, -12, 1, 0),
+        position = UDim2.new(0.45, 0, 0, 0),
+        zIndex   = 12,
+        parent   = fpsCard,
+    })
+
+    -- FPS heartbeat counter
+    local fCount, fLast = 0, tick()
+    local fConn = RunService.Heartbeat:Connect(function()
+        fCount += 1
+        local now = tick()
+        if now - fLast >= 1 then
+            if fpsLbl and fpsLbl.Parent then
+                fpsLbl.Text = "FPS: " .. fCount
+            else
+                return -- label destroyed, stop caring
+            end
+            fCount, fLast = 0, now
         end
     end)
-
-    -- Socials
-    sectionLbl("Social")
-    contentBtn("▶  YouTube: @Vermax",   function() end)
-    contentBtn("✈  Telegram: @vermax",  function() end)
-    contentBtn("💬  Discord: /vermax",  function() end)
+    -- Clean up when card is destroyed
+    fpsCard.Destroying:Connect(function() fConn:Disconnect() end)
 end
 
--- ── Category scripts ─────────────────────────────────────────────
-local function pageCategory(catKey)
-    clearContent()
-    local scripts = HubData[catKey]
-    if not scripts or #scripts == 0 then
-        sectionLbl("No scripts found")
-        return
+-- Settings page
+function ContentRenderer.settings()
+    clearScripts()
+
+    -- Helper: section separator
+    local function sep(title)
+        local row = Factory.frame({
+            bg           = Color3.new(0,0,0),
+            transparency = 1,
+            size         = UDim2.new(1, 0, 0, 22),
+            zIndex       = 11,
+            parent       = scriptScroll,
+        })
+        Factory.label({
+            text     = title,
+            color    = C("accent2"),
+            size     = 10,
+            font     = Enum.Font.GothamBold,
+            sizeUDim = UDim2.new(1, 0, 1, 0),
+            position = UDim2.new(0, 8, 0, 0),
+            zIndex   = 12,
+            parent   = row,
+        })
+        -- Divider line
+        Factory.frame({
+            bg       = C("border"),
+            size     = UDim2.new(1, -8, 0, 1),
+            position = UDim2.new(0, 4, 1, -1),
+            zIndex   = 12,
+            parent   = row,
+        })
     end
-    for _, entry in ipairs(scripts) do
-        if type(entry)=="table" and type(entry[1])=="string" and type(entry[2])=="function" then
-            contentBtn(entry[1], function()
-                local ok2, err = pcall(entry[2])
-                if not ok2 then
-                    notify("Error", tostring(err):sub(1,60), "error", 5)
-                else
-                    notify("Executed", entry[1], "success", 2.5)
-                end
+
+    -- Helper: action button
+    local function actBtn(label, cb)
+        local BTN_H = isMobile and 36 or 30
+        local b = Instance.new("TextButton")
+        b.Size               = UDim2.new(1, 0, 0, BTN_H)
+        b.BackgroundColor3   = C("surface")
+        b.BackgroundTransparency = 0
+        b.BorderSizePixel    = 0
+        b.Text               = label
+        b.TextColor3         = C("text")
+        b.TextSize           = isMobile and 12 or 11
+        b.Font               = Enum.Font.GothamMedium
+        b.ZIndex             = 11
+        b.Parent             = scriptScroll
+        Factory.corner(b, 7)
+        Factory.stroke(b, C("border"), 1, 0.5)
+
+        b.MouseEnter:Connect(function()
+            Anim.tween(b, {BackgroundColor3 = C("surfaceHover")}, 0.12)
+        end)
+        b.MouseLeave:Connect(function()
+            Anim.tween(b, {BackgroundColor3 = C("surface")}, 0.12)
+        end)
+        b.MouseButton1Click:Connect(function()
+            Anim.spring(b, {Size = UDim2.new(0.97, 0, 0, BTN_H - 2)}, 0.1)
+            task.delay(0.14, function()
+                Anim.spring(b, {Size = UDim2.new(1, 0, 0, BTN_H)}, 0.2)
             end)
-        end
+            cb()
+        end)
+        return b
     end
-end
 
--- ── Settings ─────────────────────────────────────────────────────
-local function pageSettings()
-    clearContent()
-
-    sectionLbl("Theme")
-    for name in pairs(ThemeManager.Palettes) do
-        contentBtn(name, function()
-            ThemeManager.setTheme(name)
-            notify("Theme", name .. " applied", "success", 2)
+    -- Themes
+    sep("THEMES")
+    for key, theme in pairs(ThemeManager.themes) do
+        actBtn("◈  " .. theme.name, function()
+            ThemeManager.setTheme(key)
+            notify("Theme", theme.name .. " applied!", "success", 2.5)
         end)
     end
 
-    sectionLbl("Server")
-    contentBtn("Rejoin", function()
-        local ok2 = pcall(TeleportService.Teleport, TeleportService, game.PlaceId, player)
-        if not ok2 then notify("Error","Rejoin failed","error",3) end
+    -- Server tools
+    sep("SERVER")
+    actBtn("↺  Rejoin", function()
+        local ok, e = pcall(function() TeleportService:Teleport(game.PlaceId, player) end)
+        if not ok then notify("Rejoin Failed", e:sub(1,50), "error") end
     end)
-    contentBtn("Server Hop", function()
-        pcall(function()
-            local d = HttpService:JSONDecode(game:HttpGet(
-                "https://games.roblox.com/v1/games/"..game.PlaceId..
-                "/servers/Public?sortOrder=Asc&limit=100"))
-            local list = d.data
-            if #list > 0 then
+    actBtn("⤢  Server Hop", function()
+        local ok, e = pcall(function()
+            local r = HttpService:JSONDecode(
+                game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100")
+            )
+            if r.data and #r.data > 0 then
                 TeleportService:TeleportToPlaceInstance(
-                    game.PlaceId, list[math.random(1,#list)].id, player)
-            else notify("Error","No servers found","error",3) end
+                    game.PlaceId, r.data[math.random(1, #r.data)].id, player
+                )
+            else
+                notify("Server Hop", "No servers found.", "warning")
+            end
         end)
+        if not ok then notify("Server Hop Failed", tostring(e):sub(1,50), "error") end
     end)
-    contentBtn("Copy Server ID", function()
-        pcall(function()
-            setclipboard(game.JobId)
-            notify("Copied","Server ID in clipboard","success",2.5)
-        end)
+    actBtn("⊞  Copy Server ID", function()
+        pcall(function() setclipboard(game.JobId) end)
+        notify("Copied", "Server ID in clipboard!", "success", 2)
     end)
 
-    sectionLbl("Security")
-    contentBtn("Enable Anti-Kick / Anti-Ban", function()
-        pcall(function()
-            local mt = getrawmetatable(game)
-            if not mt then notify("Error","getrawmetatable unavailable","error",3) return end
+    -- Security
+    sep("SECURITY")
+    actBtn("⚑  Anti-Kick / Anti-Ban", function()
+        local ok = pcall(function()
+            local mt  = getrawmetatable(game)
             local old = mt.__namecall
             setreadonly(mt, false)
             mt.__namecall = newcclosure(function(self, ...)
                 local m = getnamecallmethod()
-                if m=="Kick" or m=="kick" or m=="Ban" or m=="ban" then
-                    notify("Blocked", m.." attempt blocked", "warn", 2.5)
+                if m == "Kick" or m == "Ban" then
+                    notify("Blocked", "Kick/Ban attempt stopped.", "warning")
                     return nil
                 end
                 return old(self, ...)
             end)
             setreadonly(mt, true)
-            notify("Security","Anti-Kick / Anti-Ban active","success",3)
         end)
+        notify("Anti-Protection", ok and "Enabled!" or "Executor unsupported.", ok and "success" or "warning")
     end)
 
-    sectionLbl("Teleport")
-    contentBtn("Save Current Position", function()
-        local char = player.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        if root then
-            pcall(function()
-                if not isfolder("MegaHack") then makefolder("MegaHack") end
-                local p = root.Position
-                writefile("MegaHack/pos.txt", p.X..","..p.Y..","..p.Z)
-                notify("Saved", ("X%.1f Y%.1f Z%.1f"):format(p.X,p.Y,p.Z),"success",3)
-            end)
-        else notify("Error","No character root found","error",3) end
-    end)
-    contentBtn("Teleport to Saved Position", function()
-        pcall(function()
-            if not isfile("MegaHack/pos.txt") then
-                notify("Error","No saved position","error",3) return
-            end
-            local txt = readfile("MegaHack/pos.txt")
-            local x,y,z = txt:match("([^,]+),([^,]+),([^,]+)")
-            local root  = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-            if root and x then
-                root.CFrame = CFrame.new(tonumber(x),tonumber(y),tonumber(z))
-                notify("Teleported","Position restored","success",2.5)
-            end
-        end)
-    end)
-
-    sectionLbl("Interface")
-    contentBtn("Close GUI", function()
-        tween(mainFrame, {Size=UDim2.new(0,0,0,GUI_H), BackgroundTransparency=1},
-            0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-        task.wait(0.45)
+    -- GUI controls
+    sep("GUI")
+    actBtn("✕  Close GUI", function()
         screenGui:Destroy()
     end)
 end
 
--- ── Search results ───────────────────────────────────────────────
-local function pageSearch(query)
-    clearContent()
-    if query == "" then
-        sectionLbl("Type to search all scripts…")
-        return
-    end
-    local results = SearchEngine.query(query)
-    if #results == 0 then
-        sectionLbl("No results for  \"" .. query .. "\"")
-        return
-    end
-    sectionLbl(#results .. " result(s)  —  \"" .. query .. "\"")
-    for _, r in ipairs(results) do
-        contentBtn("[" .. r.category .. "]  " .. r.name, function()
-            local ok2, err = pcall(r.func)
-            if not ok2 then
-                notify("Error", tostring(err):sub(1,60), "error", 5)
-            else
-                notify("Executed", r.name, "success", 2.5)
-            end
-        end)
-    end
-end
-
--- ═══════════════════════════════════════════════════════════════════
---  ⑩  SIDEBAR  BUTTON  FACTORY
--- ═══════════════════════════════════════════════════════════════════
-local activeCatBtn = nil
-
-local function addCatBtn(label, pageFn)
-    local btn = UI.button({
-        text     = label,
-        size     = UDim2.new(1, -8, 0, isMobile and 34 or 30),
-        tsize    = 11,
-        font     = Enum.Font.GothamBold,
-        z        = 4,
-        parent   = catScroll,
-        callback = function()
-            if activeCatBtn and activeCatBtn ~= btn then
-                tween(activeCatBtn,
-                    {BackgroundTransparency = ThemeManager.get("ButtonAlpha")}, 0.2)
-                tween(activeCatBtn, {TextColor3 = ThemeManager.get("Text")}, 0.2)
-            end
-            activeCatBtn = btn
-            tween(btn, {BackgroundTransparency = 0.04}, 0.2)
-            tween(btn, {TextColor3 = ThemeManager.get("Accent")}, 0.2)
-            searchBar.Text = ""
-            pageFn()
-        end,
-    })
-    return btn
-end
-
--- ─────────────────────────────────────────
---  Category definitions
--- ─────────────────────────────────────────
+-- ═══════════════════════════════════════════════════════════════════════════
+--  MODULE 10 · CATEGORY DEFINITIONS & SIDEBAR POPULATION
+-- ═══════════════════════════════════════════════════════════════════════════
 local categories = {
-    {"🏠 Home",            pageHome},
-    {"⚙ Settings",         pageSettings},
-    {"⚡ MegaHack",         function() pageCategory("MegaHack")        end},
-    {"🔧 Hacks",           function() pageCategory("Hacks")           end},
-    {"👑 Admins",          function() pageCategory("Admins")          end},
-    {"🎭 Animations",      function() pageCategory("Animations")      end},
-    {"📡 FE",              function() pageCategory("FE")              end},
-    {"🎮 MM2",             function() pageCategory("MM2")             end},
-    {"🥊 Blade Ball",      function() pageCategory("BladeBall")       end},
-    {"🌊 Blox Fruit",      function() pageCategory("BloxFruit")       end},
-    {"🏡 Brookhaven",      function() pageCategory("Brookhaven")      end},
-    {"🐾 Adopt Me",        function() pageCategory("AdoptMe")         end},
-    {"🌿 Grow Garden",     function() pageCategory("GrowGarden")      end},
-    {"🏃 Evade",           function() pageCategory("Evade")           end},
-    {"🌪 Nat. Disaster",   function() pageCategory("NaturalDisaster") end},
-    {"🧸 Ragdoll",         function() pageCategory("RagdollEngine")   end},
-    {"🗼 Tower of Hell",   function() pageCategory("TowerOfHell")     end},
-    {"🏪 IKEA 3008",       function() pageCategory("IKEA3008")        end},
-    {"🌙 Night99",         function() pageCategory("Night")           end},
-    {"⚔ Rivals",           function() pageCategory("Rivals")          end},
-    {"🔫 Weird Gun",       function() pageCategory("Weird")           end},
-    {"🥊 Duels MVS",       function() pageCategory("DuelsMVS")        end},
-    {"🏙 Violence Dist.",  function() pageCategory("ViolenceDistrict")end},
-    {"💀 Forsaken",        function() pageCategory("FORSAKEN")        end},
-    {"🧠 StealBrainRoot",  function() pageCategory("StealBrainRoot")  end},
+    { "Home",             function() ContentRenderer.home() end              },
+    { "All Scripts",      function() ContentRenderer.loadAll() end           },
+    { "MegaHack",         function() ContentRenderer.loadCategory("MegaHack") end },
+    { "Hacks",            function() ContentRenderer.loadCategory("Hacks") end    },
+    { "Admins",           function() ContentRenderer.loadCategory("Admins") end   },
+    { "Animations",       function() ContentRenderer.loadCategory("Animations") end },
+    { "FE Scripts",       function() ContentRenderer.loadCategory("FE") end       },
+    { "Steal Brain",      function() ContentRenderer.loadCategory("StealBrainRoot") end },
+    { "Blade Ball",       function() ContentRenderer.loadCategory("BladeBall") end     },
+    { "Ragdoll Eng.",     function() ContentRenderer.loadCategory("RagdollEngine") end },
+    { "Natural Dis.",     function() ContentRenderer.loadCategory("NaturalDisaster") end },
+    { "MM2",              function() ContentRenderer.loadCategory("MM2") end           },
+    { "Duels MVS",        function() ContentRenderer.loadCategory("DuelsMVS") end      },
+    { "Evade",            function() ContentRenderer.loadCategory("Evade") end         },
+    { "IKEA 3008",        function() ContentRenderer.loadCategory("IKEA3008") end      },
+    { "Blox Fruit",       function() ContentRenderer.loadCategory("BloxFruit") end     },
+    { "Brookhaven",       function() ContentRenderer.loadCategory("Brookhaven") end    },
+    { "Adopt Me",         function() ContentRenderer.loadCategory("AdoptMe") end       },
+    { "Tower of Hell",    function() ContentRenderer.loadCategory("TowerOfHell") end   },
+    { "Night99",          function() ContentRenderer.loadCategory("Night") end         },
+    { "FORSAKEN",         function() ContentRenderer.loadCategory("FORSAKEN") end      },
+    { "Grow Garden",      function() ContentRenderer.loadCategory("GrowGarden") end    },
+    { "Violence Dist.",   function() ContentRenderer.loadCategory("ViolenceDistrict") end },
+    { "Weird Gun",        function() ContentRenderer.loadCategory("Weird") end         },
+    { "Rivals",           function() ContentRenderer.loadCategory("Rivals") end        },
+    { "Settings",         function() ContentRenderer.settings() end                    },
 }
 
-local firstCatBtn = nil
-for i, def in ipairs(categories) do
-    local b = addCatBtn(def[1], def[2])
-    if i == 1 then firstCatBtn = b end
+-- Build all sidebar buttons
+local firstSideBtn = nil
+for _, cat in ipairs(categories) do
+    local btn = makeSideBtn(cat[1], cat[2])
+    if not firstSideBtn then firstSideBtn = btn end
 end
 
--- ═══════════════════════════════════════════════════════════════════
---  ⑪  SEARCH  WIRING  (debounced real-time filtering)
--- ═══════════════════════════════════════════════════════════════════
-local debounceTask = nil
-searchBar:GetPropertyChangedSignal("Text"):Connect(function()
-    if debounceTask then task.cancel(debounceTask) end
-    local q = searchBar.Text
-    debounceTask = task.delay(0.22, function()
-        if q ~= "" then
-            -- Deactivate sidebar selection while searching
-            if activeCatBtn then
-                tween(activeCatBtn,
-                    {BackgroundTransparency = ThemeManager.get("ButtonAlpha")}, 0.2)
-                tween(activeCatBtn, {TextColor3 = ThemeManager.get("Text")}, 0.2)
-                activeCatBtn = nil
-            end
-            pageSearch(q)
-        else
-            pageHome()
+-- ═══════════════════════════════════════════════════════════════════════════
+--  MODULE 11 · SEARCH — REAL-TIME DEBOUNCED
+-- ═══════════════════════════════════════════════════════════════════════════
+local searchTask = nil
+
+searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+    local q = searchBox.Text
+    if searchTask then task.cancel(searchTask) end
+    -- 280 ms debounce — avoids hammering on every keystroke
+    searchTask = task.delay(0.28, function()
+        if q and #q > 0 then
+            ContentRenderer.search(q)
         end
     end)
 end)
-searchBar.Focused:Connect(function()
-    tween(searchBar, {BackgroundTransparency = ThemeManager.get("ButtonAlpha") - 0.1}, 0.15)
-end)
-searchBar.FocusLost:Connect(function()
-    tween(searchBar, {BackgroundTransparency = ThemeManager.get("ButtonAlpha")}, 0.2)
+
+-- Visual feedback when search is focused / unfocused
+searchBox.Focused:Connect(function()
+    Anim.tween(searchCont, {BackgroundColor3 = C("surfaceHover")}, 0.18)
+    searchStroke.Color        = C("accent1")
+    searchStroke.Transparency = 0.15
 end)
 
--- ═══════════════════════════════════════════════════════════════════
---  ⑫  DRAGGING  (header → main frame;  reopen bubble self-dragging)
--- ═══════════════════════════════════════════════════════════════════
+searchBox.FocusLost:Connect(function(enter)
+    Anim.tween(searchCont, {BackgroundColor3 = C("surface")}, 0.18)
+    searchStroke.Color        = C("border")
+    searchStroke.Transparency = 0.35
+    if enter and #searchBox.Text > 0 then
+        ContentRenderer.search(searchBox.Text)
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════════════════════
+--  MODULE 12 · DRAG SYSTEM
+--  Supports both PC mouse and mobile touch on any frame.
+-- ═══════════════════════════════════════════════════════════════════════════
 local function makeDraggable(frame, handle)
     handle = handle or frame
-    local drag, startIn, startPos
-    handle.InputBegan:Connect(function(inp)
-        if inp.UserInputType == Enum.UserInputType.MouseButton1
-        or inp.UserInputType == Enum.UserInputType.Touch then
-            drag    = true
-            startIn = inp.Position
-            startPos= frame.Position
-            inp.Changed:Connect(function()
-                if inp.UserInputState == Enum.UserInputState.End then
-                    drag = false
+    local dragging, dragInput, startMouse, startPos
+
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch
+        then
+            dragging   = true
+            startMouse = input.Position
+            startPos   = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
                 end
             end)
         end
     end)
-    UserInputService.InputChanged:Connect(function(inp)
-        if drag and (
-            inp.UserInputType == Enum.UserInputType.MouseMovement or
-            inp.UserInputType == Enum.UserInputType.Touch
-        ) then
-            local d = inp.Position - startIn
+
+    handle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch
+        then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - startMouse
             frame.Position = UDim2.new(
-                startPos.X.Scale, startPos.X.Offset + d.X,
-                startPos.Y.Scale, startPos.Y.Offset + d.Y
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
             )
         end
     end)
 end
-makeDraggable(mainFrame, header)
+
+makeDraggable(mainWin, header)
 makeDraggable(reopenBtn, reopenBtn)
 
--- ═══════════════════════════════════════════════════════════════════
---  ⑬  CLOSE / REOPEN  LOGIC
--- ═══════════════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════════════════════
+--  MODULE 13 · WINDOW CONTROLS (close / minimize / reopen)
+-- ═══════════════════════════════════════════════════════════════════════════
+local isMinimized = false
+
 closeBtn.MouseButton1Click:Connect(function()
-    tween(mainFrame,
-        {Size=UDim2.new(0,0,0,GUI_H), BackgroundTransparency=1},
-        0.35, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-    task.wait(0.38)
-    mainFrame.Visible = false
-    mainFrame.Size    = UDim2.new(0, GUI_W, 0, GUI_H)
-    mainFrame.BackgroundTransparency = ThemeManager.get("SurfaceAlpha")
+    Anim.tween(mainWin, {Size = UDim2.new(0, W, 0, 0), BackgroundTransparency = 1}, 0.32, Enum.EasingStyle.Quart)
+    task.wait(0.36)
+    mainWin.Visible = false
+    mainWin.Size    = UDim2.new(0, W, 0, H)
+    mainWin.BackgroundTransparency = 0
     reopenBtn.Visible = true
-    tween(reopenBtn, {ImageTransparency=0}, 0.25)
+end)
+
+minBtn.MouseButton1Click:Connect(function()
+    if isMinimized then
+        isMinimized = false
+        Anim.spring(mainWin, {Size = UDim2.new(0, W, 0, H)}, 0.38)
+        minBtn.Text  = "─"
+    else
+        isMinimized = true
+        Anim.tween(mainWin, {Size = UDim2.new(0, W, 0, HEADER_H)}, 0.3, Enum.EasingStyle.Quart)
+        minBtn.Text  = "□"
+    end
 end)
 
 reopenBtn.MouseButton1Click:Connect(function()
     reopenBtn.Visible = false
-    mainFrame.Visible = true
-    mainFrame.Size    = UDim2.new(0, 0, 0, GUI_H)
-    mainFrame.BackgroundTransparency = 1
-    tween(mainFrame,
-        {Size=UDim2.new(0,GUI_W,0,GUI_H), BackgroundTransparency=ThemeManager.get("SurfaceAlpha")},
-        0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    mainWin.Visible   = true
+    mainWin.Size      = UDim2.new(0, W, 0, 0)
+    mainWin.BackgroundTransparency = 1
+    Anim.spring(mainWin, {Size = UDim2.new(0, W, 0, H), BackgroundTransparency = 0}, 0.48)
 end)
 
--- ═══════════════════════════════════════════════════════════════════
---  ⑭  BOOT  SEQUENCE
---
---  1. Loading screen plays
---  2. Main frame animates in (scale from zero)
---  3. Home page is loaded
---  4. Welcome notification fires
--- ═══════════════════════════════════════════════════════════════════
+-- Keyboard toggle (PC only): RightControl
+if not isMobile then
+    UserInputService.InputBegan:Connect(function(input, processed)
+        if not processed and input.KeyCode == Enum.KeyCode.RightControl then
+            if mainWin.Visible then
+                mainWin.Visible   = false
+                reopenBtn.Visible = true
+            else
+                reopenBtn.Visible = false
+                mainWin.Visible   = true
+                mainWin.Size      = UDim2.new(0, W, 0, 0)
+                Anim.spring(mainWin, {Size = UDim2.new(0, W, 0, H)}, 0.45)
+            end
+        end
+    end)
+end
 
--- Hide main frame until loading screen finishes
-mainFrame.Size                   = UDim2.new(0, 0, 0, 0)
-mainFrame.BackgroundTransparency = 1
+-- ═══════════════════════════════════════════════════════════════════════════
+--  MODULE 14 · THEME CHANGE LISTENER
+--  Applies new colors to all persistent UI elements without rebuilding them.
+-- ═══════════════════════════════════════════════════════════════════════════
+ThemeManager.onThemeChanged(function(t)
+    -- Window
+    mainWin:FindFirstChildOfClass("UIStroke").Color = t.border
+    header.BackgroundColor3       = t.bgSecondary
+    sidebar.BackgroundColor3      = t.bgSecondary
 
-buildLoadingScreen(function()
-    -- Reveal main frame with a springy scale-in
-    tween(mainFrame,
-        {Size=UDim2.new(0,GUI_W,0,GUI_H), BackgroundTransparency=ThemeManager.get("SurfaceAlpha")},
-        0.52, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-
-    task.wait(0.08)
-
-    -- Activate Home
-    if firstCatBtn then
-        firstCatBtn.MouseButton1Click:Fire()
-    else
-        pageHome()
+    -- Accent line
+    accentLine.BackgroundColor3   = t.accent1
+    local alg = accentLine:FindFirstChildOfClass("UIGradient")
+    if alg then
+        alg.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, t.accent1),
+            ColorSequenceKeypoint.new(1, t.accent2),
+        })
     end
 
-    -- Welcome toast
-    task.wait(0.65)
-    notify("MegaHack V2", "Welcome, " .. player.Name .. "!  (" .. platform .. ")", "success", 4)
+    -- Title gradient
+    local tlg = titleLbl:FindFirstChildOfClass("UIGradient")
+    if tlg then
+        tlg.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, t.accent1),
+            ColorSequenceKeypoint.new(1, t.accent2),
+        })
+    end
+    titleLbl.TextColor3 = t.text
+
+    -- Search
+    searchCont.BackgroundColor3  = t.surface
+    searchBox.TextColor3         = t.text
+    searchBox.PlaceholderColor3  = t.textDim
+    scriptScroll.ScrollBarImageColor3 = t.border
+
+    -- Reopen button
+    reopenBtn.BackgroundColor3   = t.surface
+    local rs = reopenBtn:FindFirstChildOfClass("UIStroke")
+    if rs then rs.Color = t.accent1 end
+
+    -- Version badge
+    local vb = vBadge:FindFirstChildOfClass("UIStroke")
+    if vb then vb.Color = t.accent1 end
+    local vbl = vBadge:FindFirstChildOfClass("TextLabel")
+    if vbl then vbl.TextColor3 = t.accent1 end
+end)
+
+-- ═══════════════════════════════════════════════════════════════════════════
+--  STARTUP SEQUENCE
+-- ═══════════════════════════════════════════════════════════════════════════
+mainWin.Visible = false   -- hidden until loading screen completes
+
+task.spawn(function()
+    LoadingScreen.show(function()
+
+        -- Animate window in
+        mainWin.Visible = true
+        mainWin.Size    = UDim2.new(0, W, 0, 0)
+        mainWin.BackgroundTransparency = 1
+        Anim.spring(mainWin, {Size = UDim2.new(0, W, 0, H), BackgroundTransparency = 0}, 0.55)
+
+        task.wait(0.15)
+        -- Auto-navigate to Home and activate first sidebar button
+        ContentRenderer.home()
+        if firstSideBtn then
+            activeSideBtn = firstSideBtn
+            if firstSideBtn._deactivate then
+                -- Activate it visually by re-calling the click logic manually
+                local ab = firstSideBtn:FindFirstChildOfClass("Frame")
+                if ab then ab.Visible = true end
+                local lbl2 = firstSideBtn:FindFirstChildOfClass("TextLabel")
+                if lbl2 then
+                    Anim.tween(lbl2, {TextColor3 = C("accent1")}, 0.2)
+                end
+                Anim.tween(firstSideBtn, {BackgroundTransparency = 0.62}, 0.2)
+            end
+        end
+
+        -- Launch notifications
+        task.wait(0.5)
+        notify("MegaHack v2", "Loaded on " .. (isMobile and "Mobile" or "PC") .. " — " .. player.Name, "success", 4)
+
+        if not isMobile then
+            task.wait(0.6)
+            notify("Shortcut", "Press RightCtrl to toggle window", "info", 4)
+        end
+    end)
 end)
