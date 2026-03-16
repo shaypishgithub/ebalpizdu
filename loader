@@ -58,6 +58,7 @@ local HubData = {
     ViolenceDistrict = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/ViolenceDistrict.lua"),
     IKEA3008 = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/3008.lua"),
     Rivals = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Rivals.lua"),
+    FORSAKEN = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/FORSAKEN.lua"),
 }
 local function createNotification(title, subtitle, duration, iconId)
     local notificationGui = Instance.new("ScreenGui")
@@ -1051,6 +1052,7 @@ local categories = {
     ["Adopt Me"]         = function() loadHacksFromCategory("AdoptMe") end,
     ["GrowGarden"]       = function() loadHacksFromCategory("GrowGarden") end,
     ["Night99"]          = function() loadHacksFromCategory("Night") end,
+  ["FORSAKEN"]        = function() loadHacksFromCategory("FORSAKEN") end,
     ["Weird Gun Game"]   = function() loadHacksFromCategory("Weird") end,
   ["Rivals"]        = function() loadHacksFromCategory("Rivals") end,
     ["Duels MVS"]        = function() loadHacksFromCategory("DuelsMVS") end,
@@ -1061,7 +1063,7 @@ local categoryOrder = {
     "Home", "Settings", "All Scripts", "MegaHack", "Hacks", "Admins", "Animations", "FE",
     "Steal Brain Root", "Blade Ball", "Ragdoll Engine", "Natural Disaster",
     "MM2","Duels MVS", "Evade","IKEA3008", "Blox Fruit", "Brookhaven", "Adopt Me", "Tower of Hell",
-    "Night99", "GrowGarden","ViolenceDistrict", "Weird Gun Game", "Rivals"
+    "Night99","FORSAKEN", "GrowGarden","ViolenceDistrict", "Weird Gun Game", "Rivals"
 }
 
 for _, categoryName in ipairs(categoryOrder) do
