@@ -1,1113 +1,1672 @@
--- ════════════════════════════════════════════════════════════════
---  MEGAHACK V2  |  Complete Rebuild — Everything Works
--- ════════════════════════════════════════════════════════════════
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║           MEGAHACK V2  —  Complete Rewrite                      ║
+-- ║   All systems working: Categories, Search, Themes, Loading      ║
+-- ╚══════════════════════════════════════════════════════════════════╝
 
--- ── Services ────────────────────────────────────────────────────
-local TweenService       = game:GetService("TweenService")
-local UserInputService   = game:GetService("UserInputService")
-local Players            = game:GetService("Players")
-local CoreGui            = game:GetService("CoreGui")
-local RunService         = game:GetService("RunService")
-local MarketplaceService = game:GetService("MarketplaceService")
-local TeleportService    = game:GetService("TeleportService")
-local HttpService        = game:GetService("HttpService")
+-- ─── Services ────────────────────────────────────────────────────────────
+local TS   = game:GetService("TweenService")
+local UIS  = game:GetService("UserInputService")
+local PL   = game:GetService("Players")
+local CG   = game:GetService("CoreGui")
+local RS   = game:GetService("RunService")
+local MPS  = game:GetService("MarketplaceService")
+local TPS  = game:GetService("TeleportService")
+local HTTP = game:GetService("HttpService")
 
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui   = LocalPlayer:WaitForChild("PlayerGui", 5)
-if not PlayerGui then warn("[MH2] PlayerGui not found.") return end
+local lp     = PL.LocalPlayer
+local lpGui  = lp:WaitForChild("PlayerGui", 10)
 
-local IsMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+local isMob = UIS.TouchEnabled and not UIS.KeyboardEnabled
 
--- ── Safe remote load ────────────────────────────────────────────
-local function SafeLoad(url)
-    local ok, res = pcall(function()
-        return loadstring(game:HttpGet(url, true))()
-    end)
-    if ok and type(res) == "table" then return res end
-    return {}
+-- ─── Tween helper ────────────────────────────────────────────────────────
+local function tw(obj, props, t, style, dir)
+	local ti = TweenInfo.new(t or .25, style or Enum.EasingStyle.Quart, dir or Enum.EasingDirection.Out)
+	local tw2 = TS:Create(obj, ti, props); tw2:Play(); return tw2
 end
 
--- ════════════════════════════════════════════════════════════════
---  HUB DATA
--- ════════════════════════════════════════════════════════════════
-local HubData = {
-    MegaHack        = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/megapizda"),
-    Hacks           = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Hacks.lua"),
-    Admins          = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/admin"),
-    Animations      = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/animation"),
-    FE              = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/FE.lua"),
-    StealBrainRoot  = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/StealBrainRoot.lua"),
-    BladeBall       = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/BladeBall.lua"),
-    RagdollEngine   = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/ragdoll"),
-    NaturalDisaster = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/NaturalDisaster.lua"),
-    MM2             = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/MM2.lua"),
-    DuelsMVS        = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/DuelsMVS.lua"),
-    Evade           = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/evade"),
-    IKEA3008        = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/3008.lua"),
-    BloxFruit       = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/BloxFruit.lua"),
-    Brookhaven      = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/brookhaven"),
-    AdoptMe         = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/adoptme"),
-    TowerOfHell     = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/tower.lua"),
-    Night           = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Night.lua"),
-    FORSAKEN        = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/FORSAKEN.lua"),
-    GrowGarden      = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/GrowGarden.lua"),
-    ViolenceDistrict= SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/ViolenceDistrict.lua"),
-    Weird           = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Weird.lua"),
-    Rivals          = SafeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Rivals.lua"),
-}
-
-local function CountAll()
-    local n = 0
-    for _, t in pairs(HubData) do if type(t) == "table" then n = n + #t end end
-    return n
+-- ─── Safe remote loader ──────────────────────────────────────────────────
+local function safeLoad(url)
+	local ok, r = pcall(function() return loadstring(game:HttpGet(url, true))() end)
+	if ok and r then return r end
+	return {}
 end
 
--- ════════════════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════════════════════
 --  THEME SYSTEM
--- ════════════════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════════════════════
 local Themes = {
-    Dark = {
-        BG = Color3.fromRGB(12,12,20), Surface = Color3.fromRGB(20,20,33),
-        SurfaceHov = Color3.fromRGB(28,28,45), Border = Color3.fromRGB(45,45,75),
-        Accent = Color3.fromRGB(110,140,255), Accent2 = Color3.fromRGB(200,90,255),
-        Text = Color3.fromRGB(240,240,255), TextMuted = Color3.fromRGB(140,140,170),
-        TextDim = Color3.fromRGB(70,70,100), Success = Color3.fromRGB(60,210,130),
-        Error = Color3.fromRGB(255,70,75), Warning = Color3.fromRGB(255,185,45),
-    },
-    Neon = {
-        BG = Color3.fromRGB(4,5,10), Surface = Color3.fromRGB(8,12,20),
-        SurfaceHov = Color3.fromRGB(12,18,30), Border = Color3.fromRGB(0,200,140),
-        Accent = Color3.fromRGB(0,230,160), Accent2 = Color3.fromRGB(0,200,255),
-        Text = Color3.fromRGB(210,255,245), TextMuted = Color3.fromRGB(80,185,155),
-        TextDim = Color3.fromRGB(35,90,75), Success = Color3.fromRGB(0,255,120),
-        Error = Color3.fromRGB(255,45,90), Warning = Color3.fromRGB(255,215,0),
-    },
-    Crimson = {
-        BG = Color3.fromRGB(12,5,5), Surface = Color3.fromRGB(22,9,9),
-        SurfaceHov = Color3.fromRGB(32,13,13), Border = Color3.fromRGB(160,25,25),
-        Accent = Color3.fromRGB(215,50,50), Accent2 = Color3.fromRGB(255,120,40),
-        Text = Color3.fromRGB(255,225,225), TextMuted = Color3.fromRGB(195,125,125),
-        TextDim = Color3.fromRGB(105,55,55), Success = Color3.fromRGB(60,200,100),
-        Error = Color3.fromRGB(255,55,55), Warning = Color3.fromRGB(255,175,40),
-    },
-    Gold = {
-        BG = Color3.fromRGB(10,8,2), Surface = Color3.fromRGB(20,16,5),
-        SurfaceHov = Color3.fromRGB(30,24,8), Border = Color3.fromRGB(160,128,25),
-        Accent = Color3.fromRGB(215,170,35), Accent2 = Color3.fromRGB(255,215,70),
-        Text = Color3.fromRGB(255,245,205), TextMuted = Color3.fromRGB(190,162,100),
-        TextDim = Color3.fromRGB(105,90,45), Success = Color3.fromRGB(60,200,100),
-        Error = Color3.fromRGB(255,70,75), Warning = Color3.fromRGB(255,175,40),
-    },
+	Dark = {
+		name    = "Dark",
+		bg      = Color3.fromRGB(13,13,20),
+		panel   = Color3.fromRGB(19,19,30),
+		card    = Color3.fromRGB(25,25,40),
+		cardHov = Color3.fromRGB(33,33,52),
+		border  = Color3.fromRGB(50,50,80),
+		acc1    = Color3.fromRGB(110,140,255),
+		acc2    = Color3.fromRGB(200, 90,255),
+		txt     = Color3.fromRGB(235,235,250),
+		txtMut  = Color3.fromRGB(140,140,175),
+		txtDim  = Color3.fromRGB(70, 70,105),
+		ok      = Color3.fromRGB( 55,210,140),
+		err     = Color3.fromRGB(255, 70, 75),
+		warn    = Color3.fromRGB(255,185, 45),
+	},
+	Neon = {
+		name    = "Neon",
+		bg      = Color3.fromRGB(  3,  3,  8),
+		panel   = Color3.fromRGB(  6,  6, 15),
+		card    = Color3.fromRGB(  9,  9, 22),
+		cardHov = Color3.fromRGB( 14, 14, 30),
+		border  = Color3.fromRGB(  0,220,155),
+		acc1    = Color3.fromRGB(  0,230,160),
+		acc2    = Color3.fromRGB(  0,185,255),
+		txt     = Color3.fromRGB(210,255,245),
+		txtMut  = Color3.fromRGB( 85,185,158),
+		txtDim  = Color3.fromRGB( 35, 90, 75),
+		ok      = Color3.fromRGB(  0,255,120),
+		err     = Color3.fromRGB(255, 50,100),
+		warn    = Color3.fromRGB(255,215,  0),
+	},
+	Crimson = {
+		name    = "Crimson",
+		bg      = Color3.fromRGB( 11,  3,  3),
+		panel   = Color3.fromRGB( 18,  6,  6),
+		card    = Color3.fromRGB( 25,  9,  9),
+		cardHov = Color3.fromRGB( 34, 13, 13),
+		border  = Color3.fromRGB(160, 25, 25),
+		acc1    = Color3.fromRGB(215, 48, 48),
+		acc2    = Color3.fromRGB(255,120, 38),
+		txt     = Color3.fromRGB(255,230,230),
+		txtMut  = Color3.fromRGB(195,125,125),
+		txtDim  = Color3.fromRGB(105, 55, 55),
+		ok      = Color3.fromRGB( 70,200,100),
+		err     = Color3.fromRGB(255, 60, 60),
+		warn    = Color3.fromRGB(255,180, 40),
+	},
+	Gold = {
+		name    = "Gold",
+		bg      = Color3.fromRGB(  8,  7,  1),
+		panel   = Color3.fromRGB( 15, 13,  3),
+		card    = Color3.fromRGB( 21, 18,  5),
+		cardHov = Color3.fromRGB( 30, 25,  9),
+		border  = Color3.fromRGB(165,130, 25),
+		acc1    = Color3.fromRGB(215,170, 35),
+		acc2    = Color3.fromRGB(255,215, 70),
+		txt     = Color3.fromRGB(255,245,210),
+		txtMut  = Color3.fromRGB(190,162,100),
+		txtDim  = Color3.fromRGB(105, 92, 45),
+		ok      = Color3.fromRGB( 70,200,100),
+		err     = Color3.fromRGB(255, 70, 75),
+		warn    = Color3.fromRGB(255,180, 40),
+	},
 }
 
-local CurrentTheme = Themes.Dark
-local ThemeListeners = {}
+local T           = Themes.Dark
+local thListeners = {}
 
-local function T(k) return CurrentTheme[k] end
-
-local function OnTheme(fn) table.insert(ThemeListeners, fn) end
-
-local function SetTheme(name)
-    if not Themes[name] then return end
-    CurrentTheme = Themes[name]
-    for _, fn in ipairs(ThemeListeners) do pcall(fn, CurrentTheme) end
+local function setTheme(name)
+	if not Themes[name] then return end
+	T = Themes[name]
+	for _, cb in ipairs(thListeners) do pcall(cb, T) end
 end
 
--- ════════════════════════════════════════════════════════════════
---  TWEEN HELPER
--- ════════════════════════════════════════════════════════════════
-local function Tw(obj, props, dur, style, dir)
-    TweenService:Create(obj,
-        TweenInfo.new(dur or 0.22,
-            style or Enum.EasingStyle.Quart,
-            dir   or Enum.EasingDirection.Out),
-        props):Play()
+local function onTheme(cb) table.insert(thListeners, cb) end
+
+-- ════════════════════════════════════════════════════════════════════════
+--  HUB DATA — loaded async during loading screen
+-- ════════════════════════════════════════════════════════════════════════
+local HubData = {}
+
+local function loadHubData()
+	HubData.MegaHack        = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/megapizda")
+	HubData.Hacks           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Hacks.lua")
+	HubData.Admins          = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/admin")
+	HubData.Animations      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/animation")
+	HubData.FE              = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/FE.lua")
+	HubData.StealBrainRoot  = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/StealBrainRoot.lua")
+	HubData.BladeBall       = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/BladeBall.lua")
+	HubData.RagdollEngine   = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/ragdoll")
+	HubData.NaturalDisaster = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/NaturalDisaster.lua")
+	HubData.MM2             = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/MM2.lua")
+	HubData.DuelsMVS        = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/DuelsMVS.lua")
+	HubData.Evade           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/evade")
+	HubData.IKEA3008        = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/3008.lua")
+	HubData.BloxFruit       = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/BloxFruit.lua")
+	HubData.Brookhaven      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/brookhaven")
+	HubData.AdoptMe         = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/adoptme")
+	HubData.TowerOfHell     = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/tower.lua")
+	HubData.Night           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Night.lua")
+	HubData.FORSAKEN        = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/FORSAKEN.lua")
+	HubData.GrowGarden      = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/GrowGarden.lua")
+	HubData.ViolenceDistrict= safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/ViolenceDistrict.lua")
+	HubData.Weird           = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Weird.lua")
+	HubData.Rivals          = safeLoad("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/Rivals.lua")
 end
 
--- ════════════════════════════════════════════════════════════════
---  SCREEN GUI ROOT
--- ════════════════════════════════════════════════════════════════
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name           = "MegaHackV2"
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.IgnoreGuiInset = true
-ScreenGui.ResetOnSpawn   = false
+-- ════════════════════════════════════════════════════════════════════════
+--  ROOT GUI
+-- ════════════════════════════════════════════════════════════════════════
+local root = Instance.new("ScreenGui")
+root.Name           = "MegaHackV2"
+root.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+root.IgnoreGuiInset = true
+root.ResetOnSpawn   = false
 
--- Try multiple hide methods
-local hidden = false
-if not hidden then pcall(function() ScreenGui.Parent = gethui() hidden = true end) end
-if not hidden then pcall(function() ScreenGui.Parent = get_hidden_gui() hidden = true end) end
-if not hidden then ScreenGui.Parent = CoreGui end
+pcall(function()
+	if gethui then root.Parent = gethui()
+	elseif get_hidden_gui then root.Parent = get_hidden_gui()
+	else root.Parent = CG end
+end)
+if not root.Parent then root.Parent = CG end
 
--- ════════════════════════════════════════════════════════════════
---  NOTIFICATION SYSTEM
--- ════════════════════════════════════════════════════════════════
-local NotifCount = 0
+local uiScale       = Instance.new("UIScale")
+uiScale.Scale       = isMob and 0.78 or 1
+uiScale.Parent      = root
 
-local function Notify(title, msg, ntype, dur)
-    if NotifCount >= 4 then return end
-    NotifCount = NotifCount + 1
-    dur   = dur   or 3.5
-    ntype = ntype or "info"
-    local accent = ({
-        info = T("Accent"), success = T("Success"),
-        error = T("Error"), warning = T("Warning"),
-    })[ntype] or T("Accent")
-    local slot = NotifCount
+-- ════════════════════════════════════════════════════════════════════════
+--  NOTIFICATION STACK
+-- ════════════════════════════════════════════════════════════════════════
+local notifCount = 0
 
-    local card = Instance.new("Frame")
-    card.Name = "Notif"; card.Size = UDim2.new(0,280,0,58)
-    card.Position = UDim2.new(1,12,1,-(64*slot))
-    card.BackgroundColor3 = T("Surface"); card.BorderSizePixel = 0
-    card.ZIndex = 300; card.Parent = ScreenGui
-    do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,10); c.Parent = card end
-    do local s = Instance.new("UIStroke"); s.Color = accent; s.Thickness = 1; s.Transparency = 0.2; s.Parent = card end
+local function notify(title, body, ntype, dur)
+	if notifCount >= 6 then return end
+	notifCount += 1
+	dur   = dur  or 3.5
+	ntype = ntype or "info"
 
-    local strip = Instance.new("Frame")
-    strip.Size = UDim2.new(0,3,0.6,0); strip.Position = UDim2.new(0,6,0.2,0)
-    strip.BackgroundColor3 = accent; strip.BorderSizePixel = 0; strip.ZIndex = 301; strip.Parent = card
-    do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,2); c.Parent = strip end
+	local colorMap = { info=T.acc1, success=T.ok, error=T.err, warning=T.warn }
+	local acc  = colorMap[ntype] or T.acc1
+	local slot = notifCount
 
-    local tl = Instance.new("TextLabel")
-    tl.Text = title; tl.TextColor3 = T("Text"); tl.TextSize = 13; tl.Font = Enum.Font.GothamBold
-    tl.BackgroundTransparency = 1; tl.Size = UDim2.new(1,-22,0,20); tl.Position = UDim2.new(0,17,0,7)
-    tl.TextXAlignment = Enum.TextXAlignment.Left; tl.ZIndex = 301; tl.Parent = card
+	local card = Instance.new("Frame")
+	card.Size               = UDim2.new(0,280,0,58)
+	card.Position           = UDim2.new(1, 12, 1, -(65*slot))
+	card.BackgroundColor3   = T.card
+	card.BorderSizePixel    = 0
+	card.ZIndex             = 200
+	card.Parent             = root
+	local ncc = Instance.new("UICorner"); ncc.CornerRadius = UDim.new(0,10); ncc.Parent = card
+	local nsk = Instance.new("UIStroke"); nsk.Color = acc; nsk.Thickness = 1; nsk.Transparency = .2; nsk.Parent = card
 
-    local ml = Instance.new("TextLabel")
-    ml.Text = msg; ml.TextColor3 = T("TextMuted"); ml.TextSize = 11; ml.Font = Enum.Font.Gotham
-    ml.BackgroundTransparency = 1; ml.Size = UDim2.new(1,-22,0,24); ml.Position = UDim2.new(0,17,0,27)
-    ml.TextXAlignment = Enum.TextXAlignment.Left; ml.TextWrapped = true; ml.ZIndex = 301; ml.Parent = card
+	local bar = Instance.new("Frame")
+	bar.Size             = UDim2.new(0,3,.6,0)
+	bar.Position         = UDim2.new(0,6,.2,0)
+	bar.BackgroundColor3 = acc
+	bar.BorderSizePixel  = 0
+	bar.ZIndex           = 201
+	bar.Parent           = card
+	local bcc2 = Instance.new("UICorner"); bcc2.CornerRadius = UDim.new(0,2); bcc2.Parent = bar
 
-    local pb = Instance.new("Frame")
-    pb.Size = UDim2.new(1,-12,0,2); pb.Position = UDim2.new(0,6,1,-3)
-    pb.BackgroundColor3 = accent; pb.BorderSizePixel = 0; pb.ZIndex = 301; pb.Parent = card
-    do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,1); c.Parent = pb end
+	local ttl = Instance.new("TextLabel")
+	ttl.Size               = UDim2.new(1,-22,0,22)
+	ttl.Position           = UDim2.new(0,16,0,5)
+	ttl.BackgroundTransparency = 1
+	ttl.Text               = title
+	ttl.TextColor3         = T.txt
+	ttl.TextSize           = 13
+	ttl.Font               = Enum.Font.GothamBold
+	ttl.TextXAlignment     = Enum.TextXAlignment.Left
+	ttl.ZIndex             = 201
+	ttl.Parent             = card
 
-    Tw(card, {Position = UDim2.new(1,-290,1,-(64*slot))}, 0.38, Enum.EasingStyle.Back)
-    Tw(pb,   {Size = UDim2.new(0,0,0,2)}, dur, Enum.EasingStyle.Linear)
+	local msg = Instance.new("TextLabel")
+	msg.Size               = UDim2.new(1,-22,0,22)
+	msg.Position           = UDim2.new(0,16,0,28)
+	msg.BackgroundTransparency = 1
+	msg.Text               = body
+	msg.TextColor3         = T.txtMut
+	msg.TextSize           = 10
+	msg.Font               = Enum.Font.Gotham
+	msg.TextXAlignment     = Enum.TextXAlignment.Left
+	msg.TextWrapped        = true
+	msg.ZIndex             = 201
+	msg.Parent             = card
 
-    task.delay(dur, function()
-        Tw(card, {Position = UDim2.new(1,12,1,-(64*slot))}, 0.25)
-        task.wait(0.28)
-        pcall(function() card:Destroy() end)
-        NotifCount = math.max(0, NotifCount-1)
-    end)
+	local drain = Instance.new("Frame")
+	drain.Size             = UDim2.new(1,-14,0,2)
+	drain.Position         = UDim2.new(0,7,1,-3)
+	drain.BackgroundColor3 = acc
+	drain.BorderSizePixel  = 0
+	drain.ZIndex           = 201
+	drain.Parent           = card
+	local dcc2 = Instance.new("UICorner"); dcc2.CornerRadius = UDim.new(0,1); dcc2.Parent = drain
+
+	tw(card,  {Position = UDim2.new(1,-290, 1, -(65*slot))}, .4, Enum.EasingStyle.Back)
+	tw(drain, {Size = UDim2.new(0,0,0,2)}, dur, Enum.EasingStyle.Linear)
+
+	task.delay(dur, function()
+		tw(card, {Position = UDim2.new(1, 12, 1, -(65*slot))}, .28)
+		task.wait(.3)
+		if card and card.Parent then card:Destroy() end
+		notifCount = math.max(0, notifCount - 1)
+	end)
 end
 
--- ════════════════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════════════════════
 --  LOADING SCREEN
--- ════════════════════════════════════════════════════════════════
-local function ShowLoading(onDone)
-    local ov = Instance.new("Frame")
-    ov.Size = UDim2.new(1,0,1,0); ov.BackgroundColor3 = T("BG")
-    ov.BackgroundTransparency = 1; ov.BorderSizePixel = 0; ov.ZIndex = 500; ov.Parent = ScreenGui
+-- ════════════════════════════════════════════════════════════════════════
+local function showLoading(onDone)
+	local ov = Instance.new("Frame")
+	ov.Size             = UDim2.new(1,0,1,0)
+	ov.BackgroundColor3 = T.bg
+	ov.BorderSizePixel  = 0
+	ov.ZIndex           = 500
+	ov.Parent           = root
+	ov.BackgroundTransparency = 1
 
-    local ovg = Instance.new("UIGradient"); ovg.Rotation = 135; ovg.Parent = ov
-    local bgConn = RunService.Heartbeat:Connect(function()
-        if not (ovg and ovg.Parent) then return end
-        ovg.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, T("BG")),
-            ColorSequenceKeypoint.new(1, T("Surface"):Lerp(T("BG"),0.5)),
-        })
-        ovg.Offset = Vector2.new(math.sin(tick()*0.3)*0.06, 0)
-    end)
+	-- Slow background gradient animation
+	local ovG = Instance.new("UIGradient")
+	ovG.Rotation = 135
+	ovG.Parent   = ov
+	local ovConn = RS.Heartbeat:Connect(function()
+		if not ovG or not ovG.Parent then return end
+		local t = tick()*.12
+		ovG.Color  = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, T.bg),
+			ColorSequenceKeypoint.new(1, T.panel),
+		})
+		ovG.Offset = Vector2.new(math.sin(t)*.06, math.cos(t*.8)*.06)
+	end)
 
-    -- Logo card
-    local card = Instance.new("Frame")
-    card.Size = UDim2.new(0,280,0,110); card.AnchorPoint = Vector2.new(0.5,0.5)
-    card.Position = UDim2.new(0.5,0,0.4,0); card.BackgroundColor3 = T("Surface")
-    card.BackgroundTransparency = 1; card.BorderSizePixel = 0; card.ZIndex = 501; card.Parent = ov
-    do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,14); c.Parent = card end
-    do local s = Instance.new("UIStroke"); s.Color = T("Accent"); s.Thickness = 1; s.Transparency = 0.3; s.Parent = card end
+	-- Logo card
+	local logo = Instance.new("Frame")
+	logo.Size               = UDim2.new(0,300,0,108)
+	logo.Position           = UDim2.new(.5,0,.38,0)
+	logo.AnchorPoint        = Vector2.new(.5,.5)
+	logo.BackgroundColor3   = T.card
+	logo.BackgroundTransparency = 1
+	logo.BorderSizePixel    = 0
+	logo.ZIndex             = 501
+	logo.Parent             = ov
+	local lcc = Instance.new("UICorner"); lcc.CornerRadius = UDim.new(0,16); lcc.Parent = logo
+	local lsk = Instance.new("UIStroke"); lsk.Color = T.acc1; lsk.Thickness = 1; lsk.Transparency = .3; lsk.Parent = logo
 
-    -- Shimmer on card
-    local cg = Instance.new("UIGradient"); cg.Rotation = 45; cg.Parent = card
-    local shimConn = RunService.Heartbeat:Connect(function()
-        if not (cg and cg.Parent) then return end
-        local p = (tick()*0.6) % 1
-        local lo = math.clamp(p, 0.01, 0.88)
-        local hi = math.clamp(p+0.12, 0.12, 0.99)
-        cg.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, T("Surface")),
-            ColorSequenceKeypoint.new(lo, T("Surface")),
-            ColorSequenceKeypoint.new(math.clamp((lo+hi)/2,0.01,0.99), T("Surface"):Lerp(Color3.new(1,1,1),0.06)),
-            ColorSequenceKeypoint.new(hi, T("Surface")),
-            ColorSequenceKeypoint.new(1, T("Surface")),
-        })
-    end)
+	-- Shimmer on card
+	local lgG = Instance.new("UIGradient"); lgG.Rotation = 135; lgG.Parent = logo
+	local lgConn = RS.Heartbeat:Connect(function()
+		if not lgG or not lgG.Parent then return end
+		local p = math.abs(math.sin(tick()*.5*math.pi)) * .8 + .1
+		lgG.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0,  T.card),
+			ColorSequenceKeypoint.new(math.clamp(p-.08,.02,.88), T.card),
+			ColorSequenceKeypoint.new(math.clamp(p,   .05,.95), T.cardHov),
+			ColorSequenceKeypoint.new(math.clamp(p+.08,.12,.98), T.card),
+			ColorSequenceKeypoint.new(1,  T.card),
+		})
+	end)
 
-    -- Title
-    local titleLbl = Instance.new("TextLabel")
-    titleLbl.Text = "MEGAHACK"; titleLbl.Font = Enum.Font.GothamBlack; titleLbl.TextSize = 38
-    titleLbl.BackgroundTransparency = 1; titleLbl.TextColor3 = T("Text"); titleLbl.TextTransparency = 1
-    titleLbl.Size = UDim2.new(1,-20,0,52); titleLbl.Position = UDim2.new(0,10,0,10)
-    titleLbl.TextXAlignment = Enum.TextXAlignment.Center; titleLbl.ZIndex = 502; titleLbl.Parent = card
-    do
-        local g = Instance.new("UIGradient"); g.Rotation = 0
-        g.Color = ColorSequence.new({ColorSequenceKeypoint.new(0,T("Accent")),ColorSequenceKeypoint.new(1,T("Accent2"))})
-        g.Parent = titleLbl
-    end
+	-- Logo title
+	local ltxt = Instance.new("TextLabel")
+	ltxt.Size               = UDim2.new(1,-20,0,54)
+	ltxt.Position           = UDim2.new(0,10,0,10)
+	ltxt.BackgroundTransparency = 1
+	ltxt.Text               = "MEGAHACK"
+	ltxt.TextColor3         = T.txt
+	ltxt.TextSize           = 38
+	ltxt.Font               = Enum.Font.GothamBlack
+	ltxt.TextXAlignment     = Enum.TextXAlignment.Center
+	ltxt.TextTransparency   = 1
+	ltxt.ZIndex             = 502
+	ltxt.Parent             = logo
+	local ltG = Instance.new("UIGradient"); ltG.Rotation = 0
+	ltG.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, T.acc1),
+		ColorSequenceKeypoint.new(1, T.acc2),
+	})
+	ltG.Parent = ltxt
+	local ltConn = RS.Heartbeat:Connect(function()
+		if not ltG or not ltG.Parent then return end
+		ltG.Offset = Vector2.new(math.sin(tick()*.65)*.3, 0)
+	end)
 
-    local subLbl = Instance.new("TextLabel")
-    subLbl.Text = "V 2.0  ·  FULLY REWRITTEN"; subLbl.Font = Enum.Font.GothamMedium; subLbl.TextSize = 11
-    subLbl.BackgroundTransparency = 1; subLbl.TextColor3 = T("TextMuted"); subLbl.TextTransparency = 1
-    subLbl.Size = UDim2.new(1,-20,0,20); subLbl.Position = UDim2.new(0,10,0,64)
-    subLbl.TextXAlignment = Enum.TextXAlignment.Center; subLbl.ZIndex = 502; subLbl.Parent = card
+	local lsub = Instance.new("TextLabel")
+	lsub.Size               = UDim2.new(1,-20,0,20)
+	lsub.Position           = UDim2.new(0,10,0,66)
+	lsub.BackgroundTransparency = 1
+	lsub.Text               = "V 2.0  ·  ULTRA EDITION"
+	lsub.TextColor3         = T.txtMut
+	lsub.TextSize           = 11
+	lsub.Font               = Enum.Font.GothamMedium
+	lsub.TextXAlignment     = Enum.TextXAlignment.Center
+	lsub.TextTransparency   = 1
+	lsub.ZIndex             = 502
+	lsub.Parent             = logo
 
-    local byLbl = Instance.new("TextLabel")
-    byLbl.Text = "by shaypish"; byLbl.Font = Enum.Font.Gotham; byLbl.TextSize = 10
-    byLbl.BackgroundTransparency = 1; byLbl.TextColor3 = T("Accent"); byLbl.TextTransparency = 1
-    byLbl.Size = UDim2.new(1,-20,0,16); byLbl.Position = UDim2.new(0,10,0,86)
-    byLbl.TextXAlignment = Enum.TextXAlignment.Center; byLbl.ZIndex = 502; byLbl.Parent = card
+	-- Progress bar track
+	local track = Instance.new("Frame")
+	track.Size             = UDim2.new(0,310,0,5)
+	track.Position         = UDim2.new(.5,0,.60,0)
+	track.AnchorPoint      = Vector2.new(.5,.5)
+	track.BackgroundColor3 = T.card
+	track.BorderSizePixel  = 0
+	track.ZIndex           = 501
+	track.Parent           = ov
+	local tcc = Instance.new("UICorner"); tcc.CornerRadius = UDim.new(0,3); tcc.Parent = track
+	local tsk = Instance.new("UIStroke"); tsk.Color = T.border; tsk.Thickness = 1; tsk.Transparency = .4; tsk.Parent = track
 
-    -- Progress bar bg
-    local barBg = Instance.new("Frame")
-    barBg.Size = UDim2.new(0,300,0,5); barBg.AnchorPoint = Vector2.new(0.5,0.5)
-    barBg.Position = UDim2.new(0.5,0,0.64,0); barBg.BackgroundColor3 = T("Surface")
-    barBg.BorderSizePixel = 0; barBg.ZIndex = 501; barBg.Parent = ov
-    do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,3); c.Parent = barBg end
-    do local s = Instance.new("UIStroke"); s.Color = T("Border"); s.Thickness = 1; s.Transparency = 0.4; s.Parent = barBg end
+	local fill = Instance.new("Frame")
+	fill.Size             = UDim2.new(0,0,1,0)
+	fill.BackgroundColor3 = T.acc1
+	fill.BorderSizePixel  = 0
+	fill.ZIndex           = 502
+	fill.Parent           = track
+	local fcc = Instance.new("UICorner"); fcc.CornerRadius = UDim.new(0,3); fcc.Parent = fill
+	local fillG = Instance.new("UIGradient"); fillG.Rotation = 0; fillG.Parent = fill
+	local fgConn = RS.Heartbeat:Connect(function()
+		if not fillG or not fillG.Parent then return end
+		local p = math.abs(math.sin(tick()*2.5*math.pi))*.8+.1
+		fillG.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, T.acc1),
+			ColorSequenceKeypoint.new(math.clamp(p-.07,.02,.88), T.acc1),
+			ColorSequenceKeypoint.new(math.clamp(p,   .05,.95), T.acc2),
+			ColorSequenceKeypoint.new(math.clamp(p+.07,.12,.98), T.acc1),
+			ColorSequenceKeypoint.new(1, T.acc1),
+		})
+	end)
 
-    local fill = Instance.new("Frame")
-    fill.Size = UDim2.new(0,0,1,0); fill.BackgroundColor3 = T("Accent")
-    fill.BorderSizePixel = 0; fill.ZIndex = 502; fill.Parent = barBg
-    do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,3); c.Parent = fill end
-    do
-        local fg = Instance.new("UIGradient"); fg.Rotation = 0
-        fg.Color = ColorSequence.new({ColorSequenceKeypoint.new(0,T("Accent")),ColorSequenceKeypoint.new(1,T("Accent2"))})
-        fg.Parent = fill
-        RunService.Heartbeat:Connect(function()
-            if fg and fg.Parent then fg.Offset = Vector2.new(math.sin(tick()*1.6)*0.3,0) end
-        end)
-    end
+	-- Status label
+	local stat = Instance.new("TextLabel")
+	stat.Size               = UDim2.new(0,310,0,20)
+	stat.Position           = UDim2.new(.5,0,.66,0)
+	stat.AnchorPoint        = Vector2.new(.5,.5)
+	stat.BackgroundTransparency = 1
+	stat.Text               = "Starting..."
+	stat.TextColor3         = T.txtMut
+	stat.TextSize           = 11
+	stat.Font               = Enum.Font.Gotham
+	stat.TextXAlignment     = Enum.TextXAlignment.Center
+	stat.ZIndex             = 501
+	stat.Parent             = ov
 
-    -- Status text
-    local statusLbl = Instance.new("TextLabel")
-    statusLbl.Text = "Loading..."; statusLbl.Font = Enum.Font.Gotham; statusLbl.TextSize = 11
-    statusLbl.BackgroundTransparency = 1; statusLbl.TextColor3 = T("TextMuted"); statusLbl.TextTransparency = 1
-    statusLbl.Size = UDim2.new(0,300,0,18); statusLbl.AnchorPoint = Vector2.new(0.5,0.5)
-    statusLbl.Position = UDim2.new(0.5,0,0.70,0); statusLbl.TextXAlignment = Enum.TextXAlignment.Center
-    statusLbl.ZIndex = 501; statusLbl.Parent = ov
+	-- Bouncing dots
+	local dotsF = Instance.new("Frame")
+	dotsF.Size               = UDim2.new(0,50,0,10)
+	dotsF.Position           = UDim2.new(.5,0,.74,0)
+	dotsF.AnchorPoint        = Vector2.new(.5,.5)
+	dotsF.BackgroundTransparency = 1
+	dotsF.ZIndex             = 501
+	dotsF.Parent             = ov
+	local dLL = Instance.new("UIListLayout")
+	dLL.FillDirection        = Enum.FillDirection.Horizontal
+	dLL.Padding              = UDim.new(0,8)
+	dLL.HorizontalAlignment  = Enum.HorizontalAlignment.Center
+	dLL.Parent               = dotsF
+	for i = 1, 3 do
+		local dot = Instance.new("Frame")
+		dot.Size             = UDim2.new(0,8,0,8)
+		dot.BackgroundColor3 = T.acc1
+		dot.BackgroundTransparency = .8
+		dot.BorderSizePixel  = 0
+		dot.ZIndex           = 502
+		dot.Parent           = dotsF
+		local dc = Instance.new("UICorner"); dc.CornerRadius = UDim.new(1,0); dc.Parent = dot
+		task.spawn(function()
+			while dot and dot.Parent do
+				task.wait(.38*(i-1))
+				if not (dot and dot.Parent) then break end
+				tw(dot, {BackgroundTransparency=0}, .2)
+				task.wait(.2)
+				if not (dot and dot.Parent) then break end
+				tw(dot, {BackgroundTransparency=.8}, .2)
+				task.wait(.58)
+			end
+		end)
+	end
 
-    -- Fade in
-    Tw(ov,       {BackgroundTransparency = 0}, 0.4)
-    task.wait(0.25)
-    Tw(card,     {BackgroundTransparency = 0, Size = UDim2.new(0,280,0,110)}, 0.5, Enum.EasingStyle.Back)
-    task.wait(0.2)
-    Tw(titleLbl, {TextTransparency = 0}, 0.4)
-    task.wait(0.1)
-    Tw(subLbl,   {TextTransparency = 0}, 0.3)
-    Tw(byLbl,    {TextTransparency = 0}, 0.3)
-    task.wait(0.1)
-    Tw(statusLbl,{TextTransparency = 0}, 0.3)
+	-- Animate in
+	tw(ov,   {BackgroundTransparency=0}, .45)
+	task.wait(.28)
+	tw(logo, {BackgroundTransparency=0}, .45, Enum.EasingStyle.Back)
+	task.wait(.18)
+	tw(ltxt, {TextTransparency=0}, .38)
+	task.wait(.1)
+	tw(lsub, {TextTransparency=0}, .28)
 
-    -- Steps
-    local steps = {
-        {0.15,"Connecting services..."},
-        {0.30,"Fetching script data..."},
-        {0.50,"Building interface..."},
-        {0.68,"Applying theme..."},
-        {0.85,"Registering categories..."},
-        {1.00,"All systems ready!"},
-    }
-    for _, s in ipairs(steps) do
-        task.wait(0.22)
-        Tw(fill, {Size = UDim2.new(s[1],0,1,0)}, 0.3, Enum.EasingStyle.Quart)
-        statusLbl.Text = s[2]
-    end
+	-- Progress steps — actual HubData load happens at step 3
+	local steps = {
+		{.10, "Initializing..."},
+		{.22, "Loading core modules..."},
+		{.38, "Fetching scripts (batch 1)..."},  -- HubData starts loading here
+		{.55, "Fetching scripts (batch 2)..."},
+		{.68, "Fetching game scripts..."},
+		{.80, "Building UI..."},
+		{.92, "Applying theme..."},
+		{1.0,  "Ready!"},
+	}
 
-    task.wait(0.5)
-    bgConn:Disconnect()
-    shimConn:Disconnect()
-    Tw(ov, {Position = UDim2.new(0,0,-1.02,0)}, 0.55, Enum.EasingStyle.Quart)
-    task.wait(0.6)
-    pcall(function() ov:Destroy() end)
-    if onDone then onDone() end
+	local dataLoaded = false
+	for i, step in ipairs(steps) do
+		if i == 3 and not dataLoaded then
+			dataLoaded = true
+			task.spawn(loadHubData)
+		end
+		task.wait(.28)
+		tw(fill, {Size=UDim2.new(step[1],0,1,0)}, .32, Enum.EasingStyle.Quart)
+		if stat and stat.Parent then stat.Text = step[2] end
+	end
+
+	task.wait(.5)
+
+	-- Cleanup connections
+	ovConn:Disconnect()
+	lgConn:Disconnect()
+	ltConn:Disconnect()
+	fgConn:Disconnect()
+
+	-- Slide-up exit
+	tw(ov, {Position=UDim2.new(0,0,-1,0)}, .55, Enum.EasingStyle.Quart)
+	task.wait(.6)
+	if ov and ov.Parent then ov:Destroy() end
+
+	if onDone then onDone() end
 end
 
--- ════════════════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════════════════════
 --  WINDOW DIMENSIONS
--- ════════════════════════════════════════════════════════════════
-local WIN_W  = IsMobile and 360 or 520
-local WIN_H  = IsMobile and 440 or 375
-local SIDE_W = IsMobile and 108 or 130
-local HEAD_H = 42
-local SRCH_H = 33
+-- ════════════════════════════════════════════════════════════════════════
+local WW      = isMob and 360 or 520
+local WH      = isMob and 430 or 365
+local SIDE_W  = isMob and 100 or 128
+local HEAD_H  = 42
+local SRCH_H  = 34
 
--- ════════════════════════════════════════════════════════════════
---  ROOT WINDOW
--- ════════════════════════════════════════════════════════════════
-local Win = Instance.new("Frame")
-Win.Name = "MegaHackWin"; Win.Size = UDim2.new(0,WIN_W,0,WIN_H)
-Win.Position = UDim2.new(0.5,-(WIN_W/2),0.5,-(WIN_H/2))
-Win.BackgroundColor3 = T("BG"); Win.BorderSizePixel = 0
-Win.ZIndex = 10; Win.Visible = false; Win.Parent = ScreenGui
-local winCorner = Instance.new("UICorner"); winCorner.CornerRadius = UDim.new(0,12); winCorner.Parent = Win
-local winStroke = Instance.new("UIStroke"); winStroke.Color = T("Border"); winStroke.Thickness = 1
-winStroke.Transparency = 0.2; winStroke.Parent = Win
--- Subtle animated BG drift
-local winBG = Instance.new("UIGradient"); winBG.Rotation = 135; winBG.Parent = Win
-RunService.Heartbeat:Connect(function()
-    if not (winBG and winBG.Parent) then return end
-    winBG.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, T("BG")),
-        ColorSequenceKeypoint.new(1, T("Surface"):Lerp(T("BG"),0.4)),
-    })
-    winBG.Offset = Vector2.new(math.sin(tick()*0.07)*0.025, 0)
+-- ════════════════════════════════════════════════════════════════════════
+--  MAIN WINDOW
+-- ════════════════════════════════════════════════════════════════════════
+local win = Instance.new("Frame")
+win.Name               = "Window"
+win.Size               = UDim2.new(0,WW,0,WH)
+win.Position           = UDim2.new(.5,0,.5,0)
+win.AnchorPoint        = Vector2.new(.5,.5)
+win.BackgroundColor3   = T.bg
+win.BorderSizePixel    = 0
+win.ZIndex             = 10
+win.Visible            = false
+win.Parent             = root
+local wCC = Instance.new("UICorner"); wCC.CornerRadius = UDim.new(0,13); wCC.Parent = win
+local wSK = Instance.new("UIStroke"); wSK.Color = T.border; wSK.Thickness = 1; wSK.Transparency = .2; wSK.Parent = win
+
+-- Slow animated BG gradient
+local winBgG = Instance.new("UIGradient")
+winBgG.Rotation = 135
+winBgG.Parent   = win
+RS.Heartbeat:Connect(function()
+	if not winBgG or not winBgG.Parent then return end
+	local t = tick()*.1
+	winBgG.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, T.bg),
+		ColorSequenceKeypoint.new(.65, T.panel),
+		ColorSequenceKeypoint.new(1, T.card),
+	})
+	winBgG.Offset = Vector2.new(math.sin(t)*.04, math.cos(t*.7)*.04)
 end)
 
--- ════════════════════════════════════════════════════════════════
---  HEADER
--- ════════════════════════════════════════════════════════════════
-local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1,0,0,HEAD_H); Header.BackgroundColor3 = T("Surface")
-Header.BorderSizePixel = 0; Header.ZIndex = 11; Header.Parent = Win
-local hCorner = Instance.new("UICorner"); hCorner.CornerRadius = UDim.new(0,12); hCorner.Parent = Header
--- Cover bottom rounded area
+-- ─── Header ───────────────────────────────────────────────────────────
+local head = Instance.new("Frame")
+head.Name             = "Header"
+head.Size             = UDim2.new(1,0,0,HEAD_H)
+head.BackgroundColor3 = T.panel
+head.BorderSizePixel  = 0
+head.ZIndex           = 11
+head.Parent           = win
+local hCC = Instance.new("UICorner"); hCC.CornerRadius = UDim.new(0,13); hCC.Parent = head
+-- Fill bottom corners of header
 local hFix = Instance.new("Frame")
-hFix.Size = UDim2.new(1,0,0,12); hFix.Position = UDim2.new(0,0,1,-12)
-hFix.BackgroundColor3 = T("Surface"); hFix.BorderSizePixel = 0; hFix.ZIndex = 11; hFix.Parent = Header
-local hStroke = Instance.new("UIStroke"); hStroke.Color = T("Border"); hStroke.Thickness = 1
-hStroke.Transparency = 0.45; hStroke.Parent = Header
--- Accent bottom line with animated gradient
+hFix.Size             = UDim2.new(1,0,0,13)
+hFix.Position         = UDim2.new(0,0,1,-13)
+hFix.BackgroundColor3 = T.panel
+hFix.BorderSizePixel  = 0
+hFix.ZIndex           = 11
+hFix.Parent           = head
+
+-- Animated accent line under header
 local hLine = Instance.new("Frame")
-hLine.Size = UDim2.new(1,0,0,2); hLine.Position = UDim2.new(0,0,1,-2)
-hLine.BackgroundColor3 = T("Accent"); hLine.BorderSizePixel = 0; hLine.ZIndex = 13; hLine.Parent = Header
-local hLineG = Instance.new("UIGradient"); hLineG.Rotation = 0
-hLineG.Color = ColorSequence.new({ColorSequenceKeypoint.new(0,T("Accent")),ColorSequenceKeypoint.new(1,T("Accent2"))})
-hLineG.Parent = hLine
-RunService.Heartbeat:Connect(function()
-    if hLineG and hLineG.Parent then hLineG.Offset = Vector2.new(math.sin(tick()*0.85)*0.38,0) end
+hLine.Size             = UDim2.new(1,0,0,1)
+hLine.Position         = UDim2.new(0,0,1,-1)
+hLine.BackgroundColor3 = T.acc1
+hLine.BorderSizePixel  = 0
+hLine.ZIndex           = 12
+hLine.Parent           = head
+local hlG = Instance.new("UIGradient"); hlG.Rotation = 0; hlG.Parent = hLine
+RS.Heartbeat:Connect(function()
+	if not hlG or not hlG.Parent then return end
+	hlG.Color  = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, T.acc1),
+		ColorSequenceKeypoint.new(1, T.acc2),
+	})
+	hlG.Offset = Vector2.new(math.sin(tick()*1.1)*.4, 0)
 end)
 
--- Icon
-local HIcon = Instance.new("ImageLabel")
-HIcon.Size = UDim2.new(0,22,0,22); HIcon.Position = UDim2.new(0,10,0.5,-11)
-HIcon.BackgroundTransparency = 1; HIcon.Image = "rbxassetid://7072717762"
-HIcon.ZIndex = 13; HIcon.Parent = Header
+-- Header icon
+local hIco = Instance.new("ImageLabel")
+hIco.Size               = UDim2.new(0,22,0,22)
+hIco.Position           = UDim2.new(0,9,.5,-11)
+hIco.BackgroundTransparency = 1
+hIco.Image              = "rbxassetid://7072717762"
+hIco.ZIndex             = 13
+hIco.Parent             = head
 
 -- Title
-local HTitle = Instance.new("TextLabel")
-HTitle.Text = "MEGAHACK"; HTitle.Font = Enum.Font.GothamBlack; HTitle.TextSize = 16
-HTitle.BackgroundTransparency = 1; HTitle.TextColor3 = T("Text")
-HTitle.Size = UDim2.new(0,120,1,0); HTitle.Position = UDim2.new(0,38,0,0)
-HTitle.TextXAlignment = Enum.TextXAlignment.Left; HTitle.ZIndex = 13; HTitle.Parent = Header
-local hTitleG = Instance.new("UIGradient"); hTitleG.Rotation = 0
-hTitleG.Color = ColorSequence.new({ColorSequenceKeypoint.new(0,T("Accent")),ColorSequenceKeypoint.new(1,T("Accent2"))})
-hTitleG.Parent = HTitle
+local hTit = Instance.new("TextLabel")
+hTit.Size               = UDim2.new(0,140,1,0)
+hTit.Position           = UDim2.new(0,36,0,0)
+hTit.BackgroundTransparency = 1
+hTit.Text               = "MEGAHACK"
+hTit.TextColor3         = T.txt
+hTit.TextSize           = 16
+hTit.Font               = Enum.Font.GothamBlack
+hTit.TextXAlignment     = Enum.TextXAlignment.Left
+hTit.ZIndex             = 13
+hTit.Parent             = head
+local htG = Instance.new("UIGradient"); htG.Rotation = 0
+htG.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, T.acc1),
+	ColorSequenceKeypoint.new(1, T.acc2),
+})
+htG.Parent = hTit
+RS.Heartbeat:Connect(function()
+	if not htG or not htG.Parent then return end
+	htG.Offset = Vector2.new(math.sin(tick()*.6)*.3, 0)
+end)
 
 -- Version badge
-local VBadge = Instance.new("Frame")
-VBadge.Size = UDim2.new(0,36,0,16); VBadge.Position = UDim2.new(0,163,0.5,-8)
-VBadge.BackgroundColor3 = T("BG"); VBadge.BorderSizePixel = 0; VBadge.ZIndex = 13; VBadge.Parent = Header
-do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,8); c.Parent = VBadge end
-local vbStroke = Instance.new("UIStroke"); vbStroke.Color = T("Accent"); vbStroke.Thickness = 1
-vbStroke.Transparency = 0.35; vbStroke.Parent = VBadge
-local VBL = Instance.new("TextLabel")
-VBL.Text = "v2.0"; VBL.Font = Enum.Font.GothamBold; VBL.TextSize = 9
-VBL.BackgroundTransparency = 1; VBL.TextColor3 = T("Accent")
-VBL.Size = UDim2.new(1,0,1,0); VBL.TextXAlignment = Enum.TextXAlignment.Center
-VBL.ZIndex = 14; VBL.Parent = VBadge
+local vBadge = Instance.new("Frame")
+vBadge.Size             = UDim2.new(0,34,0,16)
+vBadge.Position         = UDim2.new(0,178,.5,-8)
+vBadge.BackgroundColor3 = T.card
+vBadge.BorderSizePixel  = 0
+vBadge.ZIndex           = 13
+vBadge.Parent           = head
+local vbCC = Instance.new("UICorner"); vbCC.CornerRadius = UDim.new(0,8); vbCC.Parent = vBadge
+local vbSK = Instance.new("UIStroke"); vbSK.Color = T.acc1; vbSK.Thickness = 1; vbSK.Transparency = .4; vbSK.Parent = vBadge
+local vbLbl = Instance.new("TextLabel")
+vbLbl.Size               = UDim2.new(1,0,1,0)
+vbLbl.BackgroundTransparency = 1
+vbLbl.Text               = "v2.0"
+vbLbl.TextColor3         = T.acc1
+vbLbl.TextSize           = 9
+vbLbl.Font               = Enum.Font.GothamBold
+vbLbl.TextXAlignment     = Enum.TextXAlignment.Center
+vbLbl.ZIndex             = 14
+vbLbl.Parent             = vBadge
 
--- Minimize button
-local MinBtn = Instance.new("TextButton")
-MinBtn.Size = UDim2.new(0,20,0,20); MinBtn.Position = UDim2.new(1,-48,0.5,-10)
-MinBtn.BackgroundColor3 = T("Surface"); MinBtn.BackgroundTransparency = 0.3
-MinBtn.BorderSizePixel = 0; MinBtn.Text = "─"; MinBtn.TextColor3 = T("TextMuted")
-MinBtn.TextSize = 10; MinBtn.Font = Enum.Font.GothamBold; MinBtn.ZIndex = 13; MinBtn.Parent = Header
-do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,5); c.Parent = MinBtn end
+-- Minimize
+local minBtn = Instance.new("TextButton")
+minBtn.Size               = UDim2.new(0,20,0,20)
+minBtn.Position           = UDim2.new(1,-46,.5,-10)
+minBtn.BackgroundColor3   = T.card
+minBtn.BackgroundTransparency = .3
+minBtn.BorderSizePixel    = 0
+minBtn.Text               = "─"
+minBtn.TextColor3         = T.txtMut
+minBtn.TextSize           = 10
+minBtn.Font               = Enum.Font.GothamBold
+minBtn.ZIndex             = 13
+minBtn.Parent             = head
+local mnCC = Instance.new("UICorner"); mnCC.CornerRadius = UDim.new(0,5); mnCC.Parent = minBtn
 
--- Close button
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0,20,0,20); CloseBtn.Position = UDim2.new(1,-24,0.5,-10)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200,55,55); CloseBtn.BackgroundTransparency = 0.15
-CloseBtn.BorderSizePixel = 0; CloseBtn.Text = "×"; CloseBtn.TextColor3 = Color3.new(1,1,1)
-CloseBtn.TextSize = 16; CloseBtn.Font = Enum.Font.GothamBold; CloseBtn.ZIndex = 13; CloseBtn.Parent = Header
-do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,5); c.Parent = CloseBtn end
+-- Close
+local closeBtn = Instance.new("ImageButton")
+closeBtn.Size               = UDim2.new(0,20,0,20)
+closeBtn.Position           = UDim2.new(1,-23,.5,-10)
+closeBtn.BackgroundTransparency = 1
+closeBtn.Image              = "rbxassetid://14397748477"
+closeBtn.ImageColor3        = T.txtMut
+closeBtn.ZIndex             = 13
+closeBtn.Parent             = head
 
--- ════════════════════════════════════════════════════════════════
---  BODY  (below header)
--- ════════════════════════════════════════════════════════════════
-local Body = Instance.new("Frame")
-Body.Size = UDim2.new(1,0,1,-HEAD_H); Body.Position = UDim2.new(0,0,0,HEAD_H)
-Body.BackgroundTransparency = 1; Body.BorderSizePixel = 0; Body.ZIndex = 10; Body.Parent = Win
-
--- ════════════════════════════════════════════════════════════════
---  SIDEBAR
--- ════════════════════════════════════════════════════════════════
-local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0,SIDE_W,1,0); Sidebar.BackgroundColor3 = T("Surface")
-Sidebar.BackgroundTransparency = 0.15; Sidebar.BorderSizePixel = 0; Sidebar.ZIndex = 11; Sidebar.Parent = Body
-
+-- ─── Sidebar ──────────────────────────────────────────────────────────
+local side = Instance.new("Frame")
+side.Name             = "Sidebar"
+side.Size             = UDim2.new(0,SIDE_W,1,-HEAD_H)
+side.Position         = UDim2.new(0,0,0,HEAD_H)
+side.BackgroundColor3 = T.panel
+side.BorderSizePixel  = 0
+side.ZIndex           = 11
+side.Parent           = win
 -- Right border line
-local sbLine = Instance.new("Frame")
-sbLine.Size = UDim2.new(0,1,1,0); sbLine.Position = UDim2.new(1,-1,0,0)
-sbLine.BackgroundColor3 = T("Border"); sbLine.BorderSizePixel = 0
-sbLine.BackgroundTransparency = 0.4; sbLine.ZIndex = 12; sbLine.Parent = Sidebar
+local sideLine = Instance.new("Frame")
+sideLine.Size             = UDim2.new(0,1,1,0)
+sideLine.Position         = UDim2.new(1,-1,0,0)
+sideLine.BackgroundColor3 = T.border
+sideLine.BorderSizePixel  = 0
+sideLine.ZIndex           = 12
+sideLine.Parent           = side
 
--- Scroll frame inside sidebar
-local SideScroll = Instance.new("ScrollingFrame")
-SideScroll.Size = UDim2.new(1,-2,1,-2); SideScroll.Position = UDim2.new(0,1,0,1)
-SideScroll.BackgroundTransparency = 1; SideScroll.BorderSizePixel = 0
-SideScroll.ScrollBarThickness = 0; SideScroll.CanvasSize = UDim2.new(0,0,0,0)
-SideScroll.ZIndex = 12; SideScroll.Parent = Sidebar
-do
-    local p = Instance.new("UIPadding")
-    p.PaddingTop = UDim.new(0,5); p.PaddingBottom = UDim.new(0,5)
-    p.PaddingLeft = UDim.new(0,4); p.PaddingRight = UDim.new(0,4)
-    p.Parent = SideScroll
-end
-local SideList = Instance.new("UIListLayout")
-SideList.Padding = UDim.new(0,3); SideList.SortOrder = Enum.SortOrder.LayoutOrder
-SideList.Parent = SideScroll
-SideList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    SideScroll.CanvasSize = UDim2.new(0,0,0, SideList.AbsoluteContentSize.Y + 10)
+local sideScroll = Instance.new("ScrollingFrame")
+sideScroll.Size              = UDim2.new(1,-2,1,0)
+sideScroll.BackgroundTransparency = 1
+sideScroll.ScrollBarThickness = 0
+sideScroll.CanvasSize        = UDim2.new(0,0,0,0)
+sideScroll.ZIndex            = 12
+sideScroll.Parent            = side
+local ssPad = Instance.new("UIPadding")
+ssPad.PaddingTop   = UDim.new(0,4); ssPad.PaddingBottom = UDim.new(0,4)
+ssPad.PaddingLeft  = UDim.new(0,4); ssPad.PaddingRight  = UDim.new(0,4)
+ssPad.Parent       = sideScroll
+local ssLL = Instance.new("UIListLayout")
+ssLL.Padding       = UDim.new(0,3)
+ssLL.SortOrder     = Enum.SortOrder.LayoutOrder
+ssLL.Parent        = sideScroll
+ssLL:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	sideScroll.CanvasSize = UDim2.new(0,0,0, ssLL.AbsoluteContentSize.Y + 8)
 end)
 
--- ════════════════════════════════════════════════════════════════
---  RIGHT PANEL
--- ════════════════════════════════════════════════════════════════
-local RPanel = Instance.new("Frame")
-RPanel.Size = UDim2.new(1,-SIDE_W,1,0); RPanel.Position = UDim2.new(0,SIDE_W,0,0)
-RPanel.BackgroundTransparency = 1; RPanel.BorderSizePixel = 0; RPanel.ZIndex = 10; RPanel.Parent = Body
+-- ─── Content panel ────────────────────────────────────────────────────
+local content = Instance.new("Frame")
+content.Name             = "Content"
+content.Size             = UDim2.new(1,-SIDE_W,1,-HEAD_H)
+content.Position         = UDim2.new(0,SIDE_W,0,HEAD_H)
+content.BackgroundTransparency = 1
+content.ZIndex           = 10
+content.Parent           = win
 
--- Search bar frame
-local SBFrame = Instance.new("Frame")
-SBFrame.Size = UDim2.new(1,-12,0,SRCH_H); SBFrame.Position = UDim2.new(0,6,0,6)
-SBFrame.BackgroundColor3 = T("Surface"); SBFrame.BorderSizePixel = 0
-SBFrame.ZIndex = 11; SBFrame.Parent = RPanel
-do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,8); c.Parent = SBFrame end
-local sbfStroke = Instance.new("UIStroke"); sbfStroke.Color = T("Border"); sbfStroke.Thickness = 1
-sbfStroke.Transparency = 0.4; sbfStroke.Parent = SBFrame
+-- Search bar
+local srchFrame = Instance.new("Frame")
+srchFrame.Size             = UDim2.new(1,-12,0,SRCH_H)
+srchFrame.Position         = UDim2.new(0,6,0,6)
+srchFrame.BackgroundColor3 = T.card
+srchFrame.BorderSizePixel  = 0
+srchFrame.ZIndex           = 11
+srchFrame.Parent           = content
+local sfCC = Instance.new("UICorner"); sfCC.CornerRadius = UDim.new(0,9); sfCC.Parent = srchFrame
+local sfSK = Instance.new("UIStroke"); sfSK.Color = T.border; sfSK.Thickness = 1; sfSK.Transparency = .35; sfSK.Parent = srchFrame
 
-local SrchIcon = Instance.new("TextLabel")
-SrchIcon.Text = "🔍"; SrchIcon.TextSize = 13; SrchIcon.Font = Enum.Font.Gotham
-SrchIcon.BackgroundTransparency = 1; SrchIcon.TextColor3 = T("TextDim")
-SrchIcon.Size = UDim2.new(0,24,1,0); SrchIcon.Position = UDim2.new(0,5,0,0)
-SrchIcon.TextXAlignment = Enum.TextXAlignment.Center; SrchIcon.ZIndex = 12; SrchIcon.Parent = SBFrame
+local sIcon = Instance.new("ImageLabel")
+sIcon.Size               = UDim2.new(0,14,0,14)
+sIcon.Position           = UDim2.new(0,9,.5,-7)
+sIcon.BackgroundTransparency = 1
+sIcon.Image              = "rbxassetid://3926305904"
+sIcon.ImageRectOffset    = Vector2.new(964,324)
+sIcon.ImageRectSize      = Vector2.new(36,36)
+sIcon.ImageColor3        = T.txtDim
+sIcon.ZIndex             = 12
+sIcon.Parent             = srchFrame
 
-local SearchBox = Instance.new("TextBox")
-SearchBox.Size = UDim2.new(1,-34,1,-2); SearchBox.Position = UDim2.new(0,30,0,1)
-SearchBox.BackgroundTransparency = 1; SearchBox.Text = ""
-SearchBox.PlaceholderText = "Search all scripts..."; SearchBox.PlaceholderColor3 = T("TextDim")
-SearchBox.TextColor3 = T("Text"); SearchBox.TextSize = IsMobile and 11 or 12
-SearchBox.Font = Enum.Font.Gotham; SearchBox.ZIndex = 12; SearchBox.ClearTextOnFocus = false
-SearchBox.Parent = SBFrame
+local searchBox = Instance.new("TextBox")
+searchBox.Size             = UDim2.new(1,-32,1,0)
+searchBox.Position         = UDim2.new(0,27,0,0)
+searchBox.BackgroundTransparency = 1
+searchBox.TextColor3       = T.txt
+searchBox.TextSize         = isMob and 11 or 12
+searchBox.Font             = Enum.Font.Gotham
+searchBox.PlaceholderText  = "Search scripts..."
+searchBox.PlaceholderColor3= T.txtDim
+searchBox.Text             = ""
+searchBox.ClearTextOnFocus = false
+searchBox.ZIndex           = 12
+searchBox.Parent           = srchFrame
 
--- Script scroll frame
-local ScriptScroll = Instance.new("ScrollingFrame")
-ScriptScroll.Size = UDim2.new(1,-8,1,-(SRCH_H+16))
-ScriptScroll.Position = UDim2.new(0,4,0,SRCH_H+10)
-ScriptScroll.BackgroundTransparency = 1; ScriptScroll.BorderSizePixel = 0
-ScriptScroll.ScrollBarThickness = 3; ScriptScroll.ScrollBarImageColor3 = T("Border")
-ScriptScroll.CanvasSize = UDim2.new(0,0,0,0); ScriptScroll.ZIndex = 11; ScriptScroll.Parent = RPanel
-do
-    local p = Instance.new("UIPadding")
-    p.PaddingTop = UDim.new(0,3); p.PaddingBottom = UDim.new(0,6)
-    p.PaddingLeft = UDim.new(0,2); p.PaddingRight = UDim.new(0,2)
-    p.Parent = ScriptScroll
-end
-local ScriptList = Instance.new("UIListLayout")
-ScriptList.Padding = UDim.new(0,4); ScriptList.SortOrder = Enum.SortOrder.LayoutOrder
-ScriptList.Parent = ScriptScroll
-ScriptList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    ScriptScroll.CanvasSize = UDim2.new(0,0,0, ScriptList.AbsoluteContentSize.Y + 8)
+-- Script scroll
+local scScroll = Instance.new("ScrollingFrame")
+scScroll.Size              = UDim2.new(1,-8,1,-(SRCH_H+14))
+scScroll.Position          = UDim2.new(0,4,0,SRCH_H+8)
+scScroll.BackgroundTransparency = 1
+scScroll.ScrollBarThickness = 3
+scScroll.ScrollBarImageColor3 = T.border
+scScroll.CanvasSize        = UDim2.new(0,0,0,0)
+scScroll.ZIndex            = 11
+scScroll.Parent            = content
+local scPad = Instance.new("UIPadding")
+scPad.PaddingTop   = UDim.new(0,2); scPad.PaddingBottom = UDim.new(0,6)
+scPad.PaddingLeft  = UDim.new(0,2); scPad.PaddingRight  = UDim.new(0,2)
+scPad.Parent       = scScroll
+local scLL = Instance.new("UIListLayout")
+scLL.Padding    = UDim.new(0,4)
+scLL.SortOrder  = Enum.SortOrder.LayoutOrder
+scLL.Parent     = scScroll
+scLL:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	scScroll.CanvasSize = UDim2.new(0,0,0, scLL.AbsoluteContentSize.Y + 10)
 end)
 
--- ════════════════════════════════════════════════════════════════
---  REOPEN BUTTON
--- ════════════════════════════════════════════════════════════════
-local ReopenBtn = Instance.new("TextButton")
-ReopenBtn.Size = UDim2.new(0,44,0,44); ReopenBtn.Position = UDim2.new(0.5,-22,0.92,-22)
-ReopenBtn.BackgroundColor3 = T("Surface"); ReopenBtn.BackgroundTransparency = 0
-ReopenBtn.BorderSizePixel = 0; ReopenBtn.Text = "▶"; ReopenBtn.TextColor3 = T("Accent")
-ReopenBtn.TextSize = 16; ReopenBtn.Font = Enum.Font.GothamBold; ReopenBtn.ZIndex = 20
-ReopenBtn.Visible = false; ReopenBtn.Parent = ScreenGui
-do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,22); c.Parent = ReopenBtn end
-local rbStroke = Instance.new("UIStroke"); rbStroke.Color = T("Accent"); rbStroke.Thickness = 2
-rbStroke.Transparency = 0.2; rbStroke.Parent = ReopenBtn
-
+-- Reopen button
+local reBtn = Instance.new("ImageButton")
+reBtn.Size               = UDim2.new(0,44,0,44)
+reBtn.Position           = UDim2.new(.5,-22,.92,-22)
+reBtn.BackgroundColor3   = T.card
+reBtn.BackgroundTransparency = .1
+reBtn.Image              = "rbxassetid://7072717762"
+reBtn.Visible            = false
+reBtn.ZIndex             = 10
+reBtn.Parent             = root
+local rCC = Instance.new("UICorner"); rCC.CornerRadius = UDim.new(1,0); rCC.Parent = reBtn
+local rSK = Instance.new("UIStroke"); rSK.Color = T.acc1; rSK.Thickness = 2; rSK.Transparency = .2; rSK.Parent = reBtn
 task.spawn(function()
-    while ReopenBtn and ReopenBtn.Parent do
-        task.wait(1)
-        if ReopenBtn.Visible then
-            Tw(ReopenBtn, {BackgroundTransparency = 0.45}, 0.7, Enum.EasingStyle.Sine)
-            task.wait(0.7)
-            if ReopenBtn.Visible then
-                Tw(ReopenBtn, {BackgroundTransparency = 0}, 0.7, Enum.EasingStyle.Sine)
-            end
-        end
-    end
+	while true do
+		task.wait(.85)
+		if reBtn.Visible then
+			tw(reBtn, {BackgroundTransparency=.55}, .75, Enum.EasingStyle.Sine)
+			task.wait(.75)
+			tw(reBtn, {BackgroundTransparency=.1 }, .75, Enum.EasingStyle.Sine)
+		end
+	end
 end)
 
--- ════════════════════════════════════════════════════════════════
---  HELPERS: CLEAR / EMPTY STATE
--- ════════════════════════════════════════════════════════════════
-local function ClearScripts()
-    for _, c in ipairs(ScriptScroll:GetChildren()) do
-        if not c:IsA("UIListLayout") and not c:IsA("UIPadding") then c:Destroy() end
-    end
+-- ════════════════════════════════════════════════════════════════════════
+--  SIDEBAR BUTTON BUILDER
+-- ════════════════════════════════════════════════════════════════════════
+local activeSideBtn = nil
+local SBH = isMob and 35 or 29
+
+local function makeSideBtn(label, cb)
+	local btn = Instance.new("TextButton")
+	btn.Size               = UDim2.new(1,0,0,SBH)
+	btn.BackgroundColor3   = T.cardHov
+	btn.BackgroundTransparency = 1
+	btn.BorderSizePixel    = 0
+	btn.Text               = ""
+	btn.ZIndex             = 13
+	btn.Parent             = sideScroll
+	local sbCC = Instance.new("UICorner"); sbCC.CornerRadius = UDim.new(0,6); sbCC.Parent = btn
+
+	local actBar = Instance.new("Frame")
+	actBar.Size             = UDim2.new(0,3,.55,0)
+	actBar.Position         = UDim2.new(0,0,.225,0)
+	actBar.BackgroundColor3 = T.acc1
+	actBar.BorderSizePixel  = 0
+	actBar.Visible          = false
+	actBar.ZIndex           = 14
+	actBar.Parent           = btn
+	local abCC = Instance.new("UICorner"); abCC.CornerRadius = UDim.new(0,2); abCC.Parent = actBar
+
+	local lbl = Instance.new("TextLabel")
+	lbl.Size               = UDim2.new(1,-4,1,0)
+	lbl.Position           = UDim2.new(0,2,0,0)
+	lbl.BackgroundTransparency = 1
+	lbl.Text               = label
+	lbl.TextColor3         = T.txtMut
+	lbl.TextSize           = isMob and 10 or 10
+	lbl.Font               = Enum.Font.GothamMedium
+	lbl.TextXAlignment     = Enum.TextXAlignment.Center
+	lbl.TextWrapped        = true
+	lbl.ZIndex             = 14
+	lbl.Parent             = btn
+
+	local function activate()
+		actBar.Visible = true
+		tw(btn, {BackgroundTransparency=.58}, .15)
+		tw(lbl, {TextColor3=T.acc1}, .15)
+	end
+	local function deactivate()
+		actBar.Visible = false
+		tw(btn, {BackgroundTransparency=1}, .15)
+		tw(lbl, {TextColor3=T.txtMut}, .15)
+	end
+
+	btn.MouseEnter:Connect(function()
+		if activeSideBtn ~= btn then
+			tw(btn, {BackgroundTransparency=.82}, .1)
+			tw(lbl, {TextColor3=T.txt}, .1)
+		end
+	end)
+	btn.MouseLeave:Connect(function()
+		if activeSideBtn ~= btn then
+			tw(btn, {BackgroundTransparency=1}, .1)
+			tw(lbl, {TextColor3=T.txtMut}, .1)
+		end
+	end)
+
+	btn.MouseButton1Click:Connect(function()
+		if activeSideBtn and activeSideBtn ~= btn then
+			if activeSideBtn._deact then activeSideBtn._deact() end
+		end
+		activeSideBtn = btn
+		activate()
+		tw(btn, {Size=UDim2.new(.94,0,0,SBH-2)}, .1, Enum.EasingStyle.Back)
+		task.delay(.12, function()
+			if btn and btn.Parent then tw(btn, {Size=UDim2.new(1,0,0,SBH)}, .2, Enum.EasingStyle.Back) end
+		end)
+		searchBox.Text = ""
+		cb()
+	end)
+
+	btn._deact    = deactivate
+	btn._activate = activate
+	return btn
 end
 
-local function ShowEmpty(txt)
-    local f = Instance.new("Frame")
-    f.Size = UDim2.new(1,0,0,54); f.BackgroundTransparency = 1
-    f.BorderSizePixel = 0; f.ZIndex = 11; f.Parent = ScriptScroll
-    local l = Instance.new("TextLabel")
-    l.Text = txt or "No scripts found."; l.Font = Enum.Font.Gotham; l.TextSize = 12
-    l.BackgroundTransparency = 1; l.TextColor3 = T("TextDim"); l.TextWrapped = true
-    l.Size = UDim2.new(1,-16,1,0); l.Position = UDim2.new(0,8,0,0)
-    l.TextXAlignment = Enum.TextXAlignment.Center; l.ZIndex = 12; l.Parent = f
+-- ════════════════════════════════════════════════════════════════════════
+--  CONTENT UTILITIES
+-- ════════════════════════════════════════════════════════════════════════
+local function clearContent()
+	for _, c in ipairs(scScroll:GetChildren()) do
+		if not c:IsA("UIListLayout") and not c:IsA("UIPadding") then
+			c:Destroy()
+		end
+	end
 end
 
--- ════════════════════════════════════════════════════════════════
---  SCRIPT CARD
--- ════════════════════════════════════════════════════════════════
-local CARD_H = IsMobile and 42 or 36
-
-local function MakeScriptCard(name, fn, tag)
-    local card = Instance.new("Frame")
-    card.Size = UDim2.new(1,0,0,CARD_H); card.BackgroundColor3 = T("Surface")
-    card.BorderSizePixel = 0; card.ZIndex = 12; card.Parent = ScriptScroll
-    do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,7); c.Parent = card end
-    do local s = Instance.new("UIStroke"); s.Color = T("Border"); s.Thickness = 1; s.Transparency = 0.5; s.Parent = card end
-
-    local nl = Instance.new("TextLabel")
-    nl.Text = name; nl.Font = Enum.Font.GothamMedium; nl.TextSize = IsMobile and 11 or 12
-    nl.BackgroundTransparency = 1; nl.TextColor3 = T("Text")
-    nl.TextTruncate = Enum.TextTruncate.AtEnd
-    nl.Size = UDim2.new(1,-80,1,0); nl.Position = UDim2.new(0,10,0,0)
-    nl.TextXAlignment = Enum.TextXAlignment.Left; nl.ZIndex = 13; nl.Parent = card
-
-    if tag then
-        local tb = Instance.new("Frame")
-        tb.Size = UDim2.new(0,52,0,16); tb.Position = UDim2.new(1,-72,0.5,-8)
-        tb.BackgroundColor3 = T("BG"); tb.BorderSizePixel = 0; tb.ZIndex = 13; tb.Parent = card
-        do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,8); c.Parent = tb end
-        do local s = Instance.new("UIStroke"); s.Color = T("Accent2"); s.Thickness = 1; s.Transparency = 0.4; s.Parent = tb end
-        local tbl = Instance.new("TextLabel")
-        tbl.Text = tag:sub(1,7); tbl.Font = Enum.Font.GothamBold; tbl.TextSize = 9
-        tbl.BackgroundTransparency = 1; tbl.TextColor3 = T("Accent2")
-        tbl.Size = UDim2.new(1,0,1,0); tbl.TextXAlignment = Enum.TextXAlignment.Center
-        tbl.ZIndex = 14; tbl.Parent = tb
-    end
-
-    -- RUN button
-    local RW, RH = IsMobile and 44 or 38, IsMobile and 24 or 20
-    local runBtn = Instance.new("TextButton")
-    runBtn.Size = UDim2.new(0,RW,0,RH)
-    runBtn.Position = UDim2.new(1,-(RW+6),0.5,-(RH/2))
-    runBtn.BackgroundColor3 = T("Accent"); runBtn.BackgroundTransparency = 0.12
-    runBtn.BorderSizePixel = 0; runBtn.Text = "RUN"; runBtn.TextColor3 = Color3.new(1,1,1)
-    runBtn.TextSize = 10; runBtn.Font = Enum.Font.GothamBold; runBtn.ZIndex = 13; runBtn.Parent = card
-    do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,6); c.Parent = runBtn end
-    do
-        local g = Instance.new("UIGradient"); g.Rotation = 45
-        g.Color = ColorSequence.new({ColorSequenceKeypoint.new(0,T("Accent")),ColorSequenceKeypoint.new(1,T("Accent2"))})
-        g.Parent = runBtn
-    end
-
-    card.MouseEnter:Connect(function() Tw(card, {BackgroundColor3 = T("SurfaceHov")}, 0.12) end)
-    card.MouseLeave:Connect(function() Tw(card, {BackgroundColor3 = T("Surface")}, 0.12) end)
-    runBtn.MouseEnter:Connect(function() Tw(runBtn, {BackgroundTransparency = 0}, 0.1) end)
-    runBtn.MouseLeave:Connect(function() Tw(runBtn, {BackgroundTransparency = 0.12}, 0.1) end)
-
-    runBtn.MouseButton1Click:Connect(function()
-        if not fn then return end
-        local ok, err = pcall(fn)
-        if ok then
-            Notify("Executed", name, "success", 2.5)
-            Tw(card, {BackgroundColor3 = T("Success"):Lerp(T("Surface"),0.7)}, 0.1)
-            task.delay(0.2, function() Tw(card, {BackgroundColor3 = T("Surface")}, 0.4) end)
-        else
-            Notify("Error", tostring(err):sub(1,65), "error", 5)
-            Tw(card, {BackgroundColor3 = T("Error"):Lerp(T("Surface"),0.7)}, 0.1)
-            task.delay(0.2, function() Tw(card, {BackgroundColor3 = T("Surface")}, 0.4) end)
-        end
-    end)
-    return card
+local function emptyMsg(txt)
+	local f = Instance.new("Frame")
+	f.Size               = UDim2.new(1,0,0,60)
+	f.BackgroundTransparency = 1
+	f.ZIndex             = 11
+	f.Parent             = scScroll
+	local l = Instance.new("TextLabel")
+	l.Size               = UDim2.new(1,0,1,0)
+	l.BackgroundTransparency = 1
+	l.Text               = txt or "Nothing here."
+	l.TextColor3         = T.txtDim
+	l.TextSize           = 12
+	l.Font               = Enum.Font.Gotham
+	l.TextXAlignment     = Enum.TextXAlignment.Center
+	l.ZIndex             = 12
+	l.Parent             = f
 end
 
--- ════════════════════════════════════════════════════════════════
---  SIDEBAR BUTTON
--- ════════════════════════════════════════════════════════════════
-local ActiveSideBtn = nil
+-- Script card
+local SCH = isMob and 42 or 36
 
-local function MakeSideBtn(label, clickFn)
-    local BH = IsMobile and 36 or 30
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1,0,0,BH); btn.BackgroundColor3 = T("SurfaceHov")
-    btn.BackgroundTransparency = 1; btn.BorderSizePixel = 0
-    btn.Text = ""; btn.ZIndex = 13; btn.Parent = SideScroll
-    do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,6); c.Parent = btn end
+local function makeCard(name, callback, tag)
+	local card = Instance.new("Frame")
+	card.Size             = UDim2.new(1,0,0,SCH)
+	card.BackgroundColor3 = T.card
+	card.BorderSizePixel  = 0
+	card.ZIndex           = 11
+	card.Parent           = scScroll
+	local cCC = Instance.new("UICorner"); cCC.CornerRadius = UDim.new(0,8); cCC.Parent = card
+	local cSK = Instance.new("UIStroke"); cSK.Color = T.border; cSK.Thickness = 1; cSK.Transparency = .55; cSK.Parent = card
 
-    local aBar = Instance.new("Frame")
-    aBar.Size = UDim2.new(0,2,0.6,0); aBar.Position = UDim2.new(0,1,0.2,0)
-    aBar.BackgroundColor3 = T("Accent"); aBar.BorderSizePixel = 0; aBar.ZIndex = 14
-    aBar.Visible = false; aBar.Parent = btn
-    do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,1); c.Parent = aBar end
+	-- Name label
+	local namL = Instance.new("TextLabel")
+	namL.Size               = UDim2.new(1,-80,1,0)
+	namL.Position           = UDim2.new(0,10,0,0)
+	namL.BackgroundTransparency = 1
+	namL.Text               = name
+	namL.TextColor3         = T.txt
+	namL.TextSize           = isMob and 11 or 11
+	namL.Font               = Enum.Font.GothamMedium
+	namL.TextXAlignment     = Enum.TextXAlignment.Left
+	namL.TextTruncate       = Enum.TextTruncate.AtEnd
+	namL.ZIndex             = 12
+	namL.Parent             = card
 
-    local lbl = Instance.new("TextLabel")
-    lbl.Text = label; lbl.Font = Enum.Font.GothamMedium; lbl.TextSize = IsMobile and 10 or 11
-    lbl.BackgroundTransparency = 1; lbl.TextColor3 = T("TextMuted")
-    lbl.Size = UDim2.new(1,-6,1,0); lbl.Position = UDim2.new(0,6,0,0)
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.TextTruncate = Enum.TextTruncate.AtEnd; lbl.ZIndex = 14; lbl.Parent = btn
+	-- Tag badge (optional)
+	if tag then
+		local tf = Instance.new("Frame")
+		tf.Size             = UDim2.new(0,52,0,16)
+		tf.Position         = UDim2.new(1,-114,.5,-8)
+		tf.BackgroundColor3 = T.card
+		tf.BorderSizePixel  = 0
+		tf.ZIndex           = 12
+		tf.Parent           = card
+		local tCC = Instance.new("UICorner"); tCC.CornerRadius = UDim.new(0,8); tCC.Parent = tf
+		local tSK = Instance.new("UIStroke"); tSK.Color = T.acc2; tSK.Thickness = 1; tSK.Transparency = .4; tSK.Parent = tf
+		local tL  = Instance.new("TextLabel")
+		tL.Size               = UDim2.new(1,0,1,0)
+		tL.BackgroundTransparency = 1
+		tL.Text               = tag:sub(1,7)
+		tL.TextColor3         = T.acc2
+		tL.TextSize           = 9
+		tL.Font               = Enum.Font.GothamBold
+		tL.TextXAlignment     = Enum.TextXAlignment.Center
+		tL.ZIndex             = 13
+		tL.Parent             = tf
+	end
 
-    local function Activate()
-        aBar.Visible = true
-        Tw(btn, {BackgroundTransparency = 0.6}, 0.15)
-        Tw(lbl, {TextColor3 = T("Accent")}, 0.15)
-    end
-    local function Deactivate()
-        aBar.Visible = false
-        Tw(btn, {BackgroundTransparency = 1}, 0.15)
-        Tw(lbl, {TextColor3 = T("TextMuted")}, 0.15)
-    end
-    btn._activate   = Activate
-    btn._deactivate = Deactivate
+	-- RUN button
+	local RBW = isMob and 46 or 40
+	local RBH = isMob and 24 or 20
+	local runBtn = Instance.new("TextButton")
+	runBtn.Size               = UDim2.new(0,RBW,0,RBH)
+	runBtn.Position           = UDim2.new(1,-RBW-8,.5,-RBH/2)
+	runBtn.BackgroundColor3   = T.acc1
+	runBtn.BackgroundTransparency = .08
+	runBtn.BorderSizePixel    = 0
+	runBtn.Text               = "▶ RUN"
+	runBtn.TextColor3         = Color3.new(1,1,1)
+	runBtn.TextSize           = 9
+	runBtn.Font               = Enum.Font.GothamBold
+	runBtn.ZIndex             = 12
+	runBtn.Parent             = card
+	local rbCC = Instance.new("UICorner"); rbCC.CornerRadius = UDim.new(0,6); rbCC.Parent = runBtn
+	local rbG  = Instance.new("UIGradient")
+	rbG.Rotation = 45
+	rbG.Color    = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, T.acc1),
+		ColorSequenceKeypoint.new(1, T.acc2),
+	})
+	rbG.Parent = runBtn
 
-    btn.MouseEnter:Connect(function()
-        if ActiveSideBtn ~= btn then Tw(btn, {BackgroundTransparency = 0.82}, 0.1) end
-    end)
-    btn.MouseLeave:Connect(function()
-        if ActiveSideBtn ~= btn then Tw(btn, {BackgroundTransparency = 1}, 0.1) end
-    end)
-    btn.MouseButton1Click:Connect(function()
-        if ActiveSideBtn and ActiveSideBtn ~= btn then
-            if ActiveSideBtn._deactivate then ActiveSideBtn._deactivate() end
-        end
-        ActiveSideBtn = btn
-        Activate()
-        clickFn()
-    end)
-    return btn
+	runBtn.MouseEnter:Connect(function() tw(runBtn, {BackgroundTransparency=0}, .1) end)
+	runBtn.MouseLeave:Connect(function() tw(runBtn, {BackgroundTransparency=.08}, .1) end)
+
+	-- Invisible tap overlay so whole card is tappable on mobile
+	local tapOv = Instance.new("TextButton")
+	tapOv.Size               = UDim2.new(1,0,1,0)
+	tapOv.BackgroundTransparency = 1
+	tapOv.BorderSizePixel    = 0
+	tapOv.Text               = ""
+	tapOv.ZIndex             = 11
+	tapOv.Parent             = card
+	tapOv.MouseEnter:Connect(function() tw(card, {BackgroundColor3=T.cardHov}, .1) end)
+	tapOv.MouseLeave:Connect(function() tw(card, {BackgroundColor3=T.card},    .1) end)
+
+	local function execScript()
+		tw(runBtn, {Size=UDim2.new(0,RBW-4,0,RBH-2)}, .1, Enum.EasingStyle.Back)
+		task.delay(.12, function()
+			if runBtn and runBtn.Parent then
+				tw(runBtn, {Size=UDim2.new(0,RBW,0,RBH)}, .2, Enum.EasingStyle.Back)
+			end
+		end)
+		local ok, err = pcall(callback)
+		if ok then
+			notify("✓ Executed", name, "success", 2.5)
+			tw(card, {BackgroundColor3=T.ok:Lerp(T.card,.68)}, .12)
+			task.delay(.22, function()
+				if card and card.Parent then tw(card, {BackgroundColor3=T.card}, .42) end
+			end)
+		else
+			notify("✗ Error", tostring(err):sub(1,65), "error", 5)
+			tw(card, {BackgroundColor3=T.err:Lerp(T.card,.65)}, .12)
+			task.delay(.22, function()
+				if card and card.Parent then tw(card, {BackgroundColor3=T.card}, .42) end
+			end)
+		end
+	end
+
+	runBtn.MouseButton1Click:Connect(execScript)
+	tapOv.MouseButton1Click:Connect(execScript)
+
+	return card
 end
 
--- ════════════════════════════════════════════════════════════════
---  CONTENT RENDERERS
--- ════════════════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════════════════════
+--  PAGE: HOME
+-- ════════════════════════════════════════════════════════════════════════
+local function pageHome()
+	clearContent()
 
-local function RenderCategory(key)
-    ClearScripts()
-    local data = HubData[key]
-    if not data or type(data) ~= "table" or #data == 0 then
-        ShowEmpty("No scripts for: "..tostring(key).."\n(Network error or empty category)")
-        return
-    end
-    for _, entry in ipairs(data) do
-        if type(entry)=="table" and type(entry[1])=="string" and type(entry[2])=="function" then
-            MakeScriptCard(entry[1], entry[2])
-        end
-    end
+	-- Banner
+	local banner = Instance.new("Frame")
+	banner.Size             = UDim2.new(1,0,0,78)
+	banner.BackgroundColor3 = T.card
+	banner.BorderSizePixel  = 0
+	banner.ZIndex           = 11
+	banner.Parent           = scScroll
+	local bnCC = Instance.new("UICorner"); bnCC.CornerRadius = UDim.new(0,10); bnCC.Parent = banner
+	local bnSK = Instance.new("UIStroke"); bnSK.Color = T.acc1; bnSK.Thickness = 1; bnSK.Transparency = .35; bnSK.Parent = banner
+	local bnG  = Instance.new("UIGradient"); bnG.Rotation = 135
+	bnG.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, T.card),
+		ColorSequenceKeypoint.new(1, T.panel),
+	})
+	bnG.Parent = banner
+	local bnConn = RS.Heartbeat:Connect(function()
+		if not bnG or not bnG.Parent then return end
+		bnG.Offset = Vector2.new(math.sin(tick()*.4)*.2, 0)
+	end)
+	banner.Destroying:Connect(function() bnConn:Disconnect() end)
+
+	local bnTit = Instance.new("TextLabel")
+	bnTit.Size               = UDim2.new(1,-14,0,28)
+	bnTit.Position           = UDim2.new(0,10,0,10)
+	bnTit.BackgroundTransparency = 1
+	bnTit.Text               = "Welcome to MegaHack v2  ✦"
+	bnTit.TextColor3         = T.txt
+	bnTit.TextSize           = 14
+	bnTit.Font               = Enum.Font.GothamBlack
+	bnTit.TextXAlignment     = Enum.TextXAlignment.Left
+	bnTit.ZIndex             = 12
+	bnTit.Parent             = banner
+	local bnTG = Instance.new("UIGradient"); bnTG.Rotation = 0
+	bnTG.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, T.acc1),
+		ColorSequenceKeypoint.new(1, T.acc2),
+	})
+	bnTG.Parent = bnTit
+
+	local bnSub = Instance.new("TextLabel")
+	bnSub.Size               = UDim2.new(1,-14,0,32)
+	bnSub.Position           = UDim2.new(0,10,0,40)
+	bnSub.BackgroundTransparency = 1
+	bnSub.Text               = "Pick a category on the left  ·  or search above"
+	bnSub.TextColor3         = T.txtMut
+	bnSub.TextSize           = 10
+	bnSub.Font               = Enum.Font.Gotham
+	bnSub.TextXAlignment     = Enum.TextXAlignment.Left
+	bnSub.ZIndex             = 12
+	bnSub.Parent             = banner
+
+	-- Stat cards
+	local total = 0
+	for _, v in pairs(HubData) do
+		if type(v) == "table" then total += #v end
+	end
+	local gameName = "Unknown"
+	pcall(function() gameName = MPS:GetProductInfo(game.PlaceId).Name:sub(1,11) end)
+
+	local statsRow = Instance.new("Frame")
+	statsRow.Size             = UDim2.new(1,0,0,50)
+	statsRow.BackgroundTransparency = 1
+	statsRow.ZIndex           = 11
+	statsRow.Parent           = scScroll
+	local stLL = Instance.new("UIListLayout")
+	stLL.FillDirection = Enum.FillDirection.Horizontal
+	stLL.Padding       = UDim.new(0,5)
+	stLL.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	stLL.SortOrder     = Enum.SortOrder.LayoutOrder
+	stLL.Parent        = statsRow
+
+	for _, sd in ipairs({
+		{"Scripts", tostring(total)},
+		{"Game",    gameName},
+		{"Mode",    isMob and "Mobile" or "PC"},
+		{"Player",  lp.Name:sub(1,9)},
+	}) do
+		local sf = Instance.new("Frame")
+		sf.Size             = UDim2.new(0.25,-4,1,0)
+		sf.BackgroundColor3 = T.card
+		sf.BorderSizePixel  = 0
+		sf.ZIndex           = 12
+		sf.Parent           = statsRow
+		local sfCC2 = Instance.new("UICorner"); sfCC2.CornerRadius = UDim.new(0,8); sfCC2.Parent = sf
+		local sfSK2 = Instance.new("UIStroke"); sfSK2.Color = T.border; sfSK2.Thickness = 1; sfSK2.Transparency = .5; sfSK2.Parent = sf
+		local sv = Instance.new("TextLabel")
+		sv.Size               = UDim2.new(1,-4,0,22)
+		sv.Position           = UDim2.new(0,2,0,5)
+		sv.BackgroundTransparency = 1
+		sv.Text               = sd[2]
+		sv.TextColor3         = T.acc1
+		sv.TextSize           = 13
+		sv.Font               = Enum.Font.GothamBold
+		sv.TextXAlignment     = Enum.TextXAlignment.Center
+		sv.ZIndex             = 13
+		sv.Parent             = sf
+		local sk2 = Instance.new("TextLabel")
+		sk2.Size              = UDim2.new(1,-4,0,14)
+		sk2.Position          = UDim2.new(0,2,0,28)
+		sk2.BackgroundTransparency = 1
+		sk2.Text              = sd[1]
+		sk2.TextColor3        = T.txtMut
+		sk2.TextSize          = 9
+		sk2.Font              = Enum.Font.Gotham
+		sk2.TextXAlignment    = Enum.TextXAlignment.Center
+		sk2.ZIndex            = 13
+		sk2.Parent            = sf
+	end
+
+	-- Player card
+	local pCard = Instance.new("Frame")
+	pCard.Size             = UDim2.new(1,0,0,60)
+	pCard.BackgroundColor3 = T.card
+	pCard.BorderSizePixel  = 0
+	pCard.ZIndex           = 11
+	pCard.Parent           = scScroll
+	local pcCC = Instance.new("UICorner"); pcCC.CornerRadius = UDim.new(0,8); pcCC.Parent = pCard
+	local pcSK = Instance.new("UIStroke"); pcSK.Color = T.border; pcSK.Thickness = 1; pcSK.Transparency = .5; pcSK.Parent = pCard
+
+	local avImg = Instance.new("ImageLabel")
+	avImg.Size               = UDim2.new(0,42,0,42)
+	avImg.Position           = UDim2.new(0,8,.5,-21)
+	avImg.BackgroundColor3   = T.panel
+	avImg.ZIndex             = 12
+	avImg.Parent             = pCard
+	local avCC = Instance.new("UICorner"); avCC.CornerRadius = UDim.new(1,0); avCC.Parent = avImg
+	local avSK = Instance.new("UIStroke"); avSK.Color = T.acc1; avSK.Thickness = 2; avSK.Transparency = .25; avSK.Parent = avImg
+	pcall(function()
+		avImg.Image = PL:GetUserThumbnailAsync(lp.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size180x180)
+	end)
+
+	local pName = Instance.new("TextLabel")
+	pName.Size               = UDim2.new(1,-64,0,20)
+	pName.Position           = UDim2.new(0,58,0,8)
+	pName.BackgroundTransparency = 1
+	pName.Text               = lp.Name
+	pName.TextColor3         = T.txt
+	pName.TextSize           = 13
+	pName.Font               = Enum.Font.GothamBold
+	pName.TextXAlignment     = Enum.TextXAlignment.Left
+	pName.ZIndex             = 12
+	pName.Parent             = pCard
+
+	local pInfo = Instance.new("TextLabel")
+	pInfo.Size               = UDim2.new(1,-64,0,16)
+	pInfo.Position           = UDim2.new(0,58,0,30)
+	pInfo.BackgroundTransparency = 1
+	pInfo.Text               = "ID: "..lp.UserId.."  ·  Place: "..game.PlaceId
+	pInfo.TextColor3         = T.txtMut
+	pInfo.TextSize           = 9
+	pInfo.Font               = Enum.Font.Gotham
+	pInfo.TextXAlignment     = Enum.TextXAlignment.Left
+	pInfo.ZIndex             = 12
+	pInfo.Parent             = pCard
+
+	-- FPS tracker card
+	local fCard = Instance.new("Frame")
+	fCard.Size             = UDim2.new(1,0,0,34)
+	fCard.BackgroundColor3 = T.card
+	fCard.BorderSizePixel  = 0
+	fCard.ZIndex           = 11
+	fCard.Parent           = scScroll
+	local fcCC = Instance.new("UICorner"); fcCC.CornerRadius = UDim.new(0,8); fcCC.Parent = fCard
+	local fcSK = Instance.new("UIStroke"); fcSK.Color = T.border; fcSK.Thickness = 1; fcSK.Transparency = .5; fcSK.Parent = fCard
+
+	local fLbl = Instance.new("TextLabel")
+	fLbl.Size               = UDim2.new(.55,0,1,0)
+	fLbl.Position           = UDim2.new(0,10,0,0)
+	fLbl.BackgroundTransparency = 1
+	fLbl.Text               = "FPS: --"
+	fLbl.TextColor3         = T.acc1
+	fLbl.TextSize           = 12
+	fLbl.Font               = Enum.Font.GothamBold
+	fLbl.TextXAlignment     = Enum.TextXAlignment.Left
+	fLbl.ZIndex             = 12
+	fLbl.Parent             = fCard
+
+	local pLbl = Instance.new("TextLabel")
+	pLbl.Size               = UDim2.new(.45,0,1,0)
+	pLbl.Position           = UDim2.new(.55,0,0,0)
+	pLbl.BackgroundTransparency = 1
+	pLbl.Text               = "Ping: --ms"
+	pLbl.TextColor3         = T.txtMut
+	pLbl.TextSize           = 10
+	pLbl.Font               = Enum.Font.Gotham
+	pLbl.TextXAlignment     = Enum.TextXAlignment.Right
+	pLbl.ZIndex             = 12
+	pLbl.Parent             = fCard
+
+	local fc2, fl2 = 0, tick()
+	local fConn = RS.Heartbeat:Connect(function()
+		fc2 += 1
+		local now = tick()
+		if now - fl2 >= 1 then
+			if fLbl and fLbl.Parent then
+				fLbl.Text = "FPS: "..fc2
+				pcall(function()
+					local ping = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()
+					pLbl.Text = "Ping: "..math.round(ping).."ms"
+				end)
+			end
+			fc2, fl2 = 0, now
+		end
+	end)
+	fCard.Destroying:Connect(function() fConn:Disconnect() end)
+
+	-- Keyboard hint (PC)
+	if not isMob then
+		local hint = Instance.new("Frame")
+		hint.Size             = UDim2.new(1,0,0,28)
+		hint.BackgroundColor3 = T.card
+		hint.BorderSizePixel  = 0
+		hint.ZIndex           = 11
+		hint.Parent           = scScroll
+		local hCC2 = Instance.new("UICorner"); hCC2.CornerRadius = UDim.new(0,8); hCC2.Parent = hint
+		local hSK2 = Instance.new("UIStroke"); hSK2.Color = T.border; hSK2.Thickness = 1; hSK2.Transparency = .55; hSK2.Parent = hint
+		local hL   = Instance.new("TextLabel")
+		hL.Size               = UDim2.new(1,-12,1,0)
+		hL.Position           = UDim2.new(0,10,0,0)
+		hL.BackgroundTransparency = 1
+		hL.Text               = "⌨  RightCtrl = toggle window"
+		hL.TextColor3         = T.txtDim
+		hL.TextSize           = 10
+		hL.Font               = Enum.Font.Gotham
+		hL.TextXAlignment     = Enum.TextXAlignment.Left
+		hL.ZIndex             = 12
+		hL.Parent             = hint
+	end
 end
 
-local function RenderAll()
-    ClearScripts()
-    local count = 0
-    for catName, hacks in pairs(HubData) do
-        if type(hacks) == "table" then
-            for _, entry in ipairs(hacks) do
-                if type(entry)=="table" and type(entry[1])=="string" and type(entry[2])=="function" then
-                    MakeScriptCard(entry[1], entry[2], catName:sub(1,7))
-                    count = count + 1
-                end
-            end
-        end
-    end
-    if count == 0 then ShowEmpty("No scripts loaded.") end
+-- ════════════════════════════════════════════════════════════════════════
+--  PAGE: CATEGORY  — builds script cards from HubData[key]
+-- ════════════════════════════════════════════════════════════════════════
+local function pageCategory(key, displayName)
+	clearContent()
+
+	-- Show loading placeholder while scripts may still be fetching
+	emptyMsg("⌛  Loading "..displayName.."...")
+
+	task.spawn(function()
+		-- If data is still nil, wait up to 10s
+		local waited = 0
+		while (not HubData[key]) and waited < 10 do
+			task.wait(.3)
+			waited += .3
+		end
+
+		clearContent()
+
+		local data = HubData[key]
+		if not data or #data == 0 then
+			emptyMsg("⚠  No scripts found for: "..displayName)
+			return
+		end
+
+		local count = 0
+		for _, entry in ipairs(data) do
+			if type(entry) == "table"
+				and type(entry[1]) == "string"
+				and type(entry[2]) == "function"
+			then
+				makeCard(entry[1], entry[2])
+				count += 1
+			end
+		end
+
+		if count == 0 then
+			emptyMsg("⚠  Scripts loaded but none were valid for: "..displayName)
+		end
+	end)
 end
 
-local function RenderSearch(q)
-    ClearScripts()
-    q = q:lower()
-    if #q == 0 then ShowEmpty("Type to search across all scripts...") return end
-    local found = 0
-    for catName, hacks in pairs(HubData) do
-        if type(hacks) == "table" then
-            for _, entry in ipairs(hacks) do
-                if type(entry)=="table" and type(entry[1])=="string" then
-                    if entry[1]:lower():find(q, 1, true) then
-                        MakeScriptCard(entry[1], entry[2], catName:sub(1,7))
-                        found = found + 1
-                    end
-                end
-            end
-        end
-    end
-    if found == 0 then ShowEmpty('No results for "'..q..'"') end
+-- ════════════════════════════════════════════════════════════════════════
+--  PAGE: ALL SCRIPTS
+-- ════════════════════════════════════════════════════════════════════════
+local function pageAll()
+	clearContent()
+	local count = 0
+	for catName, hacks in pairs(HubData) do
+		if type(hacks) == "table" then
+			for _, entry in ipairs(hacks) do
+				if type(entry) == "table"
+					and type(entry[1]) == "string"
+					and type(entry[2]) == "function"
+				then
+					makeCard(entry[1], entry[2], catName:sub(1,7))
+					count += 1
+				end
+			end
+		end
+	end
+	if count == 0 then
+		emptyMsg("⌛  Scripts still loading — try again in a moment")
+	end
 end
 
-local function RenderHome()
-    ClearScripts()
-    -- Welcome card
-    local wc = Instance.new("Frame")
-    wc.Size = UDim2.new(1,0,0,70); wc.BackgroundColor3 = T("Surface")
-    wc.BorderSizePixel = 0; wc.ZIndex = 12; wc.Parent = ScriptScroll
-    do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,10); c.Parent = wc end
-    do local s = Instance.new("UIStroke"); s.Color = T("Accent"); s.Thickness = 1; s.Transparency = 0.4; s.Parent = wc end
-    local wcG = Instance.new("UIGradient"); wcG.Rotation = 135; wcG.Parent = wc
-    RunService.Heartbeat:Connect(function()
-        if not (wcG and wcG.Parent) then return end
-        local p = (tick()*0.45) % 1
-        local lo = math.clamp(p, 0.01, 0.88); local hi = math.clamp(p+0.1,0.1,0.99)
-        wcG.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, T("Surface")),
-            ColorSequenceKeypoint.new(lo, T("Surface")),
-            ColorSequenceKeypoint.new(math.clamp((lo+hi)/2,0.01,0.99), T("SurfaceHov")),
-            ColorSequenceKeypoint.new(hi, T("Surface")),
-            ColorSequenceKeypoint.new(1, T("Surface")),
-        })
-    end)
-    local wT = Instance.new("TextLabel")
-    wT.Text = "Welcome to MegaHack v2"; wT.Font = Enum.Font.GothamBlack; wT.TextSize = 14
-    wT.BackgroundTransparency = 1; wT.TextColor3 = T("Text")
-    wT.Size = UDim2.new(1,-16,0,26); wT.Position = UDim2.new(0,12,0,10)
-    wT.TextXAlignment = Enum.TextXAlignment.Left; wT.ZIndex = 13; wT.Parent = wc
-    local wS = Instance.new("TextLabel")
-    wS.Text = "Pick a category from the sidebar on the left, or search scripts above."
-    wS.Font = Enum.Font.Gotham; wS.TextSize = 11; wS.BackgroundTransparency = 1
-    wS.TextColor3 = T("TextMuted"); wS.TextWrapped = true
-    wS.Size = UDim2.new(1,-16,0,30); wS.Position = UDim2.new(0,12,0,36)
-    wS.TextXAlignment = Enum.TextXAlignment.Left; wS.ZIndex = 13; wS.Parent = wc
-
-    -- Stats row
-    local sRow = Instance.new("Frame")
-    sRow.Size = UDim2.new(1,0,0,50); sRow.BackgroundTransparency = 1
-    sRow.BorderSizePixel = 0; sRow.ZIndex = 12; sRow.Parent = ScriptScroll
-    local srL = Instance.new("UIListLayout")
-    srL.FillDirection = Enum.FillDirection.Horizontal; srL.Padding = UDim.new(0,5)
-    srL.SortOrder = Enum.SortOrder.LayoutOrder; srL.Parent = sRow
-    local gameName = "Unknown"
-    pcall(function() gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name:sub(1,13) end)
-    local statDefs = {{"Scripts",tostring(CountAll())},{"Game",gameName},{"Mode",IsMobile and "Mobile" or "PC"}}
-    local sw = (WIN_W-SIDE_W-30)/3
-    for _, sd in ipairs(statDefs) do
-        local sc = Instance.new("Frame")
-        sc.Size = UDim2.new(0,sw,1,0); sc.BackgroundColor3 = T("Surface")
-        sc.BorderSizePixel = 0; sc.ZIndex = 13; sc.Parent = sRow
-        do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,8); c.Parent = sc end
-        do local s = Instance.new("UIStroke"); s.Color = T("Border"); s.Thickness = 1; s.Transparency = 0.5; s.Parent = sc end
-        local sv = Instance.new("TextLabel")
-        sv.Text = sd[2]; sv.Font = Enum.Font.GothamBold; sv.TextSize = 14
-        sv.BackgroundTransparency = 1; sv.TextColor3 = T("Accent")
-        sv.Size = UDim2.new(1,0,0,24); sv.Position = UDim2.new(0,0,0,6)
-        sv.TextXAlignment = Enum.TextXAlignment.Center; sv.ZIndex = 14; sv.Parent = sc
-        local sk = Instance.new("TextLabel")
-        sk.Text = sd[1]; sk.Font = Enum.Font.Gotham; sk.TextSize = 9
-        sk.BackgroundTransparency = 1; sk.TextColor3 = T("TextMuted")
-        sk.Size = UDim2.new(1,0,0,16); sk.Position = UDim2.new(0,0,0,28)
-        sk.TextXAlignment = Enum.TextXAlignment.Center; sk.ZIndex = 14; sk.Parent = sc
-    end
-
-    -- Player card
-    local pc = Instance.new("Frame")
-    pc.Size = UDim2.new(1,0,0,62); pc.BackgroundColor3 = T("Surface")
-    pc.BorderSizePixel = 0; pc.ZIndex = 12; pc.Parent = ScriptScroll
-    do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,9); c.Parent = pc end
-    do local s = Instance.new("UIStroke"); s.Color = T("Border"); s.Thickness = 1; s.Transparency = 0.5; s.Parent = pc end
-    local ava = Instance.new("ImageLabel")
-    ava.Size = UDim2.new(0,44,0,44); ava.Position = UDim2.new(0,10,0.5,-22)
-    ava.BackgroundColor3 = T("BG"); ava.ZIndex = 13; ava.Parent = pc
-    do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,22); c.Parent = ava end
-    do local s = Instance.new("UIStroke"); s.Color = T("Accent"); s.Thickness = 2; s.Transparency = 0.3; s.Parent = ava end
-    pcall(function()
-        ava.Image = Players:GetUserThumbnailAsync(LocalPlayer.UserId,
-            Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size180x180)
-    end)
-    local pn = Instance.new("TextLabel")
-    pn.Text = LocalPlayer.Name; pn.Font = Enum.Font.GothamBold; pn.TextSize = 13
-    pn.BackgroundTransparency = 1; pn.TextColor3 = T("Text")
-    pn.Size = UDim2.new(1,-72,0,22); pn.Position = UDim2.new(0,64,0,10)
-    pn.TextXAlignment = Enum.TextXAlignment.Left; pn.ZIndex = 13; pn.Parent = pc
-    local pi = Instance.new("TextLabel")
-    pi.Text = "UID: "..LocalPlayer.UserId.."  |  PlaceId: "..game.PlaceId
-    pi.Font = Enum.Font.Gotham; pi.TextSize = 10; pi.BackgroundTransparency = 1
-    pi.TextColor3 = T("TextMuted"); pi.Size = UDim2.new(1,-72,0,18)
-    pi.Position = UDim2.new(0,64,0,33); pi.TextXAlignment = Enum.TextXAlignment.Left
-    pi.ZIndex = 13; pi.Parent = pc
-
-    -- FPS card
-    local fc = Instance.new("Frame")
-    fc.Size = UDim2.new(1,0,0,34); fc.BackgroundColor3 = T("Surface")
-    fc.BorderSizePixel = 0; fc.ZIndex = 12; fc.Parent = ScriptScroll
-    do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,8); c.Parent = fc end
-    do local s = Instance.new("UIStroke"); s.Color = T("Border"); s.Thickness = 1; s.Transparency = 0.5; s.Parent = fc end
-    local fpsLbl = Instance.new("TextLabel")
-    fpsLbl.Text = "FPS: --"; fpsLbl.Font = Enum.Font.GothamBold; fpsLbl.TextSize = 12
-    fpsLbl.BackgroundTransparency = 1; fpsLbl.TextColor3 = T("Accent")
-    fpsLbl.Size = UDim2.new(0.5,0,1,0); fpsLbl.Position = UDim2.new(0,12,0,0)
-    fpsLbl.TextXAlignment = Enum.TextXAlignment.Left; fpsLbl.ZIndex = 13; fpsLbl.Parent = fc
-    local fN, fL = 0, tick()
-    local fConn = RunService.Heartbeat:Connect(function()
-        fN = fN + 1
-        if tick()-fL >= 1 then
-            if fpsLbl and fpsLbl.Parent then fpsLbl.Text = "FPS: "..fN
-            else return end
-            fN, fL = 0, tick()
-        end
-    end)
-    fc.Destroying:Connect(function() fConn:Disconnect() end)
+-- ════════════════════════════════════════════════════════════════════════
+--  PAGE: SEARCH
+-- ════════════════════════════════════════════════════════════════════════
+local function pageSearch(query)
+	clearContent()
+	local q = query:lower()
+	if #q == 0 then emptyMsg("Type to search across all categories..."); return end
+	local found = 0
+	for catName, hacks in pairs(HubData) do
+		if type(hacks) == "table" then
+			for _, entry in ipairs(hacks) do
+				if type(entry) == "table" and type(entry[1]) == "string" then
+					if entry[1]:lower():find(q, 1, true) then
+						makeCard(entry[1], entry[2], catName:sub(1,7))
+						found += 1
+					end
+				end
+			end
+		end
+	end
+	if found == 0 then emptyMsg('No results for "'..query..'"') end
 end
 
-local function RenderSettings()
-    ClearScripts()
-    local function Section(name)
-        local f = Instance.new("Frame")
-        f.Size = UDim2.new(1,0,0,22); f.BackgroundTransparency = 1
-        f.BorderSizePixel = 0; f.ZIndex = 12; f.Parent = ScriptScroll
-        local l = Instance.new("TextLabel")
-        l.Text = name:upper(); l.Font = Enum.Font.GothamBold; l.TextSize = 9
-        l.BackgroundTransparency = 1; l.TextColor3 = T("Accent2")
-        l.Size = UDim2.new(1,-8,1,0); l.Position = UDim2.new(0,8,0,0)
-        l.TextXAlignment = Enum.TextXAlignment.Left; l.ZIndex = 13; l.Parent = f
-        local line = Instance.new("Frame")
-        line.Size = UDim2.new(1,-8,0,1); line.Position = UDim2.new(0,4,1,-1)
-        line.BackgroundColor3 = T("Border"); line.BorderSizePixel = 0
-        line.BackgroundTransparency = 0.5; line.ZIndex = 13; line.Parent = f
-    end
-    local function ActionBtn(txt, cb)
-        local BH = IsMobile and 36 or 30
-        local b = Instance.new("TextButton")
-        b.Size = UDim2.new(1,0,0,BH); b.BackgroundColor3 = T("Surface")
-        b.BackgroundTransparency = 0; b.BorderSizePixel = 0
-        b.Text = txt; b.TextColor3 = T("Text"); b.TextSize = IsMobile and 12 or 11
-        b.Font = Enum.Font.GothamMedium; b.ZIndex = 12; b.Parent = ScriptScroll
-        do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,7); c.Parent = b end
-        do local s = Instance.new("UIStroke"); s.Color = T("Border"); s.Thickness = 1; s.Transparency = 0.5; s.Parent = b end
-        b.MouseEnter:Connect(function() Tw(b,{BackgroundColor3=T("SurfaceHov")},0.1) end)
-        b.MouseLeave:Connect(function() Tw(b,{BackgroundColor3=T("Surface")},0.1) end)
-        b.MouseButton1Click:Connect(cb)
-        return b
-    end
+-- ════════════════════════════════════════════════════════════════════════
+--  PAGE: SETTINGS
+-- ════════════════════════════════════════════════════════════════════════
+local function pageSettings()
+	clearContent()
 
-    Section("Themes")
-    for name, _ in pairs(Themes) do
-        ActionBtn("◈  "..name, function()
-            SetTheme(name)
-            Notify("Theme", name.." applied!", "success", 2.5)
-        end)
-    end
+	local function sep(title)
+		local f = Instance.new("Frame")
+		f.Size               = UDim2.new(1,0,0,20)
+		f.BackgroundTransparency = 1
+		f.ZIndex             = 11
+		f.Parent             = scScroll
+		local l = Instance.new("TextLabel")
+		l.Size               = UDim2.new(1,-8,1,0)
+		l.Position           = UDim2.new(0,8,0,0)
+		l.BackgroundTransparency = 1
+		l.Text               = title
+		l.TextColor3         = T.acc2
+		l.TextSize           = 9
+		l.Font               = Enum.Font.GothamBold
+		l.TextXAlignment     = Enum.TextXAlignment.Left
+		l.ZIndex             = 12
+		l.Parent             = f
+		local d = Instance.new("Frame")
+		d.Size               = UDim2.new(1,-8,0,1)
+		d.Position           = UDim2.new(0,4,1,-1)
+		d.BackgroundColor3   = T.border
+		d.BorderSizePixel    = 0
+		d.ZIndex             = 12
+		d.Parent             = f
+	end
 
-    Section("Server")
-    ActionBtn("↺  Rejoin", function()
-        local ok, e = pcall(function() TeleportService:Teleport(game.PlaceId, LocalPlayer) end)
-        if not ok then Notify("Rejoin Failed", e:sub(1,50), "error") end
-    end)
-    ActionBtn("⤢  Server Hop", function()
-        local ok, e = pcall(function()
-            local r = HttpService:JSONDecode(game:HttpGet(
-                "https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
-            if r.data and #r.data > 0 then
-                TeleportService:TeleportToPlaceInstance(game.PlaceId, r.data[math.random(1,#r.data)].id, LocalPlayer)
-            else Notify("Server Hop","No servers found.","warning") end
-        end)
-        if not ok then Notify("Server Hop Failed", tostring(e):sub(1,50), "error") end
-    end)
-    ActionBtn("⊞  Copy Server ID", function()
-        local ok = pcall(function() setclipboard(game.JobId) end)
-        Notify("Clipboard", ok and "Server ID copied!" or "setclipboard not supported", ok and "success" or "warning", 2.5)
-    end)
+	local function aBtn(label, cb)
+		local BH = isMob and 34 or 28
+		local b  = Instance.new("TextButton")
+		b.Size               = UDim2.new(1,0,0,BH)
+		b.BackgroundColor3   = T.card
+		b.BorderSizePixel    = 0
+		b.Text               = label
+		b.TextColor3         = T.txt
+		b.TextSize           = isMob and 11 or 10
+		b.Font               = Enum.Font.GothamMedium
+		b.ZIndex             = 11
+		b.Parent             = scScroll
+		local bCC2 = Instance.new("UICorner"); bCC2.CornerRadius = UDim.new(0,7); bCC2.Parent = b
+		local bSK2 = Instance.new("UIStroke"); bSK2.Color = T.border; bSK2.Thickness = 1; bSK2.Transparency = .5; bSK2.Parent = b
+		b.MouseEnter:Connect(function()  tw(b, {BackgroundColor3=T.cardHov}, .1) end)
+		b.MouseLeave:Connect(function()  tw(b, {BackgroundColor3=T.card},    .1) end)
+		b.MouseButton1Click:Connect(function()
+			tw(b, {Size=UDim2.new(.96,0,0,BH-2)}, .08, Enum.EasingStyle.Back)
+			task.delay(.1, function()
+				if b and b.Parent then tw(b, {Size=UDim2.new(1,0,0,BH)}, .18, Enum.EasingStyle.Back) end
+			end)
+			cb()
+		end)
+		return b
+	end
 
-    Section("Security")
-    ActionBtn("⚑  Enable Anti-Kick / Anti-Ban", function()
-        local ok = pcall(function()
-            local mt = getrawmetatable(game); local old = mt.__namecall
-            setreadonly(mt, false)
-            mt.__namecall = newcclosure(function(self, ...)
-                local m = getnamecallmethod()
-                if m=="Kick" or m=="Ban" then
-                    Notify("Blocked","Kick/Ban attempt stopped.","warning"); return nil
-                end
-                return old(self, ...)
-            end)
-            setreadonly(mt, true)
-        end)
-        Notify("Security", ok and "Anti-Kick/Ban enabled!" or "Executor unsupported.", ok and "success" or "warning")
-    end)
+	-- Themes
+	sep("◈  THEMES")
+	for name, theme in pairs(Themes) do
+		aBtn("◉  "..theme.name, function()
+			setTheme(name)
+			notify("Theme Applied", theme.name.." is now active", "success", 2.5)
+		end)
+	end
 
-    Section("GUI")
-    ActionBtn("✕  Close GUI", function()
-        pcall(function() ScreenGui:Destroy() end)
-    end)
+	-- Server
+	sep("⚡  SERVER")
+	aBtn("↺  Rejoin Server", function()
+		local ok, e = pcall(function() TPS:Teleport(game.PlaceId, lp) end)
+		if not ok then notify("Rejoin Failed", tostring(e):sub(1,50), "error") end
+	end)
+	aBtn("⤢  Server Hop", function()
+		local ok, e = pcall(function()
+			local r = HTTP:JSONDecode(
+				game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100")
+			)
+			if r.data and #r.data > 0 then
+				TPS:TeleportToPlaceInstance(game.PlaceId, r.data[math.random(1,#r.data)].id, lp)
+			else notify("Server Hop", "No servers found", "warning") end
+		end)
+		if not ok then notify("Error", tostring(e):sub(1,50), "error") end
+	end)
+	aBtn("⊞  Copy Server ID", function()
+		local ok = pcall(function() setclipboard(game.JobId) end)
+		notify(ok and "Copied!" or "Failed", ok and "Server ID in clipboard!" or "Not supported", ok and "success" or "warning", 2.5)
+	end)
+
+	-- Security
+	sep("🛡  SECURITY")
+	aBtn("⚑  Enable Anti-Kick / Anti-Ban", function()
+		local ok = pcall(function()
+			local mt  = getrawmetatable(game)
+			local old = mt.__namecall
+			setreadonly(mt, false)
+			mt.__namecall = newcclosure(function(self, ...)
+				local m = getnamecallmethod()
+				if m == "Kick" or m == "Ban" then
+					notify("Blocked!", "Kick/Ban stopped", "warning")
+					return nil
+				end
+				return old(self, ...)
+			end)
+			setreadonly(mt, true)
+		end)
+		notify("Anti-Protection", ok and "Enabled!" or "Executor not supported", ok and "success" or "warning")
+	end)
+
+	-- Coordinates
+	sep("📍  COORDINATES")
+	aBtn("💾  Save Current Position", function()
+		local char = lp.Character or lp.CharacterAdded:Wait()
+		local root = char:FindFirstChild("HumanoidRootPart")
+		if root then
+			local p = root.Position
+			local s = ("X:%.2f Y:%.2f Z:%.2f"):format(p.X, p.Y, p.Z)
+			pcall(function()
+				if not isfolder("MegaHack") then makefolder("MegaHack") end
+				writefile("MegaHack/coords.txt", s)
+			end)
+			notify("Saved", s, "success", 3)
+		else
+			notify("Error", "Character not found", "error")
+		end
+	end)
+	aBtn("🚀  Teleport to Saved", function()
+		local ok, e = pcall(function()
+			local s = readfile("MegaHack/coords.txt")
+			local x,y,z = s:match("X:([-%.%d]+) Y:([-%.%d]+) Z:([-%.%d]+)")
+			local root  = (lp.Character or lp.CharacterAdded:Wait()):FindFirstChild("HumanoidRootPart")
+			root.CFrame = CFrame.new(tonumber(x), tonumber(y), tonumber(z))
+			notify("Teleported!", s, "success")
+		end)
+		if not ok then notify("Error", "No saved coordinates", "error") end
+	end)
+
+	-- GUI
+	sep("⚙  GUI")
+	aBtn("✕  Close GUI", function() root:Destroy() end)
 end
 
--- ════════════════════════════════════════════════════════════════
---  CATEGORY DEFINITIONS  →  build sidebar
--- ════════════════════════════════════════════════════════════════
-local CategoryList = {
-    {"Home",              RenderHome},
-    {"All Scripts",       RenderAll},
-    {"Settings",          RenderSettings},
-    {"MegaHack",          function() RenderCategory("MegaHack") end},
-    {"Hacks",             function() RenderCategory("Hacks") end},
-    {"Admins",            function() RenderCategory("Admins") end},
-    {"Animations",        function() RenderCategory("Animations") end},
-    {"FE Scripts",        function() RenderCategory("FE") end},
-    {"Steal Brain",       function() RenderCategory("StealBrainRoot") end},
-    {"Blade Ball",        function() RenderCategory("BladeBall") end},
-    {"Ragdoll Eng.",      function() RenderCategory("RagdollEngine") end},
-    {"Nat. Disaster",     function() RenderCategory("NaturalDisaster") end},
-    {"MM2",               function() RenderCategory("MM2") end},
-    {"Duels MVS",         function() RenderCategory("DuelsMVS") end},
-    {"Evade",             function() RenderCategory("Evade") end},
-    {"IKEA 3008",         function() RenderCategory("IKEA3008") end},
-    {"Blox Fruit",        function() RenderCategory("BloxFruit") end},
-    {"Brookhaven",        function() RenderCategory("Brookhaven") end},
-    {"Adopt Me",          function() RenderCategory("AdoptMe") end},
-    {"Tower of Hell",     function() RenderCategory("TowerOfHell") end},
-    {"Night99",           function() RenderCategory("Night") end},
-    {"FORSAKEN",          function() RenderCategory("FORSAKEN") end},
-    {"Grow Garden",       function() RenderCategory("GrowGarden") end},
-    {"Violence Dist.",    function() RenderCategory("ViolenceDistrict") end},
-    {"Weird Gun",         function() RenderCategory("Weird") end},
-    {"Rivals",            function() RenderCategory("Rivals") end},
+-- ════════════════════════════════════════════════════════════════════════
+--  SIDEBAR CATEGORY DEFINITIONS
+-- ════════════════════════════════════════════════════════════════════════
+local catDefs = {
+	{ label="🏠  Home",          fn=pageHome     },
+	{ label="📋  All Scripts",   fn=pageAll      },
+	{ label="⚙  Settings",       fn=pageSettings },
+	-- divider
+	{ divider=true, label="── SCRIPTS ──" },
+	-- game-specific categories
+	{ label="MegaHack",    key="MegaHack"          },
+	{ label="Hacks",       key="Hacks"             },
+	{ label="Admins",      key="Admins"            },
+	{ label="Animations",  key="Animations"        },
+	{ label="FE Scripts",  key="FE"                },
+	{ label="Steal Brain", key="StealBrainRoot"    },
+	{ label="Blade Ball",  key="BladeBall"         },
+	{ label="Ragdoll Eng", key="RagdollEngine"     },
+	{ label="Natural Dis", key="NaturalDisaster"   },
+	{ label="MM2",         key="MM2"               },
+	{ label="Duels MVS",   key="DuelsMVS"          },
+	{ label="Evade",       key="Evade"             },
+	{ label="IKEA 3008",   key="IKEA3008"          },
+	{ label="Blox Fruit",  key="BloxFruit"         },
+	{ label="Brookhaven",  key="Brookhaven"        },
+	{ label="Adopt Me",    key="AdoptMe"           },
+	{ label="Tower Hell",  key="TowerOfHell"       },
+	{ label="Night 99",    key="Night"             },
+	{ label="FORSAKEN",    key="FORSAKEN"          },
+	{ label="Grow Garden", key="GrowGarden"        },
+	{ label="Violence D",  key="ViolenceDistrict"  },
+	{ label="Weird Gun",   key="Weird"             },
+	{ label="Rivals",      key="Rivals"            },
 }
 
-local SideBtns = {}
-for _, def in ipairs(CategoryList) do
-    table.insert(SideBtns, MakeSideBtn(def[1], def[2]))
+-- Build sidebar
+local firstSideBtn = nil
+for _, def in ipairs(catDefs) do
+	if def.divider then
+		-- Divider label in sidebar
+		local div = Instance.new("Frame")
+		div.Size               = UDim2.new(1,0,0,16)
+		div.BackgroundTransparency = 1
+		div.ZIndex             = 12
+		div.Parent             = sideScroll
+		local dl = Instance.new("TextLabel")
+		dl.Size               = UDim2.new(1,0,1,0)
+		dl.BackgroundTransparency = 1
+		dl.Text               = def.label
+		dl.TextColor3         = T.txtDim
+		dl.TextSize           = 7
+		dl.Font               = Enum.Font.GothamBold
+		dl.TextXAlignment     = Enum.TextXAlignment.Center
+		dl.ZIndex             = 13
+		dl.Parent             = div
+	else
+		local btn
+		if def.key then
+			btn = makeSideBtn(def.label, function()
+				pageCategory(def.key, def.label)
+			end)
+		else
+			btn = makeSideBtn(def.label, def.fn)
+		end
+		if not firstSideBtn then firstSideBtn = btn end
+	end
 end
 
--- ════════════════════════════════════════════════════════════════
---  SEARCH  (debounced 250ms)
--- ════════════════════════════════════════════════════════════════
-local searchThread = nil
-SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
-    local q = SearchBox.Text
-    if searchThread then task.cancel(searchThread) end
-    searchThread = task.delay(0.25, function()
-        if #q > 0 then
-            if ActiveSideBtn then ActiveSideBtn._deactivate(); ActiveSideBtn = nil end
-            RenderSearch(q)
-        end
-    end)
-end)
-SearchBox.Focused:Connect(function()
-    Tw(SBFrame, {BackgroundColor3 = T("SurfaceHov")}, 0.15)
-    sbfStroke.Color = T("Accent"); sbfStroke.Transparency = 0.2
-end)
-SearchBox.FocusLost:Connect(function()
-    Tw(SBFrame, {BackgroundColor3 = T("Surface")}, 0.15)
-    sbfStroke.Color = T("Border"); sbfStroke.Transparency = 0.4
+-- ════════════════════════════════════════════════════════════════════════
+--  SEARCH — debounced
+-- ════════════════════════════════════════════════════════════════════════
+local sTask = nil
+searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+	local q = searchBox.Text
+	if sTask then task.cancel(sTask) end
+	sTask = task.delay(.26, function()
+		if q and #q > 0 then
+			-- Visually deselect active sidebar tab
+			if activeSideBtn and activeSideBtn._deact then
+				activeSideBtn._deact()
+				activeSideBtn = nil
+			end
+			pageSearch(q)
+		end
+	end)
 end)
 
--- ════════════════════════════════════════════════════════════════
---  DRAG SYSTEM
--- ════════════════════════════════════════════════════════════════
-local function MakeDraggable(frame, handle)
-    local dragging, dragIn, mStart, fStart
-    handle.InputBegan:Connect(function(inp)
-        if inp.UserInputType == Enum.UserInputType.MouseButton1
-        or inp.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; mStart = inp.Position; fStart = frame.Position
-            inp.Changed:Connect(function()
-                if inp.UserInputState == Enum.UserInputState.End then dragging = false end
-            end)
-        end
-    end)
-    handle.InputChanged:Connect(function(inp)
-        if inp.UserInputType == Enum.UserInputType.MouseMovement
-        or inp.UserInputType == Enum.UserInputType.Touch then dragIn = inp end
-    end)
-    UserInputService.InputChanged:Connect(function(inp)
-        if inp == dragIn and dragging then
-            local d = inp.Position - mStart
-            frame.Position = UDim2.new(fStart.X.Scale, fStart.X.Offset+d.X,
-                                       fStart.Y.Scale, fStart.Y.Offset+d.Y)
-        end
-    end)
+searchBox.Focused:Connect(function()
+	tw(srchFrame, {BackgroundColor3=T.cardHov}, .15)
+	sfSK.Color = T.acc1; sfSK.Transparency = .15
+end)
+searchBox.FocusLost:Connect(function(enter)
+	tw(srchFrame, {BackgroundColor3=T.card}, .15)
+	sfSK.Color = T.border; sfSK.Transparency = .35
+	if enter and #searchBox.Text > 0 then pageSearch(searchBox.Text) end
+end)
+
+-- ════════════════════════════════════════════════════════════════════════
+--  THEME LISTENER — re-color all persistent elements
+-- ════════════════════════════════════════════════════════════════════════
+onTheme(function(t)
+	win.BackgroundColor3       = t.bg
+	wSK.Color                  = t.border
+	head.BackgroundColor3      = t.panel
+	hFix.BackgroundColor3      = t.panel
+	side.BackgroundColor3      = t.panel
+	sideLine.BackgroundColor3  = t.border
+	srchFrame.BackgroundColor3 = t.card
+	sfSK.Color                 = t.border
+	searchBox.TextColor3       = t.txt
+	searchBox.PlaceholderColor3= t.txtDim
+	scScroll.ScrollBarImageColor3 = t.border
+	reBtn.BackgroundColor3     = t.card
+	rSK.Color                  = t.acc1
+	vbLbl.TextColor3           = t.acc1
+	vbSK.Color                 = t.acc1
+	htG.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, t.acc1),
+		ColorSequenceKeypoint.new(1, t.acc2),
+	})
+	hlG.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, t.acc1),
+		ColorSequenceKeypoint.new(1, t.acc2),
+	})
+end)
+
+-- ════════════════════════════════════════════════════════════════════════
+--  DRAG  (PC mouse + Mobile touch)
+-- ════════════════════════════════════════════════════════════════════════
+local function makeDraggable(frame, handle)
+	handle = handle or frame
+	local drag, dragIn, sM, sP
+	handle.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1
+		or i.UserInputType == Enum.UserInputType.Touch then
+			drag = true; sM = i.Position; sP = frame.Position
+			i.Changed:Connect(function()
+				if i.UserInputState == Enum.UserInputState.End then drag = false end
+			end)
+		end
+	end)
+	handle.InputChanged:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseMovement
+		or i.UserInputType == Enum.UserInputType.Touch then dragIn = i end
+	end)
+	UIS.InputChanged:Connect(function(i)
+		if i == dragIn and drag then
+			local d = i.Position - sM
+			frame.Position = UDim2.new(sP.X.Scale, sP.X.Offset+d.X, sP.Y.Scale, sP.Y.Offset+d.Y)
+		end
+	end)
 end
 
-MakeDraggable(Win, Header)
-MakeDraggable(ReopenBtn, ReopenBtn)
+makeDraggable(win,   head)
+makeDraggable(reBtn, reBtn)
 
--- ════════════════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════════════════════
 --  WINDOW CONTROLS
--- ════════════════════════════════════════════════════════════════
-local Minimized = false
+-- ════════════════════════════════════════════════════════════════════════
+local minimized = false
 
-CloseBtn.MouseButton1Click:Connect(function()
-    Tw(Win, {Size = UDim2.new(0,WIN_W,0,0), BackgroundTransparency=1}, 0.28, Enum.EasingStyle.Quart)
-    task.wait(0.3)
-    Win.Visible = false; Win.Size = UDim2.new(0,WIN_W,0,WIN_H); Win.BackgroundTransparency = 0
-    ReopenBtn.Visible = true
+closeBtn.MouseButton1Click:Connect(function()
+	tw(win, {Size=UDim2.new(0,WW,0,0), BackgroundTransparency=1}, .3, Enum.EasingStyle.Quart)
+	task.wait(.32)
+	win.Visible = false
+	win.Size    = UDim2.new(0,WW,0,WH)
+	win.BackgroundTransparency = 0
+	reBtn.Visible = true
 end)
-MinBtn.MouseButton1Click:Connect(function()
-    if Minimized then
-        Minimized = false
-        Tw(Win, {Size = UDim2.new(0,WIN_W,0,WIN_H)}, 0.3, Enum.EasingStyle.Back)
-        MinBtn.Text = "─"
-    else
-        Minimized = true
-        Tw(Win, {Size = UDim2.new(0,WIN_W,0,HEAD_H)}, 0.25, Enum.EasingStyle.Quart)
-        MinBtn.Text = "□"
-    end
+
+minBtn.MouseButton1Click:Connect(function()
+	if minimized then
+		minimized = false; minBtn.Text = "─"
+		tw(win, {Size=UDim2.new(0,WW,0,WH)}, .35, Enum.EasingStyle.Back)
+	else
+		minimized = true; minBtn.Text = "□"
+		tw(win, {Size=UDim2.new(0,WW,0,HEAD_H)}, .3, Enum.EasingStyle.Quart)
+	end
 end)
-ReopenBtn.MouseButton1Click:Connect(function()
-    ReopenBtn.Visible = false; Win.Visible = true
-    Win.Size = UDim2.new(0,WIN_W,0,0); Win.BackgroundTransparency = 1
-    Tw(Win, {Size=UDim2.new(0,WIN_W,0,WIN_H), BackgroundTransparency=0}, 0.4, Enum.EasingStyle.Back)
+
+reBtn.MouseButton1Click:Connect(function()
+	reBtn.Visible = false
+	win.Visible   = true
+	win.Size      = UDim2.new(0,WW,0,0)
+	win.BackgroundTransparency = 1
+	tw(win, {Size=UDim2.new(0,WW,0,WH), BackgroundTransparency=0}, .42, Enum.EasingStyle.Back)
 end)
-if not IsMobile then
-    UserInputService.InputBegan:Connect(function(inp, gp)
-        if not gp and inp.KeyCode == Enum.KeyCode.RightControl then
-            if Win.Visible then Win.Visible=false; ReopenBtn.Visible=true
-            else ReopenBtn.Visible=false; Win.Visible=true; Win.Size=UDim2.new(0,WIN_W,0,0)
-                Tw(Win,{Size=UDim2.new(0,WIN_W,0,WIN_H)},0.4,Enum.EasingStyle.Back) end
-        end
-    end)
+
+if not isMob then
+	UIS.InputBegan:Connect(function(i, gpe)
+		if not gpe and i.KeyCode == Enum.KeyCode.RightControl then
+			if win.Visible then
+				win.Visible = false; reBtn.Visible = true
+			else
+				reBtn.Visible = false; win.Visible = true
+				win.Size = UDim2.new(0,WW,0,0)
+				tw(win, {Size=UDim2.new(0,WW,0,WH)}, .42, Enum.EasingStyle.Back)
+			end
+		end
+	end)
 end
 
--- ════════════════════════════════════════════════════════════════
---  THEME LIVE UPDATE
--- ════════════════════════════════════════════════════════════════
-OnTheme(function(th)
-    Win.BackgroundColor3             = th.BG
-    winStroke.Color                  = th.Border
-    Header.BackgroundColor3          = th.Surface
-    hFix.BackgroundColor3            = th.Surface
-    hStroke.Color                    = th.Border
-    hLine.BackgroundColor3           = th.Accent
-    hLineG.Color = ColorSequence.new({ColorSequenceKeypoint.new(0,th.Accent),ColorSequenceKeypoint.new(1,th.Accent2)})
-    HTitle.TextColor3                = th.Text
-    hTitleG.Color = ColorSequence.new({ColorSequenceKeypoint.new(0,th.Accent),ColorSequenceKeypoint.new(1,th.Accent2)})
-    VBL.TextColor3                   = th.Accent
-    vbStroke.Color                   = th.Accent
-    VBadge.BackgroundColor3          = th.BG
-    Sidebar.BackgroundColor3         = th.Surface
-    sbLine.BackgroundColor3          = th.Border
-    SBFrame.BackgroundColor3         = th.Surface
-    sbfStroke.Color                  = th.Border
-    SearchBox.TextColor3             = th.Text
-    SearchBox.PlaceholderColor3      = th.TextDim
-    ScriptScroll.ScrollBarImageColor3= th.Border
-    ReopenBtn.BackgroundColor3       = th.Surface
-    rbStroke.Color                   = th.Accent
-    ReopenBtn.TextColor3             = th.Accent
-end)
-
--- ════════════════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════════════════════
 --  STARTUP
--- ════════════════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════════════════════
 task.spawn(function()
-    ShowLoading(function()
-        Win.Visible = true
-        Win.Size = UDim2.new(0,WIN_W,0,0); Win.BackgroundTransparency = 1
-        Tw(Win, {Size=UDim2.new(0,WIN_W,0,WIN_H), BackgroundTransparency=0}, 0.5, Enum.EasingStyle.Back)
+	showLoading(function()
+		-- Reveal main window with spring animation
+		win.Visible = true
+		win.Size    = UDim2.new(0,WW,0,0)
+		win.BackgroundTransparency = 1
+		tw(win, {Size=UDim2.new(0,WW,0,WH), BackgroundTransparency=0}, .48, Enum.EasingStyle.Back)
 
-        task.wait(0.15)
+		task.wait(.12)
 
-        -- Activate Home by simulating click on first sidebar button
-        if SideBtns[1] then
-            SideBtns[1].MouseButton1Click:Fire()
-        end
+		-- Render home and activate first sidebar button
+		pageHome()
 
-        task.wait(0.6)
-        Notify("MegaHack v2", "Loaded on "..(IsMobile and "Mobile" or "PC").." — "..LocalPlayer.Name, "success", 4)
-        if not IsMobile then
-            task.wait(0.5)
-            Notify("Tip","RightCtrl toggles the window", "info", 4)
-        end
-    end)
+		if firstSideBtn then
+			activeSideBtn = firstSideBtn
+			if firstSideBtn._activate then firstSideBtn._activate() end
+		end
+
+		task.wait(.6)
+		notify("MegaHack v2", "Loaded on "..(isMob and "Mobile" or "PC").."  ·  "..lp.Name, "success", 4)
+
+		if not isMob then
+			task.wait(.55)
+			notify("Tip", "RightCtrl = toggle window", "info", 3.5)
+		end
+	end)
 end)
