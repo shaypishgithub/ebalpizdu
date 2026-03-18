@@ -81,6 +81,13 @@ local T = {
     Separator = Color3.fromRGB(35, 35, 46),
 }
 
+-- Registry of persistent accent-coloured elements for live recoloring.
+-- Each entry: { obj = Instance, prop = "PropertyName" }
+local accentRegistry = {}
+local function regA(obj, prop)
+    table.insert(accentRegistry, { obj = obj, prop = prop or "BackgroundColor3" })
+end
+
 -- ══════════════════════════════════════
 --  NOTIFICATION
 -- ══════════════════════════════════════
@@ -285,6 +292,7 @@ headerAccent.Position = UDim2.new(0, 12, 0.5, -12)
 headerAccent.ZIndex = 6
 headerAccent.Parent = headerFrame
 mkCorner(headerAccent, 3)
+regA(headerAccent)  -- ← accent registry
 
 local logoIcon = Instance.new("ImageLabel")
 logoIcon.BackgroundTransparency = 1
@@ -315,6 +323,8 @@ versionBadge.Position = UDim2.new(0, 174, 0.5, -8)
 versionBadge.ZIndex = 6
 versionBadge.Parent = headerFrame
 mkCorner(versionBadge, 4)
+regA(versionBadge)  -- ← accent registry
+
 local versionText = Instance.new("TextLabel")
 versionText.BackgroundTransparency = 1
 versionText.Text = "v1.0"
@@ -423,6 +433,7 @@ catScroll.ScrollBarThickness = 2
 catScroll.ScrollBarImageColor3 = T.Accent
 catScroll.ZIndex = 4
 catScroll.Parent = sidebarFrame
+regA(catScroll, "ScrollBarImageColor3")  -- ← accent registry
 
 local catLayout = Instance.new("UIListLayout")
 catLayout.Padding = UDim.new(0, 2)
@@ -460,6 +471,7 @@ scrollingFrame.ScrollBarThickness = 3
 scrollingFrame.ScrollBarImageColor3 = T.Accent
 scrollingFrame.ZIndex = 3
 scrollingFrame.Parent = contentFrame
+regA(scrollingFrame, "ScrollBarImageColor3")  -- ← accent registry
 
 local scrollLayout = Instance.new("UIListLayout")
 scrollLayout.Padding = UDim.new(0, 5)
@@ -490,7 +502,7 @@ reopenButton.Visible = false
 reopenButton.ZIndex = 10
 reopenButton.Parent = screenGui
 mkCorner(reopenButton, 23)
-mkStroke(reopenButton, 1.5, T.Accent, 0.3)
+do local s = mkStroke(reopenButton, 1.5, T.Accent, 0.3); regA(s, "Color") end  -- ← accent registry
 
 reopenButton.MouseEnter:Connect(function()
     TweenService:Create(reopenButton, TweenInfo.new(0.2), {BackgroundColor3 = T.Accent, BackgroundTransparency = 0}):Play()
@@ -527,6 +539,7 @@ local function createSectionHeader(text, parent)
     pip.ZIndex = 4
     pip.Parent = container
     mkCorner(pip, 2)
+    regA(pip)  -- ← accent registry
 
     local lbl = Instance.new("TextLabel")
     lbl.BackgroundTransparency = 1
@@ -574,6 +587,7 @@ local function createButton(text, parent, callback, isCategoryButton)
         activeIndicator.ZIndex = 6
         activeIndicator.Parent = btn
         mkCorner(activeIndicator, 2)
+        regA(activeIndicator)  -- ← accent registry
 
         btn.MouseEnter:Connect(function()
             TweenService:Create(btn, TweenInfo.new(0.18), {BackgroundTransparency = 0.5, TextColor3 = T.TextMain}):Play()
@@ -627,6 +641,7 @@ local function createButton(text, parent, callback, isCategoryButton)
         accentLine.ZIndex = 5
         accentLine.Parent = btn
         mkCorner(accentLine, 2)
+        regA(accentLine)  -- ← accent registry
 
         btn.MouseEnter:Connect(function()
             TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = T.BgBtnHov, BackgroundTransparency = 0.1}):Play()
@@ -681,6 +696,7 @@ local settings = {
         bgColor    = T.BgBase,
         textColor  = T.TextMain,
         strokeColor= T.Stroke,
+        accentColor= T.Accent,   -- NEW: controls all red/accent elements
     }
 }
 
@@ -693,8 +709,25 @@ end
 
 local function updateGuiColors()
     clearRgbConnections()
+
+    -- ── Sync T.Accent from user's chosen accent colour ────────
+    local acc = settings.colors.accentColor
+    T.Accent     = acc
+    T.AccentHov  = Color3.new(math.min(acc.R * 1.22, 1), math.min(acc.G * 1.22, 1), math.min(acc.B * 1.22, 1))
+    T.AccentGlow = Color3.new(math.min(acc.R * 1.35, 1), math.min(acc.G * 1.35, 1), math.min(acc.B * 1.35, 1))
+
+    -- ── Apply to all registered accent elements ───────────────
+    for _, entry in ipairs(accentRegistry) do
+        if entry.obj and entry.obj.Parent then
+            entry.obj[entry.prop] = acc
+        end
+    end
+
+    -- ── BG / transparency ─────────────────────────────────────
     mainFrame.BackgroundColor3 = settings.colors.bgColor
     mainFrame.BackgroundTransparency = settings.transparency
+
+    -- ── UIStroke + TextColor (RGB mode support) ───────────────
     for _, obj in pairs(mainFrame:GetDescendants()) do
         if obj:IsA("UIStroke") then
             if settings.rgbStroke then
@@ -730,6 +763,7 @@ local function saveColorSettings()
             bgColor     = { col.bgColor.R,     col.bgColor.G,     col.bgColor.B     },
             textColor   = { col.textColor.R,   col.textColor.G,   col.textColor.B   },
             strokeColor = { col.strokeColor.R, col.strokeColor.G, col.strokeColor.B },
+            accentColor = { col.accentColor.R, col.accentColor.G, col.accentColor.B },
             transparency = settings.transparency,
             rgbAccent    = settings.rgbAccent,
             rgbStroke    = settings.rgbStroke,
@@ -750,6 +784,9 @@ local function loadColorSettings()
             end
             if data.strokeColor then
                 settings.colors.strokeColor = Color3.new(data.strokeColor[1], data.strokeColor[2], data.strokeColor[3])
+            end
+            if data.accentColor then
+                settings.colors.accentColor = Color3.new(data.accentColor[1], data.accentColor[2], data.accentColor[3])
             end
             if data.transparency ~= nil then settings.transparency = data.transparency end
             if data.rgbAccent    ~= nil then settings.rgbAccent    = data.rgbAccent    end
@@ -798,7 +835,6 @@ end
 --  LOAD CATEGORY
 -- ══════════════════════════════════════
 local function clearContent()
-    -- Disconnect all color picker input connections before destroying UI
     for _, c in pairs(colorPickerConnections) do
         pcall(function() c:Disconnect() end)
     end
@@ -1100,7 +1136,6 @@ end
 --  HSV COLOR PICKER WIDGET
 -- ══════════════════════════════════════
 local function createColorPicker(parent)
-    -- Internal picker state
     local selType = "bgColor"
     local curH, curS, curV = Color3.toHSV(settings.colors.bgColor)
     local curR = math.floor(settings.colors.bgColor.R * 255 + 0.5)
@@ -1115,7 +1150,6 @@ local function createColorPicker(parent)
         curB = math.floor(col.B * 255 + 0.5)
     end
 
-    -- Outer wrapper (auto-resizes via innerLayout)
     local container = Instance.new("Frame")
     container.BackgroundTransparency = 1
     container.Size = UDim2.new(1, 0, 0, 340)
@@ -1131,7 +1165,7 @@ local function createColorPicker(parent)
         container.Size = UDim2.new(1, 0, 0, innerLayout.AbsoluteContentSize.Y + 4)
     end)
 
-    -- ── 1. Type selector (BG / Text / Stroke) ────────────────
+    -- ── 1. Type selector ─────────────────────────────────────
     local typeRow = Instance.new("Frame")
     typeRow.BackgroundTransparency = 1
     typeRow.Size = UDim2.new(1, 0, 0, 28)
@@ -1148,8 +1182,9 @@ local function createColorPicker(parent)
     local typeBtnMap = {}
     local typeItems = {
         { label = "BG Color",   key = "bgColor"     },
-        { label = "Text Color", key = "textColor"   },
+        { label = "Text",       key = "textColor"   },
         { label = "Stroke",     key = "strokeColor" },
+        { label = "Accent",     key = "accentColor" },  -- NEW: controls all red elements
     }
 
     local updatePickerUI  -- forward declaration
@@ -1173,7 +1208,7 @@ local function createColorPicker(parent)
 
     for i, td in ipairs(typeItems) do
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1/3, -3, 1, 0)
+        btn.Size = UDim2.new(1/4, -3, 1, 0)
         btn.BackgroundColor3 = T.BgBtn
         btn.BackgroundTransparency = 0.3
         btn.BorderSizePixel = 0
@@ -1196,7 +1231,7 @@ local function createColorPicker(parent)
     end
     refreshTypeBtns(selType)
 
-    -- ── 2. Main area: SV square  +  right info panel ─────────
+    -- ── 2. Main area: SV square + right info panel ────────────
     local sqSz = 148
 
     local mainArea = Instance.new("Frame")
@@ -1206,7 +1241,6 @@ local function createColorPicker(parent)
     mainArea.ZIndex = 4
     mainArea.Parent = container
 
-    -- SV saturation/value square
     local svBase = Instance.new("Frame")
     svBase.Size = UDim2.new(0, sqSz, 0, sqSz)
     svBase.Position = UDim2.new(0, 0, 0, 0)
@@ -1217,7 +1251,6 @@ local function createColorPicker(parent)
     mkCorner(svBase, 5)
     mkStroke(svBase, 1, T.Stroke, 0.3)
 
-    -- White horizontal overlay  (left = white, right = transparent → Saturation)
     local whiteOv = Instance.new("Frame")
     whiteOv.Size = UDim2.new(1, 0, 1, 0)
     whiteOv.BackgroundColor3 = Color3.new(1, 1, 1)
@@ -1231,7 +1264,6 @@ local function createColorPicker(parent)
     wg.Rotation = 0
     wg.Parent = whiteOv
 
-    -- Black vertical overlay  (top = transparent, bottom = black → Value)
     local blackOv = Instance.new("Frame")
     blackOv.Size = UDim2.new(1, 0, 1, 0)
     blackOv.BackgroundColor3 = Color3.new(0, 0, 0)
@@ -1245,7 +1277,6 @@ local function createColorPicker(parent)
     bg2.Rotation = 90
     bg2.Parent = blackOv
 
-    -- SV cursor dot
     local svCursor = Instance.new("Frame")
     svCursor.Size = UDim2.new(0, 10, 0, 10)
     svCursor.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -1257,7 +1288,6 @@ local function createColorPicker(parent)
     mkCorner(svCursor, 5)
     mkStroke(svCursor, 2, Color3.new(0.1, 0.1, 0.1), 0)
 
-    -- Right panel
     local rightPanel = Instance.new("Frame")
     rightPanel.BackgroundTransparency = 1
     rightPanel.Size = UDim2.new(1, -(sqSz + 8), 1, 0)
@@ -1265,7 +1295,6 @@ local function createColorPicker(parent)
     rightPanel.ZIndex = 4
     rightPanel.Parent = mainArea
 
-    -- Preview swatch
     local previewSwatch = Instance.new("Frame")
     previewSwatch.Size = UDim2.new(1, 0, 0, 52)
     previewSwatch.BackgroundColor3 = settings.colors[selType]
@@ -1285,7 +1314,6 @@ local function createColorPicker(parent)
     previewLbl.ZIndex = 6
     previewLbl.Parent = previewSwatch
 
-    -- Hex input
     local hexRow = Instance.new("Frame")
     hexRow.Size = UDim2.new(1, 0, 0, 26)
     hexRow.Position = UDim2.new(0, 0, 0, 58)
@@ -1322,7 +1350,6 @@ local function createColorPicker(parent)
     hexBox.ZIndex = 6
     hexBox.Parent = hexRow
 
-    -- R / G / B readout labels
     local rgbReadouts = {}
     local channelNames = { "R", "G", "B" }
     for i, nm in ipairs(channelNames) do
@@ -1502,9 +1529,8 @@ local function createColorPicker(parent)
     -- ── Drag state ────────────────────────────────────────────
     local draggingSV  = false
     local draggingHue = false
-    local draggingRGB = 0   -- 0=none, 1/2/3 = R/G/B
+    local draggingRGB = 0
 
-    -- SV square InputBegan
     local c1 = svBase.InputBegan:Connect(function(inp)
         if inp.UserInputType == Enum.UserInputType.MouseButton1
         or inp.UserInputType == Enum.UserInputType.Touch then
@@ -1512,7 +1538,6 @@ local function createColorPicker(parent)
         end
     end)
 
-    -- Hue bar InputBegan
     local c2 = hueTrack.InputBegan:Connect(function(inp)
         if inp.UserInputType == Enum.UserInputType.MouseButton1
         or inp.UserInputType == Enum.UserInputType.Touch then
@@ -1520,7 +1545,6 @@ local function createColorPicker(parent)
         end
     end)
 
-    -- RGB track InputBegan (one per channel)
     for i = 1, 3 do
         local ci = rgbTracks[i].InputBegan:Connect(function(inp)
             if inp.UserInputType == Enum.UserInputType.MouseButton1
@@ -1534,7 +1558,6 @@ local function createColorPicker(parent)
     table.insert(colorPickerConnections, c1)
     table.insert(colorPickerConnections, c2)
 
-    -- Global mouse/touch movement
     local moveConn = UserInputService.InputChanged:Connect(function(inp)
         if inp.UserInputType ~= Enum.UserInputType.MouseMovement
         and inp.UserInputType ~= Enum.UserInputType.Touch then return end
@@ -1564,7 +1587,6 @@ local function createColorPicker(parent)
     end)
     table.insert(colorPickerConnections, moveConn)
 
-    -- Release drag
     local endConn = UserInputService.InputEnded:Connect(function(inp)
         if inp.UserInputType == Enum.UserInputType.MouseButton1
         or inp.UserInputType == Enum.UserInputType.Touch then
@@ -1575,7 +1597,6 @@ local function createColorPicker(parent)
     end)
     table.insert(colorPickerConnections, endConn)
 
-    -- Hex box: apply on Enter
     hexBox.FocusLost:Connect(function(enterPressed)
         if enterPressed then
             local hex = hexBox.Text:gsub("[^%x]", ""):upper()
@@ -1607,7 +1628,7 @@ local function showSettings()
         showSettings()
     end
 
-    -- Color Picker (replaces old BG / Text / Stroke button lists)
+    -- Color Picker
     createSectionHeader("Color Picker", scrollingFrame)
     createColorPicker(scrollingFrame)
 
@@ -1720,7 +1741,6 @@ local categoryOrder = {
     "Grow Garden","Violence District","Weird Gun Game","Rivals",
 }
 
--- Build sidebar buttons
 for _, catName in ipairs(categoryOrder) do
     createButton(catName, catScroll, function()
         clearContent()
@@ -1797,7 +1817,6 @@ end)
 mainFrame.Size = UDim2.new(0, 0, 0, 0)
 mainFrame.BackgroundTransparency = 1
 
--- Restore saved colours before first draw
 loadColorSettings()
 
 TweenService:Create(mainFrame,
@@ -1811,7 +1830,6 @@ TweenService:Create(mainFrame,
 showHome()
 updateGuiColors()
 
--- auto-highlight the first sidebar button
 task.delay(0.1, function()
     local firstBtn = catScroll:FindFirstChildWhichIsA("TextButton")
     if firstBtn then
