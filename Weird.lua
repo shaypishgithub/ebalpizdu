@@ -6,7 +6,7 @@ return {
         loadstring(game:HttpGet('https://raw.githubusercontent.com/checkurasshole/Script/refs/heads/main/IQ'))();
     end},
     {"⚡ Russian Soldier (MegaHack) - Weird Gun Game", function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/weridineedmoremoney.lua"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/a/weridineedmoremoney.lua"))()
     end},
     {"🎯 NXPhub/Swiftbara Hub", function()
    
