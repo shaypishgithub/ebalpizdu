@@ -1,6 +1,4 @@
--- // MM2 GOD-TIER PRO 2026 • EXPANDED VERSION • Multiple New Features
--- 🔥 KILL AURA • SILENT AIM • ESP • TELEPORT • SPEED HACK • SPEED TRAINER
--- 💀 AUTO FARM • MURDER HUNTER • WALK SPEED • JUMP POWER • FLIGHT
+-- // MM2 GOD-TIER 2026 EXPANDED • Custom UI • All Features
 
 local Players          = game:GetService("Players")
 local RunService       = game:GetService("RunService")
@@ -14,39 +12,41 @@ local Settings = {
    -- Combat
    KillAura = false,
    KillAuraRange = 18,
-   KillAuraSpeed = 1,
    KillMurdererFar = false,
    AutoShootMurderer = false,
    SilentAim = false,
    
-   -- Movement
-   Noclip = false,
-   GodMode = false,
-   SpeedHack = false,
-   SpeedHackValue = 1.5,
-   JumpPower = 50,
-   WalkSpeed = 16,
-   Flight = false,
-   FlightSpeed = 50,
-   
-   -- Farming
-   AutoGrabGun = false,
-   AutoFarm = false,
-   MurderHunter = false,
-   
-   -- ESP
+   -- Visuals
    MurderESP = true,
    SheriffESP = true,
    InnocentESP = false,
-   ESPDistance = true,
+   ESPDamageShow = true,
+   ShowHealthBar = true,
+   
+   -- Movement
+   SpeedHack = false,
+   WalkSpeed = 25,
+   Flight = false,
+   FlightSpeed = 50,
+   Noclip = false,
+   
+   -- Utility
+   AutoGrabGun = false,
+   GodMode = false,
+   AntiAFK = false,
+   ShowSpeedometer = true,
    
    -- Other
-   AntiStun = false,
-   LoopKill = false,
-   TargetSpecificPlayer = false,
+   Aimbot = false,
+   AimbotSensitivity = 0.5,
+   InfiniteStamina = false,
 }
 
-local TargetPlayer = nil
+-- ============== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==============
+local FlightActive = false
+local FlightConnection = nil
+local SpeedValue = 0
+local SavedSettings = {}
 
 -- ============== УТИЛИТЫ ==============
 local function getRole(plr)
@@ -71,36 +71,31 @@ local function getMurderer()
    return nil
 end
 
-local function getNearestPlayer()
-   local nearest = nil
-   local distance = math.huge
-   for _, plr in Players:GetPlayers() do
-      if plr ~= LocalPlayer and isAlive(plr) and plr.Character:FindFirstChild("HumanoidRootPart") then
-         local dist = (plr.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-         if dist < distance then
-            distance = dist
-            nearest = plr
-         end
-      end
-   end
-   return nearest
-end
-
 local function getNearestHead(char)
    if not char then return nil end
    local head = char:FindFirstChild("Head")
    return head or char:FindFirstChild("HumanoidRootPart")
 end
 
-local function teleportTo(position)
-   if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-      LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(position)
+local function teleportToPlayer(targetPlr)
+   if not LocalPlayer.Character or not targetPlr.Character then return end
+   local targetRoot = targetPlr.Character:FindFirstChild("HumanoidRootPart")
+   if targetRoot and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+      LocalPlayer.Character.HumanoidRootPart.CFrame = targetRoot.CFrame + Vector3.new(5, 0, 0)
    end
 end
 
-local function getDistance(plr)
-   if not plr.Character or not LocalPlayer.Character then return 0 end
-   return (plr.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+-- ============== SETTINGS SAVE/LOAD ==============
+local function saveSettings()
+   SavedSettings = Settings
+   print("✅ Settings saved!")
+end
+
+local function loadSettings()
+   if SavedSettings and next(SavedSettings) then
+      Settings = SavedSettings
+      print("✅ Settings loaded!")
+   end
 end
 
 -- ============== SILENT AIM ==============
@@ -114,9 +109,9 @@ mt.__namecall = newcclosure(function(self, ...)
    
    if Settings.SilentAim and method == "FireServer" then
       if self.Name:lower():find("fire") or self.Name:lower():find("shoot") or self.Name:lower():find("hit") then
-         local target = TargetPlayer if Settings.TargetSpecificPlayer and TargetPlayer else getMurderer()
-         if target and isAlive(target) then
-            local head = getNearestHead(target.Character)
+         local murd = getMurderer()
+         if murd and isAlive(murd) then
+            local head = getNearestHead(murd.Character)
             if head then
                args[1] = head.Position + Vector3.new(0, 0.12, 0)
                return oldNamecall(self, unpack(args))
@@ -129,36 +124,35 @@ mt.__namecall = newcclosure(function(self, ...)
 end)
 setreadonly(mt, true)
 
+-- ============== AIMBOT ==============
+RunService.RenderStepped:Connect(function()
+   if not Settings.Aimbot then return end
+   
+   local murd = getMurderer()
+   if murd and isAlive(murd) then
+      local head = getNearestHead(murd.Character)
+      if head then
+         local direction = (head.Position - Camera.CFrame.Position).Unit
+         Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + direction), Settings.AimbotSensitivity * 0.1)
+      end
+   end
+end)
+
 -- ============== KILL AURA ==============
-local killAuraCounter = 0
 RunService.Heartbeat:Connect(function()
    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
    local myRoot = LocalPlayer.Character.HumanoidRootPart
    local myPos  = myRoot.Position
    
-   if Settings.KillAura or Settings.LoopKill then
-      killAuraCounter = killAuraCounter + 1
-      if killAuraCounter < (10 / Settings.KillAuraSpeed) then return end
-      killAuraCounter = 0
-      
+   if Settings.KillAura then
       for _, plr in Players:GetPlayers() do
          if plr ~= LocalPlayer and isAlive(plr) and plr.Character:FindFirstChild("HumanoidRootPart") then
             local dist = (plr.Character.HumanoidRootPart.Position - myPos).Magnitude
             if dist <= Settings.KillAuraRange then
-               pcall(function() plr.Character.Humanoid:TakeDamage(100) end)
+               pcall(function() plr.Character.Humanoid.Health = 0 end)
             end
          end
       end
-   end
-end)
-
--- ============== MURDER HUNTER ==============
-RunService.Heartbeat:Connect(function()
-   if not Settings.MurderHunter or not LocalPlayer.Character then return end
-   
-   local murderer = getMurderer()
-   if murderer and isAlive(murderer) and murderer.Character:FindFirstChild("HumanoidRootPart") then
-      teleportTo(murderer.Character.HumanoidRootPart.Position + Vector3.new(5, 0, 0))
    end
 end)
 
@@ -187,6 +181,63 @@ RunService.RenderStepped:Connect(function()
    end
 end)
 
+-- ============== SPEED HACK ==============
+RunService.Heartbeat:Connect(function()
+   if Settings.SpeedHack and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+      local humanoid = LocalPlayer.Character.Humanoid
+      humanoid.WalkSpeed = Settings.WalkSpeed
+   end
+end)
+
+-- ============== FLIGHT SYSTEM ==============
+local function startFlight()
+   if FlightActive or not LocalPlayer.Character then return end
+   FlightActive = true
+   
+   local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+   if not root then FlightActive = false return end
+   
+   local bodyVelocity = Instance.new("BodyVelocity", root)
+   bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+   bodyVelocity.P = 10000
+   bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+   
+   FlightConnection = RunService.Heartbeat:Connect(function()
+      if not FlightActive or not Settings.Flight or not root.Parent then
+         if bodyVelocity then bodyVelocity:Destroy() end
+         if FlightConnection then FlightConnection:Disconnect() end
+         FlightActive = false
+         return
+      end
+      
+      local moveDirection = Vector3.new(0, 0, 0)
+      if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+         moveDirection = moveDirection + (Camera.CFrame.LookVector * Vector3.new(1, 0, 1)).Unit
+      end
+      if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+         moveDirection = moveDirection - (Camera.CFrame.LookVector * Vector3.new(1, 0, 1)).Unit
+      end
+      if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+         moveDirection = moveDirection - Camera.CFrame.RightVector
+      end
+      if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+         moveDirection = moveDirection + Camera.CFrame.RightVector
+      end
+      if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+         moveDirection = moveDirection + Vector3.new(0, 1, 0)
+      end
+      if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+         moveDirection = moveDirection - Vector3.new(0, 1, 0)
+      end
+      
+      if moveDirection.Magnitude > 0 then
+         bodyVelocity.Velocity = moveDirection.Unit * Settings.FlightSpeed
+      else
+         bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+      end
+   end)
+end
+
 -- ============== AUTO GRAB GUN ==============
 RunService.Heartbeat:Connect(function()
    if not Settings.AutoGrabGun then return end
@@ -197,7 +248,7 @@ RunService.Heartbeat:Connect(function()
       if obj:IsA("Tool") and obj.Name == "Gun" then
          local handle = obj.Handle or obj.PrimaryPart
          if handle and (handle.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude < 40 then
-            pcall(function() fireclickdetector(obj:FindFirstChildOfClass("ClickDetector")) end)
+            fireclickdetector(obj:FindFirstChildOfClass("ClickDetector"))
          end
       end
    end
@@ -223,62 +274,32 @@ RunService.Heartbeat:Connect(function()
    end
 end)
 
--- ============== SPEED HACK & FLIGHT ==============
-RunService.RenderStepped:Connect(function()
-   if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-   local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
-   if not humanoid then return end
-   
-   -- Walk Speed
-   humanoid.WalkSpeed = Settings.WalkSpeed
-   
-   -- Jump Power
-   humanoid.JumpPower = Settings.JumpPower
-   
-   -- Speed Hack
-   if Settings.SpeedHack then
-      local direction = humanoid.MoveDirection
-      if direction.Magnitude > 0 then
-         LocalPlayer.Character.HumanoidRootPart.Velocity = direction * Settings.SpeedHackValue * 100
-      end
-   end
-   
-   -- Flight
-   if Settings.Flight then
-      local root = LocalPlayer.Character.HumanoidRootPart
-      local moveDir = humanoid.MoveDirection
-      if moveDir.Magnitude > 0 then
-         root.Velocity = moveDir * Settings.FlightSpeed
-      end
-   end
-end)
-
--- ============== ANTI STUN ==============
+-- ============== INFINITE STAMINA ==============
 RunService.Heartbeat:Connect(function()
-   if not Settings.AntiStun or not LocalPlayer.Character then return end
+   if not Settings.InfiniteStamina or not LocalPlayer.Character then return end
    local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
    if humanoid then
-      humanoid:ClearStateStack()
+      humanoid:FindFirstChild("Stamina") and humanoid.Stamina:Destroy()
    end
 end)
 
--- ============== AUTO FARM ==============
+-- ============== ANTI AFK ==============
 RunService.Heartbeat:Connect(function()
-   if not Settings.AutoFarm then return end
-   if not LocalPlayer.Character then return end
-   
-   -- Auto grab dropped items
-   for _, obj in Workspace:GetChildren() do
-      if obj:IsA("Tool") and obj ~= LocalPlayer.Character:FindFirstChildWhichIsA("Tool") then
-         local handle = obj.Handle or obj.PrimaryPart
-         if handle and (handle.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude < 30 then
-            pcall(function() fireclickdetector(obj:FindFirstChildOfClass("ClickDetector")) end)
-         end
-      end
+   if Settings.AntiAFK and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+      local root = LocalPlayer.Character.HumanoidRootPart
+      root.Velocity = root.Velocity + Vector3.new(0, 0.0001, 0)
    end
 end)
 
--- ============== ESP ==============
+-- ============== SPEEDOMETER ==============
+RunService.Heartbeat:Connect(function()
+   if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+      local root = LocalPlayer.Character.HumanoidRootPart
+      SpeedValue = math.floor(root.Velocity.Magnitude + 0.5)
+   end
+end)
+
+-- ============== ADVANCED ESP ==============
 local ESP = {}
 local function createESP(plr)
    if plr == LocalPlayer or ESP[plr] then return end
@@ -289,22 +310,37 @@ local function createESP(plr)
    
    local bb = Instance.new("BillboardGui", root)
    bb.Adornee = root
-   bb.Size = UDim2.new(0, 200, 0, 50)
+   bb.Size = UDim2.new(0, 200, 0, 80)
    bb.AlwaysOnTop = true
    bb.StudsOffset = Vector3.new(0, 4.2, 0)
    
    local txt = Instance.new("TextLabel", bb)
-   txt.Size = UDim2.new(1,0,1,0)
+   txt.Size = UDim2.new(1, 0, 0.5, 0)
    txt.BackgroundTransparency = 1
    txt.TextScaled = true
    txt.Font = Enum.Font.GothamBold
    txt.TextStrokeTransparency = 0.5
-   txt.TextStrokeColor3 = Color3.new(0,0,0)
+   txt.TextStrokeColor3 = Color3.new(0, 0, 0)
    
-   ESP[plr] = bb
+   -- Health Bar
+   local healthBar = Instance.new("Frame", bb)
+   healthBar.Size = UDim2.new(1, 0, 0.25, 0)
+   healthBar.Position = UDim2.new(0, 0, 0.5, 0)
+   healthBar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+   healthBar.BorderSizePixel = 0
+   
+   local healthFill = Instance.new("Frame", healthBar)
+   healthFill.Size = UDim2.new(1, 0, 1, 0)
+   healthFill.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+   healthFill.BorderSizePixel = 0
+   
+   ESP[plr] = {bb = bb, txt = txt, healthBar = healthBar, healthFill = healthFill}
    
    plr.CharacterRemoving:Connect(function()
-      if ESP[plr] then pcall(function() ESP[plr]:Destroy() end) ESP[plr] = nil end
+      if ESP[plr] then
+         pcall(function() ESP[plr].bb:Destroy() end)
+         ESP[plr] = nil
+      end
    end)
 end
 
@@ -313,18 +349,13 @@ local function refreshESP()
       if plr == LocalPlayer then continue end
       local role = getRole(plr)
       local enabled = false
-      local color = Color3.fromRGB(200,200,60)
-      local displayText = plr.Name .. " [" .. role .. "]"
-      
-      if Settings.ESPDistance then
-         displayText = displayText .. " [" .. math.floor(getDistance(plr)) .. "m]"
-      end
+      local color = Color3.fromRGB(200, 200, 60)
       
       if role == "Murderer" and Settings.MurderESP then
-         color = Color3.fromRGB(220,40,40)
+         color = Color3.fromRGB(220, 40, 40)
          enabled = true
       elseif role == "Sheriff" and Settings.SheriffESP then
-         color = Color3.fromRGB(60,140,255)
+         color = Color3.fromRGB(60, 140, 255)
          enabled = true
       elseif role == "Innocent" and Settings.InnocentESP then
          enabled = true
@@ -332,34 +363,71 @@ local function refreshESP()
       
       if enabled then
          createESP(plr)
-         if ESP[plr] and ESP[plr].TextLabel then
-            ESP[plr].TextLabel.Text = displayText
-            ESP[plr].TextLabel.TextColor3 = color
+         if ESP[plr] then
+            local humanoid = plr.Character and plr.Character:FindFirstChild("Humanoid")
+            local health = humanoid and humanoid.Health or 100
+            local maxHealth = humanoid and humanoid.MaxHealth or 100
+            
+            ESP[plr].txt.Text = plr.Name .. " [" .. role .. "]\n" .. math.floor(health) .. "/" .. math.floor(maxHealth)
+            ESP[plr].txt.TextColor3 = color
+            
+            if Settings.ShowHealthBar and humanoid then
+               local healthPercent = math.clamp(health / maxHealth, 0, 1)
+               ESP[plr].healthFill.Size = UDim2.new(healthPercent, 0, 1, 0)
+            end
          end
       else
-         if ESP[plr] then pcall(function() ESP[plr]:Destroy() end) ESP[plr] = nil end
+         if ESP[plr] then
+            pcall(function() ESP[plr].bb:Destroy() end)
+            ESP[plr] = nil
+         end
       end
    end
 end
 
-Players.PlayerAdded:Connect(function(p) 
-   p.CharacterAdded:Connect(function() task.delay(1, refreshESP) end) 
+Players.PlayerAdded:Connect(function(p)
+   p.CharacterAdded:Connect(function() task.delay(1, refreshESP) end)
 end)
 RunService.Heartbeat:Connect(refreshESP)
 
--- ============== GUI КАСТОМНЫЙ ==============
+-- ============== SPEEDOMETER DISPLAY ==============
+local Speedometer = Instance.new("TextLabel", UserGui)
+Speedometer.Name = "Speedometer"
+Speedometer.Size = UDim2.new(0, 150, 0, 50)
+Speedometer.Position = UDim2.new(1, -170, 1, -70)
+Speedometer.BackgroundColor3 = Color3.fromRGB(30, 80, 180)
+Speedometer.TextColor3 = Color3.white
+Speedometer.TextSize = 14
+Speedometer.Font = Enum.Font.GothamBold
+Speedometer.BorderSizePixel = 0
+
+local SpeedCorner = Instance.new("UICorner", Speedometer)
+SpeedCorner.CornerRadius = UDim.new(0, 8)
+
+RunService.Heartbeat:Connect(function()
+   if Settings.ShowSpeedometer then
+      Speedometer.Visible = true
+      Speedometer.Text = "🚀 SPEED\n" .. SpeedValue .. " studs/s"
+   else
+      Speedometer.Visible = false
+   end
+end)
+
+-- ============== КАСТОМНЫЙ GUI ==============
 local MainGui = Instance.new("ScreenGui", UserGui)
-MainGui.Name = "MM2_GOD_TIER_PRO_GUI"
+MainGui.Name = "MM2_GOD_TIER_GUI"
 MainGui.ResetOnSpawn = false
 MainGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local MainFrame = Instance.new("Frame", MainGui)
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 350, 0, 650)
+MainFrame.Size = UDim2.new(0, 400, 0, 750)
 MainFrame.Position = UDim2.new(0, 20, 0, 100)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 35)
 MainFrame.BorderSizePixel = 0
+MainFrame.CanQuery = true
 
+-- Градиент (ЧЁРНЫЙ → СИНИЙ)
 local UIGradient = Instance.new("UIGradient", MainFrame)
 UIGradient.Color = ColorSequence.new({
    ColorSequenceKeypoint.new(0, Color3.fromRGB(5, 5, 15)),
@@ -367,6 +435,7 @@ UIGradient.Color = ColorSequence.new({
 })
 UIGradient.Rotation = 45
 
+-- Закругленные углы
 local UICorner = Instance.new("UICorner", MainFrame)
 UICorner.CornerRadius = UDim.new(0, 12)
 
@@ -376,6 +445,7 @@ Header.Name = "Header"
 Header.Size = UDim2.new(1, 0, 0, 50)
 Header.BackgroundColor3 = Color3.fromRGB(20, 50, 120)
 Header.BorderSizePixel = 0
+Header.CanQuery = true
 
 local HeaderCorner = Instance.new("UICorner", Header)
 HeaderCorner.CornerRadius = UDim.new(0, 12)
@@ -384,9 +454,9 @@ local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(1, -50, 1, 0)
 Title.BackgroundTransparency = 1
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 16
+Title.TextSize = 18
 Title.Font = Enum.Font.GothamBold
-Title.Text = "🔥 MM2 GOD-TIER PRO"
+Title.Text = "🔥 MM2 GOD-TIER EXPANDED"
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Padding = UDim.new(0, 10)
 
@@ -405,7 +475,7 @@ local CloseBtnCorner = Instance.new("UICorner", CloseBtn)
 CloseBtnCorner.CornerRadius = UDim.new(0, 8)
 
 CloseBtn.MouseButton1Click:Connect(function()
-   MainFrame:TweenSize(UDim2.new(0, 350, 0, 0), Enum.EasingDirection.InOut, Enum.EasingStyle.Quad, 0.3, true, function()
+   MainFrame:TweenSize(UDim2.new(0, 400, 0, 0), Enum.EasingDirection.InOut, Enum.EasingStyle.Quad, 0.3, true, function()
       MainFrame.Visible = false
    end)
 end)
@@ -427,7 +497,7 @@ OpenBtnCorner.CornerRadius = UDim.new(0, 12)
 
 OpenBtn.MouseButton1Click:Connect(function()
    MainFrame.Visible = true
-   MainFrame:TweenSize(UDim2.new(0, 350, 0, 650), Enum.EasingDirection.InOut, Enum.EasingStyle.Quad, 0.3)
+   MainFrame:TweenSize(UDim2.new(0, 400, 0, 750), Enum.EasingDirection.InOut, Enum.EasingStyle.Quad, 0.3)
    OpenBtn.Visible = false
 end)
 
@@ -435,7 +505,7 @@ CloseBtn.MouseButton1Click:Connect(function()
    OpenBtn.Visible = true
 end)
 
--- Drag
+-- Drag Functionality
 local dragging = false
 local dragStart = nil
 local startPos = nil
@@ -462,7 +532,7 @@ UserInputService.InputEnded:Connect(function(input, gameProcessed)
    end
 end)
 
--- ScrollContainer
+-- Scroll Container
 local ScrollContainer = Instance.new("ScrollingFrame", MainFrame)
 ScrollContainer.Name = "ScrollContainer"
 ScrollContainer.Size = UDim2.new(1, -10, 1, -60)
@@ -471,26 +541,14 @@ ScrollContainer.BackgroundTransparency = 1
 ScrollContainer.BorderSizePixel = 0
 ScrollContainer.ScrollBarThickness = 6
 ScrollContainer.ScrollBarImageColor3 = Color3.fromRGB(100, 150, 255)
+ScrollContainer.CanQuery = true
 
 local Layout = Instance.new("UIListLayout", ScrollContainer)
 Layout.Padding = UDim.new(0, 8)
 Layout.FillDirection = Enum.FillDirection.Vertical
 Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- ============== UI FUNCTIONS ==============
-local function createSection(parent, name, emoji)
-   local Label = Instance.new("TextLabel", parent)
-   Label.Size = UDim2.new(1, -10, 0, 25)
-   Label.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
-   Label.TextColor3 = Color3.white
-   Label.TextSize = 12
-   Label.Font = Enum.Font.GothamBold
-   Label.Text = emoji .. " " .. name
-   Label.BorderSizePixel = 0
-   local Corner = Instance.new("UICorner", Label)
-   Corner.CornerRadius = UDim.new(0, 6)
-end
-
+-- ============== ФУНКЦИИ ДЛЯ СОЗДАНИЯ ЭЛЕМЕНТОВ ==============
 local function createToggle(parent, name, defaultValue, callback)
    local Container = Instance.new("Frame", parent)
    Container.Size = UDim2.new(1, 0, 0, 35)
@@ -504,7 +562,7 @@ local function createToggle(parent, name, defaultValue, callback)
    Label.Size = UDim2.new(1, -50, 1, 0)
    Label.BackgroundTransparency = 1
    Label.TextColor3 = Color3.fromRGB(200, 200, 200)
-   Label.TextSize = 12
+   Label.TextSize = 13
    Label.Font = Enum.Font.Gotham
    Label.Text = name
    Label.TextXAlignment = Enum.TextXAlignment.Left
@@ -536,7 +594,7 @@ end
 
 local function createSlider(parent, name, min, max, defaultValue, callback)
    local Container = Instance.new("Frame", parent)
-   Container.Size = UDim2.new(1, 0, 0, 50)
+   Container.Size = UDim2.new(1, 0, 0, 60)
    Container.BackgroundColor3 = Color3.fromRGB(25, 25, 50)
    Container.BorderSizePixel = 0
    
@@ -544,17 +602,17 @@ local function createSlider(parent, name, min, max, defaultValue, callback)
    Corner.CornerRadius = UDim.new(0, 8)
    
    local Label = Instance.new("TextLabel", Container)
-   Label.Size = UDim2.new(1, -60, 0, 20)
+   Label.Size = UDim2.new(1, -20, 0, 20)
    Label.Position = UDim2.new(0, 10, 0, 5)
    Label.BackgroundTransparency = 1
    Label.TextColor3 = Color3.fromRGB(200, 200, 200)
-   Label.TextSize = 11
+   Label.TextSize = 12
    Label.Font = Enum.Font.GothamBold
    Label.Text = name .. ": " .. defaultValue
    Label.TextXAlignment = Enum.TextXAlignment.Left
    
    local SliderBg = Instance.new("Frame", Container)
-   SliderBg.Size = UDim2.new(1, -20, 0, 8)
+   SliderBg.Size = UDim2.new(1, -20, 0, 10)
    SliderBg.Position = UDim2.new(0, 10, 0, 28)
    SliderBg.BackgroundColor3 = Color3.fromRGB(40, 40, 80)
    SliderBg.BorderSizePixel = 0
@@ -587,92 +645,140 @@ local function createSlider(parent, name, min, max, defaultValue, callback)
 end
 
 local function createButton(parent, name, callback)
-   local Button = Instance.new("TextButton", parent)
-   Button.Size = UDim2.new(1, 0, 0, 35)
-   Button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
-   Button.TextColor3 = Color3.white
-   Button.TextSize = 13
-   Button.Font = Enum.Font.GothamBold
-   Button.Text = name
-   Button.BorderSizePixel = 0
+   local Btn = Instance.new("TextButton", parent)
+   Btn.Size = UDim2.new(1, 0, 0, 35)
+   Btn.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+   Btn.TextColor3 = Color3.white
+   Btn.TextSize = 13
+   Btn.Font = Enum.Font.GothamBold
+   Btn.Text = name
+   Btn.BorderSizePixel = 0
    
-   local Corner = Instance.new("UICorner", Button)
-   Corner.CornerRadius = UDim.new(0, 8)
+   local BtnCorner = Instance.new("UICorner", Btn)
+   BtnCorner.CornerRadius = UDim.new(0, 8)
    
-   Button.MouseButton1Click:Connect(callback)
+   Btn.MouseButton1Click:Connect(callback)
    
-   Button.MouseEnter:Connect(function()
-      Button.BackgroundColor3 = Color3.fromRGB(90, 150, 200)
+   Btn.MouseEnter:Connect(function()
+      Btn.BackgroundColor3 = Color3.fromRGB(120, 170, 255)
    end)
    
-   Button.MouseLeave:Connect(function()
-      Button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+   Btn.MouseLeave:Connect(function()
+      Btn.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
    end)
    
-   return Button
+   return Btn
 end
 
--- ============== GUI ELEMENTS ==============
+-- ============== СОЗДАНИЕ ЭЛЕМЕНТОВ ==============
 
 -- COMBAT SECTION
-createSection(ScrollContainer, "COMBAT", "⚔️")
+local CombatLabel = Instance.new("TextLabel", ScrollContainer)
+CombatLabel.Size = UDim2.new(1, -10, 0, 25)
+CombatLabel.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+CombatLabel.TextColor3 = Color3.white
+CombatLabel.TextSize = 13
+CombatLabel.Font = Enum.Font.GothamBold
+CombatLabel.Text = "⚔️ COMBAT"
+CombatLabel.BorderSizePixel = 0
+
+local CombatCorner = Instance.new("UICorner", CombatLabel)
+CombatCorner.CornerRadius = UDim.new(0, 6)
+
 createToggle(ScrollContainer, "Kill Aura", Settings.KillAura, function(v) Settings.KillAura = v end)
 createSlider(ScrollContainer, "Aura Range", 8, 35, Settings.KillAuraRange, function(v) Settings.KillAuraRange = v end)
-createSlider(ScrollContainer, "Aura Speed", 0.5, 3, Settings.KillAuraSpeed, function(v) Settings.KillAuraSpeed = v end)
-createToggle(ScrollContainer, "Loop Kill All", Settings.LoopKill, function(v) Settings.LoopKill = v end)
 createToggle(ScrollContainer, "Kill Murderer (Far)", Settings.KillMurdererFar, function(v) Settings.KillMurdererFar = v end)
 createToggle(ScrollContainer, "Auto Shoot", Settings.AutoShootMurderer, function(v) Settings.AutoShootMurderer = v end)
 createToggle(ScrollContainer, "Silent Aim", Settings.SilentAim, function(v) Settings.SilentAim = v end)
-createToggle(ScrollContainer, "Murder Hunter", Settings.MurderHunter, function(v) Settings.MurderHunter = v end)
+createToggle(ScrollContainer, "Aimbot", Settings.Aimbot, function(v) Settings.Aimbot = v end)
+createSlider(ScrollContainer, "Aimbot Sens", 0.1, 1, Settings.AimbotSensitivity, function(v) Settings.AimbotSensitivity = v / 10 end)
 
 -- MOVEMENT SECTION
-createSection(ScrollContainer, "MOVEMENT", "🏃")
-createToggle(ScrollContainer, "God Mode", Settings.GodMode, function(v) Settings.GodMode = v end)
-createToggle(ScrollContainer, "Noclip", Settings.Noclip, function(v) Settings.Noclip = v end)
-createSlider(ScrollContainer, "Walk Speed", 16, 100, Settings.WalkSpeed, function(v) Settings.WalkSpeed = v end)
-createSlider(ScrollContainer, "Jump Power", 50, 150, Settings.JumpPower, function(v) Settings.JumpPower = v end)
+local MovementLabel = Instance.new("TextLabel", ScrollContainer)
+MovementLabel.Size = UDim2.new(1, -10, 0, 25)
+MovementLabel.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+MovementLabel.TextColor3 = Color3.white
+MovementLabel.TextSize = 13
+MovementLabel.Font = Enum.Font.GothamBold
+MovementLabel.Text = "🚀 MOVEMENT"
+MovementLabel.BorderSizePixel = 0
+
+local MovementCorner = Instance.new("UICorner", MovementLabel)
+MovementCorner.CornerRadius = UDim.new(0, 6)
+
 createToggle(ScrollContainer, "Speed Hack", Settings.SpeedHack, function(v) Settings.SpeedHack = v end)
-createSlider(ScrollContainer, "Speed Value", 1, 3, Settings.SpeedHackValue, function(v) Settings.SpeedHackValue = v end)
-createToggle(ScrollContainer, "Flight", Settings.Flight, function(v) Settings.Flight = v end)
+createSlider(ScrollContainer, "Walk Speed", 16, 100, Settings.WalkSpeed, function(v) Settings.WalkSpeed = v end)
+createToggle(ScrollContainer, "Flight", Settings.Flight, function(v) 
+   Settings.Flight = v 
+   if v then startFlight() end
+end)
 createSlider(ScrollContainer, "Flight Speed", 10, 150, Settings.FlightSpeed, function(v) Settings.FlightSpeed = v end)
-createToggle(ScrollContainer, "Anti Stun", Settings.AntiStun, function(v) Settings.AntiStun = v end)
+createToggle(ScrollContainer, "Noclip", Settings.Noclip, function(v) Settings.Noclip = v end)
 
--- FARMING SECTION
-createSection(ScrollContainer, "FARMING", "💎")
+-- VISUALS SECTION
+local VisualsLabel = Instance.new("TextLabel", ScrollContainer)
+VisualsLabel.Size = UDim2.new(1, -10, 0, 25)
+VisualsLabel.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+VisualsLabel.TextColor3 = Color3.white
+VisualsLabel.TextSize = 13
+VisualsLabel.Font = Enum.Font.GothamBold
+VisualsLabel.Text = "👁️ VISUALS"
+VisualsLabel.BorderSizePixel = 0
+
+local VisualsCorner = Instance.new("UICorner", VisualsLabel)
+VisualsCorner.CornerRadius = UDim.new(0, 6)
+
+createToggle(ScrollContainer, "Murderer ESP 🔴", Settings.MurderESP, function(v) Settings.MurderESP = v refreshESP() end)
+createToggle(ScrollContainer, "Sheriff ESP 🔵", Settings.SheriffESP, function(v) Settings.SheriffESP = v refreshESP() end)
+createToggle(ScrollContainer, "Innocent ESP 🟡", Settings.InnocentESP, function(v) Settings.InnocentESP = v refreshESP() end)
+createToggle(ScrollContainer, "Health Bars", Settings.ShowHealthBar, function(v) Settings.ShowHealthBar = v end)
+createToggle(ScrollContainer, "Speedometer", Settings.ShowSpeedometer, function(v) Settings.ShowSpeedometer = v end)
+
+-- UTILITY SECTION
+local UtilityLabel = Instance.new("TextLabel", ScrollContainer)
+UtilityLabel.Size = UDim2.new(1, -10, 0, 25)
+UtilityLabel.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+UtilityLabel.TextColor3 = Color3.white
+UtilityLabel.TextSize = 13
+UtilityLabel.Font = Enum.Font.GothamBold
+UtilityLabel.Text = "🔧 UTILITY"
+UtilityLabel.BorderSizePixel = 0
+
+local UtilityCorner = Instance.new("UICorner", UtilityLabel)
+UtilityCorner.CornerRadius = UDim.new(0, 6)
+
+createToggle(ScrollContainer, "God Mode", Settings.GodMode, function(v) Settings.GodMode = v end)
 createToggle(ScrollContainer, "Auto Grab Gun", Settings.AutoGrabGun, function(v) Settings.AutoGrabGun = v end)
-createToggle(ScrollContainer, "Auto Farm", Settings.AutoFarm, function(v) Settings.AutoFarm = v end)
-createButton(ScrollContainer, "📍 Teleport to Murderer", function()
-   local murd = getMurderer()
-   if murd and isAlive(murd) then
-      teleportTo(murd.Character.HumanoidRootPart.Position + Vector3.new(5, 3, 0))
-   end
-end)
-createButton(ScrollContainer, "📍 Teleport to Nearest", function()
-   local nearest = getNearestPlayer()
-   if nearest then
-      teleportTo(nearest.Character.HumanoidRootPart.Position + Vector3.new(5, 3, 0))
-   end
-end)
+createToggle(ScrollContainer, "Anti AFK", Settings.AntiAFK, function(v) Settings.AntiAFK = v end)
+createToggle(ScrollContainer, "Infinite Stamina", Settings.InfiniteStamina, function(v) Settings.InfiniteStamina = v end)
 
--- VISUAL SECTION
-createSection(ScrollContainer, "VISUALS", "👁️")
-createToggle(ScrollContainer, "Murderer ESP", Settings.MurderESP, function(v) Settings.MurderESP = v refreshESP() end)
-createToggle(ScrollContainer, "Sheriff ESP", Settings.SheriffESP, function(v) Settings.SheriffESP = v refreshESP() end)
-createToggle(ScrollContainer, "Innocent ESP", Settings.InnocentESP, function(v) Settings.InnocentESP = v refreshESP() end)
-createToggle(ScrollContainer, "Show Distance", Settings.ESPDistance, function(v) Settings.ESPDistance = v refreshESP() end)
+-- SETTINGS SECTION
+local SettingsLabel = Instance.new("TextLabel", ScrollContainer)
+SettingsLabel.Size = UDim2.new(1, -10, 0, 25)
+SettingsLabel.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+SettingsLabel.TextColor3 = Color3.white
+SettingsLabel.TextSize = 13
+SettingsLabel.Font = Enum.Font.GothamBold
+SettingsLabel.Text = "⚙️ SETTINGS"
+SettingsLabel.BorderSizePixel = 0
 
--- NOTIFICATION
+local SettingsCorner = Instance.new("UICorner", SettingsLabel)
+SettingsCorner.CornerRadius = UDim.new(0, 6)
+
+createButton(ScrollContainer, "💾 Save Settings", saveSettings)
+createButton(ScrollContainer, "📂 Load Settings", loadSettings)
+
+-- Notification
 local Notification = Instance.new("TextLabel", UserGui)
 Notification.Name = "Notification"
 Notification.Size = UDim2.new(0, 450, 0, 100)
 Notification.Position = UDim2.new(0.5, -225, 0, 20)
 Notification.BackgroundColor3 = Color3.fromRGB(30, 150, 60)
 Notification.TextColor3 = Color3.white
-Notification.TextSize = 13
+Notification.TextSize = 14
 Notification.Font = Enum.Font.GothamBold
-Notification.Text = "✅ MM2 GOD-TIER PRO 2026 LOADED!\n🔥 All Features Ready • Draggable UI\n💀 Kill Aura • Flight • Speed Hack • Murder Hunter"
+Notification.Text = "✅ MM2 GOD-TIER 2026 EXPANDED\n✨ All Features Loaded!\n🎮 Ready to Dominate!"
 Notification.BorderSizePixel = 0
-Notification.TextWrapped = true
 
 local NotifCorner = Instance.new("UICorner", Notification)
 NotifCorner.CornerRadius = UDim.new(0, 8)
@@ -682,4 +788,4 @@ Notification:TweenPosition(UDim2.new(0.5, -225, 0, -120), Enum.EasingDirection.I
    Notification:Destroy()
 end)
 
-print("✅ MM2 GOD-TIER PRO 2026 • EXPANDED • All Features Active!")
+print("✅ MM2 GOD-TIER 2026 EXPANDED • All Features Ready!")
