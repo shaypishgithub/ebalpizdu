@@ -1,4 +1,4 @@
--- MM2 ULTIMATE GOD-TIER 2026
+-- MM2 ULTIMATE RAYFIELD STYLE 2026
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -10,39 +10,23 @@ local UserGui = LocalPlayer:WaitForChild("PlayerGui")
 local Camera = Workspace.CurrentCamera
 
 local Settings = {
-   -- Auto Farm
    AutoFarmMurder = false,
    AutoFarmSheriff = false,
    AutoFarmInnocent = false,
-   
-   -- Combat
    KillAura = false,
    KillAuraRange = 18,
    SilentAim = false,
-   
-   -- ESP
    MurderESP = true,
    SheriffESP = true,
    InnocentESP = false,
    CoinESP = true,
-   PlayerESP = true,
-   
-   -- Movement
    SpeedHack = false,
    WalkSpeed = 25,
    Noclip = false,
-   
-   -- Utility
    GodMode = false,
-   AntiAFK = false,
-   AntiFlip = false,
-   
-   -- Teleport
-   TeleportTarget = nil,
 }
 
--- ============== ОСНОВНЫЕ ФУНКЦИИ ==============
-
+-- ============== CORE FUNCTIONS ==============
 local function getRole(plr)
    if not plr.Character then return "None" end
    local knife = plr.Backpack:FindFirstChild("Knife") or plr.Character:FindFirstChild("Knife")
@@ -62,7 +46,6 @@ local function getMurderer()
          return plr
       end
    end
-   return nil
 end
 
 local function getSheriff()
@@ -71,26 +54,16 @@ local function getSheriff()
          return plr
       end
    end
-   return nil
 end
 
-local function getInnocents()
-   local innocents = {}
-   for _, plr in Players:GetPlayers() do
-      if plr ~= LocalPlayer and getRole(plr) == "Innocent" and isAlive(plr) then
-         table.insert(innocents, plr)
-      end
-   end
-   return innocents
-end
+-- ============== FEATURES ==============
 
--- ============== AUTO FARM ==============
+-- Kill Aura
 RunService.Heartbeat:Connect(function()
    if not LocalPlayer.Character then return end
    local myRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
    if not myRoot then return end
    
-   -- Kill Aura
    if Settings.KillAura then
       for _, plr in Players:GetPlayers() do
          if plr ~= LocalPlayer and isAlive(plr) then
@@ -102,43 +75,28 @@ RunService.Heartbeat:Connect(function()
       end
    end
    
-   -- Auto Farm Murder
    if Settings.AutoFarmMurder then
       local murd = getMurderer()
       if murd and isAlive(murd) then
          local root = murd.Character:FindFirstChild("HumanoidRootPart")
-         if root and (root.Position - myRoot.Position).Magnitude <= 18 then
+         if root and (root.Position - myRoot.Position).Magnitude <= 20 then
             pcall(function() murd.Character.Humanoid.Health = 0 end)
          end
       end
    end
    
-   -- Auto Farm Sheriff
    if Settings.AutoFarmSheriff then
       local sheriff = getSheriff()
       if sheriff and isAlive(sheriff) then
          local root = sheriff.Character:FindFirstChild("HumanoidRootPart")
-         if root and (root.Position - myRoot.Position).Magnitude <= 18 then
+         if root and (root.Position - myRoot.Position).Magnitude <= 20 then
             pcall(function() sheriff.Character.Humanoid.Health = 0 end)
-         end
-      end
-   end
-   
-   -- Auto Farm Innocent
-   if Settings.AutoFarmInnocent then
-      local innocents = getInnocents()
-      for _, innocent in ipairs(innocents) do
-         if isAlive(innocent) then
-            local root = innocent.Character:FindFirstChild("HumanoidRootPart")
-            if root and (root.Position - myRoot.Position).Magnitude <= 18 then
-               pcall(function() innocent.Character.Humanoid.Health = 0 end)
-            end
          end
       end
    end
 end)
 
--- ============== SPEED HACK ==============
+-- Speed Hack
 RunService.Heartbeat:Connect(function()
    if Settings.SpeedHack and LocalPlayer.Character then
       local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
@@ -146,7 +104,7 @@ RunService.Heartbeat:Connect(function()
    end
 end)
 
--- ============== NOCLIP ==============
+-- Noclip
 RunService.Stepped:Connect(function()
    if Settings.Noclip and LocalPlayer.Character then
       for _, part in LocalPlayer.Character:GetDescendants() do
@@ -157,7 +115,7 @@ RunService.Stepped:Connect(function()
    end
 end)
 
--- ============== GOD MODE ==============
+-- God Mode
 RunService.Heartbeat:Connect(function()
    if Settings.GodMode and LocalPlayer.Character then
       local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
@@ -168,27 +126,7 @@ RunService.Heartbeat:Connect(function()
    end
 end)
 
--- ============== ANTI FLIP ==============
-RunService.Heartbeat:Connect(function()
-   if Settings.AntiFlip and LocalPlayer.Character then
-      local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-      if root then
-         root.CFrame = CFrame.new(root.Position, root.Position + root.CFrame.LookVector)
-      end
-   end
-end)
-
--- ============== ANTI AFK ==============
-RunService.Heartbeat:Connect(function()
-   if Settings.AntiAFK and LocalPlayer.Character then
-      local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-      if root then
-         root.Velocity = root.Velocity + Vector3.new(0, 0.0001, 0)
-      end
-   end
-end)
-
--- ============== SILENT AIM ==============
+-- Silent Aim
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
 setreadonly(mt, false)
@@ -212,46 +150,16 @@ mt.__namecall = newcclosure(function(self, ...)
 end)
 setreadonly(mt, true)
 
--- ============== ESP ==============
+-- ESP
 local ESP = {}
-
-local function createESP(plr, role, color)
-   if ESP[plr] then return end
-   if not plr.Character then return end
-   
-   local root = plr.Character:FindFirstChild("HumanoidRootPart")
-   if not root then return end
-   
-   local bb = Instance.new("BillboardGui")
-   bb.Adornee = root
-   bb.MaxDistance = math.huge
-   bb.Size = UDim2.new(0, 150, 0, 50)
-   bb.StudsOffset = Vector3.new(0, 3, 0)
-   bb.Parent = root
-   
-   local txt = Instance.new("TextLabel")
-   txt.Parent = bb
-   txt.BackgroundTransparency = 1
-   txt.Size = UDim2.new(1, 0, 1, 0)
-   txt.TextScaled = true
-   txt.Font = Enum.Font.GothamBold
-   txt.TextStrokeTransparency = 0.5
-   txt.TextColor3 = color
-   txt.Text = plr.Name .. " [" .. role .. "]"
-   
-   ESP[plr] = bb
-   
-   plr.CharacterRemoving:Connect(function()
-      if ESP[plr] then
-         pcall(function() ESP[plr]:Destroy() end)
-         ESP[plr] = nil
-      end
-   end)
-end
 
 local function updateESP()
    for _, plr in Players:GetPlayers() do
       if plr == LocalPlayer then continue end
+      if not plr.Character then continue end
+      
+      local root = plr.Character:FindFirstChild("HumanoidRootPart")
+      if not root then continue end
       
       local role = getRole(plr)
       local color = Color3.fromRGB(255, 255, 255)
@@ -268,8 +176,27 @@ local function updateESP()
          show = true
       end
       
-      if show and Settings.PlayerESP then
-         createESP(plr, role, color)
+      if show then
+         if not ESP[plr] then
+            local bb = Instance.new("BillboardGui")
+            bb.Adornee = root
+            bb.MaxDistance = math.huge
+            bb.Size = UDim2.new(0, 150, 0, 50)
+            bb.StudsOffset = Vector3.new(0, 3, 0)
+            
+            local txt = Instance.new("TextLabel")
+            txt.Parent = bb
+            txt.BackgroundTransparency = 1
+            txt.Size = UDim2.new(1, 0, 1, 0)
+            txt.TextScaled = true
+            txt.Font = Enum.Font.GothamBold
+            txt.TextStrokeTransparency = 0.5
+            txt.TextColor3 = color
+            txt.Text = plr.Name .. " [" .. role .. "]"
+            
+            bb.Parent = root
+            ESP[plr] = bb
+         end
       else
          if ESP[plr] then
             pcall(function() ESP[plr]:Destroy() end)
@@ -281,194 +208,226 @@ end
 
 RunService.Heartbeat:Connect(updateESP)
 
--- Coin ESP
-local CoinESP = {}
-RunService.Heartbeat:Connect(function()
-   if not Settings.CoinESP then return end
+-- ============== GUI RAYFIELD STYLE ==============
+
+local MainGui = Instance.new("ScreenGui")
+MainGui.Name = "MM2RayfieldStyle"
+MainGui.ResetOnSpawn = false
+MainGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+MainGui.Parent = UserGui
+
+-- Main Window
+local Window = Instance.new("Frame")
+Window.Name = "Window"
+Window.Size = UDim2.new(0, 550, 0, 650)
+Window.Position = UDim2.new(0.5, -275, 0.5, -325)
+Window.BackgroundColor3 = Color3.fromRGB(25, 25, 45)
+Window.BorderSizePixel = 0
+Window.Parent = MainGui
+
+local WindowCorner = Instance.new("UICorner")
+WindowCorner.CornerRadius = UDim.new(0, 10)
+WindowCorner.Parent = Window
+
+-- Top Bar
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Size = UDim2.new(1, 0, 0, 60)
+TopBar.BackgroundColor3 = Color3.fromRGB(15, 15, 35)
+TopBar.BorderSizePixel = 0
+TopBar.Parent = Window
+
+local TopBarCorner = Instance.new("UICorner")
+TopBarCorner.CornerRadius = UDim.new(0, 10)
+TopBarCorner.Parent = TopBar
+
+-- Title
+local TitleText = Instance.new("TextLabel")
+TitleText.Name = "Title"
+TitleText.Size = UDim2.new(0.7, 0, 1, 0)
+TitleText.Position = UDim2.new(0.05, 0, 0, 0)
+TitleText.BackgroundTransparency = 1
+TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleText.TextSize = 20
+TitleText.Font = Enum.Font.GothamBold
+TitleText.Text = "MM2 ULTIMATE"
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+TitleText.TextYAlignment = Enum.TextYAlignment.Center
+TitleText.Parent = TopBar
+
+-- Subtitle
+local SubtitleText = Instance.new("TextLabel")
+SubtitleText.Name = "Subtitle"
+SubtitleText.Size = UDim2.new(0.7, 0, 0, 20)
+SubtitleText.Position = UDim2.new(0.05, 0, 0.5, 0)
+SubtitleText.BackgroundTransparency = 1
+SubtitleText.TextColor3 = Color3.fromRGB(150, 150, 150)
+SubtitleText.TextSize = 12
+SubtitleText.Font = Enum.Font.Gotham
+SubtitleText.Text = "All Features Loaded"
+SubtitleText.TextXAlignment = Enum.TextXAlignment.Left
+SubtitleText.TextYAlignment = Enum.TextYAlignment.Center
+SubtitleText.Parent = TopBar
+
+-- Close Button
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 40, 0, 40)
+CloseButton.Position = UDim2.new(1, -50, 0.5, -20)
+CloseButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+CloseButton.TextColor3 = Color3.white
+CloseButton.TextSize = 14
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Text = "X"
+CloseButton.BorderSizePixel = 0
+CloseButton.Parent = TopBar
+
+local CloseButtonCorner = Instance.new("UICorner")
+CloseButtonCorner.CornerRadius = UDim.new(0, 6)
+CloseButtonCorner.Parent = CloseButton
+
+CloseButton.MouseButton1Click:Connect(function()
+   Window.Visible = false
+end)
+
+-- Tab Buttons Frame
+local TabsFrame = Instance.new("Frame")
+TabsFrame.Name = "TabsFrame"
+TabsFrame.Size = UDim2.new(0.3, 0, 1, -60)
+TabsFrame.Position = UDim2.new(0, 0, 0, 60)
+TabsFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
+TabsFrame.BorderSizePixel = 0
+TabsFrame.Parent = Window
+
+local TabsLayout = Instance.new("UIListLayout")
+TabsLayout.Padding = UDim.new(0, 0)
+TabsLayout.Parent = TabsFrame
+
+-- Content Frame
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Name = "ContentFrame"
+ContentFrame.Size = UDim2.new(0.7, 0, 1, -60)
+ContentFrame.Position = UDim2.new(0.3, 0, 0, 60)
+ContentFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 45)
+ContentFrame.BorderSizePixel = 0
+ContentFrame.Parent = Window
+
+-- Scroll Frame for Content
+local ScrollFrame = Instance.new("ScrollingFrame")
+ScrollFrame.Name = "ScrollFrame"
+ScrollFrame.Size = UDim2.new(1, -10, 1, -10)
+ScrollFrame.Position = UDim2.new(0, 5, 0, 5)
+ScrollFrame.BackgroundTransparency = 1
+ScrollFrame.BorderSizePixel = 0
+ScrollFrame.ScrollBarThickness = 5
+ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 150, 255)
+ScrollFrame.Parent = ContentFrame
+
+local ScrollLayout = Instance.new("UIListLayout")
+ScrollLayout.Padding = UDim.new(0, 10)
+ScrollLayout.Parent = ScrollFrame
+
+-- Tab Creation System
+local CurrentTab = nil
+local Tabs = {}
+
+local function CreateTab(TabName)
+   -- Tab Button
+   local TabButton = Instance.new("TextButton")
+   TabButton.Name = TabName
+   TabButton.Size = UDim2.new(1, 0, 0, 50)
+   TabButton.BackgroundColor3 = Color3.fromRGB(30, 30, 60)
+   TabButton.TextColor3 = Color3.white
+   TabButton.TextSize = 12
+   TabButton.Font = Enum.Font.GothamBold
+   TabButton.Text = TabName
+   TabButton.BorderSizePixel = 0
+   TabButton.Parent = TabsFrame
    
-   for _, coin in ipairs(Workspace:FindFirstChild("Coins") and Workspace.Coins:GetChildren() or {}) do
-      if not CoinESP[coin] and coin:IsA("BasePart") then
-         local bb = Instance.new("BillboardGui")
-         bb.Adornee = coin
-         bb.MaxDistance = math.huge
-         bb.Size = UDim2.new(0, 100, 0, 30)
-         bb.Parent = coin
-         
-         local txt = Instance.new("TextLabel")
-         txt.Parent = bb
-         txt.BackgroundTransparency = 1
-         txt.Size = UDim2.new(1, 0, 1, 0)
-         txt.TextScaled = true
-         txt.Font = Enum.Font.GothamBold
-         txt.TextColor3 = Color3.fromRGB(255, 215, 0)
-         txt.Text = "💰 COIN"
-         
-         CoinESP[coin] = bb
-         
-         coin.AncestryChanged:Connect(function()
-            if not coin.Parent then
-               pcall(function() bb:Destroy() end)
-               CoinESP[coin] = nil
-            end
-         end)
+   local TabButtonCorner = Instance.new("UICorner")
+   TabButtonCorner.CornerRadius = UDim.new(0, 0)
+   TabButtonCorner.Parent = TabButton
+   
+   -- Active indicator
+   local ActiveBar = Instance.new("Frame")
+   ActiveBar.Name = "ActiveBar"
+   ActiveBar.Size = UDim2.new(0, 3, 1, 0)
+   ActiveBar.Position = UDim2.new(1, 0, 0, 0)
+   ActiveBar.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
+   ActiveBar.BorderSizePixel = 0
+   ActiveBar.Visible = false
+   ActiveBar.Parent = TabButton
+   
+   local function SelectTab()
+      for _, tab in pairs(Tabs) do
+         if tab.Button then
+            tab.Button.BackgroundColor3 = Color3.fromRGB(30, 30, 60)
+            tab.Button:FindFirstChild("ActiveBar").Visible = false
+         end
+      end
+      
+      TabButton.BackgroundColor3 = Color3.fromRGB(35, 35, 70)
+      ActiveBar.Visible = true
+      CurrentTab = TabName
+      
+      ScrollFrame:ClearAllChildren()
+      ScrollLayout.Parent = ScrollFrame
+      
+      if Tabs[TabName] and Tabs[TabName].Content then
+         for _, item in ipairs(Tabs[TabName].Content) do
+            item.Parent = ScrollFrame
+         end
       end
    end
-end)
-
--- ============== GUI ==============
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MM2GUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = UserGui
-
--- Основной фрейм
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 380, 0, 700)
-MainFrame.Position = UDim2.new(0, 20, 0, 80)
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 30)
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
-
--- Градиент
-local Gradient = Instance.new("UIGradient")
-Gradient.Color = ColorSequence.new({
-   ColorSequenceKeypoint.new(0, Color3.fromRGB(5, 5, 15)),
-   ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 100, 200))
-})
-Gradient.Parent = MainFrame
-
--- Скругление углов
-local Corner = Instance.new("UICorner")
-Corner.CornerRadius = UDim.new(0, 12)
-Corner.Parent = MainFrame
-
--- Header
-local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 50)
-Header.BackgroundColor3 = Color3.fromRGB(20, 50, 120)
-Header.BorderSizePixel = 0
-Header.Parent = MainFrame
-
-local HeaderCorner = Instance.new("UICorner")
-HeaderCorner.CornerRadius = UDim.new(0, 12)
-HeaderCorner.Parent = Header
-
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(0.8, 0, 1, 0)
-Title.Position = UDim2.new(0.05, 0, 0, 0)
-Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.white
-Title.TextSize = 16
-Title.Font = Enum.Font.GothamBold
-Title.Text = "🔥 MM2 ULTIMATE"
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.TextYAlignment = Enum.TextYAlignment.Center
-Title.Parent = Header
-
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 40, 0, 40)
-CloseBtn.Position = UDim2.new(1, -45, 0.5, -20)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-CloseBtn.TextColor3 = Color3.white
-CloseBtn.TextSize = 16
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.Text = "✕"
-CloseBtn.BorderSizePixel = 0
-CloseBtn.Parent = Header
-
-local CloseBtnCorner = Instance.new("UICorner")
-CloseBtnCorner.CornerRadius = UDim.new(0, 6)
-CloseBtnCorner.Parent = CloseBtn
-
--- Перетаскивание
-local dragging = false
-local dragStart = nil
-local startPos = nil
-
-Header.InputBegan:Connect(function(input, gp)
-   if gp then return end
-   if input.UserInputType == Enum.UserInputType.MouseButton1 then
-      dragging = true
-      dragStart = input.Position
-      startPos = MainFrame.Position
-   end
-end)
-
-UserInputService.InputChanged:Connect(function(input, gp)
-   if dragging then
-      local delta = input.Position - dragStart
-      MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-   end
-end)
-
-UserInputService.InputEnded:Connect(function(input, gp)
-   if input.UserInputType == Enum.UserInputType.MouseButton1 then
-      dragging = false
-   end
-end)
-
--- Список элементов
-local List = Instance.new("ScrollingFrame")
-List.Size = UDim2.new(1, -10, 1, -60)
-List.Position = UDim2.new(0, 5, 0, 55)
-List.BackgroundTransparency = 1
-List.BorderSizePixel = 0
-List.ScrollBarThickness = 5
-List.Parent = MainFrame
-
-local ListLayout = Instance.new("UIListLayout")
-ListLayout.Padding = UDim.new(0, 6)
-ListLayout.Parent = List
-
--- Функция для создания заголовка раздела
-local function addSectionLabel(text)
-   local Label = Instance.new("TextLabel")
-   Label.Size = UDim2.new(1, 0, 0, 25)
-   Label.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
-   Label.TextColor3 = Color3.white
-   Label.TextSize = 12
-   Label.Font = Enum.Font.GothamBold
-   Label.Text = text
-   Label.BorderSizePixel = 0
-   Label.Parent = List
    
-   local LabelCorner = Instance.new("UICorner")
-   LabelCorner.CornerRadius = UDim.new(0, 6)
-   LabelCorner.Parent = Label
+   TabButton.MouseButton1Click:Connect(SelectTab)
+   
+   Tabs[TabName] = {
+      Button = TabButton,
+      Content = {},
+      Select = SelectTab
+   }
+   
+   if CurrentTab == nil then
+      SelectTab()
+   end
+   
+   return TabName
 end
 
--- Функция для создания тоггла
-local function addToggle(text, setting)
+-- Toggle Creator
+local function AddToggle(TabName, Name, DefaultValue, Callback)
+   if not Tabs[TabName] then return end
+   
    local Toggle = Instance.new("Frame")
-   Toggle.Size = UDim2.new(1, 0, 0, 30)
+   Toggle.Name = Name
+   Toggle.Size = UDim2.new(1, 0, 0, 40)
    Toggle.BackgroundColor3 = Color3.fromRGB(30, 30, 60)
    Toggle.BorderSizePixel = 0
-   Toggle.Parent = List
    
    local ToggleCorner = Instance.new("UICorner")
    ToggleCorner.CornerRadius = UDim.new(0, 6)
    ToggleCorner.Parent = Toggle
    
    local Label = Instance.new("TextLabel")
-   Label.Size = UDim2.new(0.7, 0, 1, 0)
+   Label.Size = UDim2.new(0.6, 0, 1, 0)
    Label.BackgroundTransparency = 1
    Label.TextColor3 = Color3.white
    Label.TextSize = 12
    Label.Font = Enum.Font.Gotham
-   Label.Text = text
+   Label.Text = Name
    Label.TextXAlignment = Enum.TextXAlignment.Left
    Label.TextYAlignment = Enum.TextYAlignment.Center
    Label.Parent = Toggle
    
    local Button = Instance.new("TextButton")
-   Button.Size = UDim2.new(0.25, 0, 0.7, 0)
-   Button.Position = UDim2.new(0.7, 0, 0.15, 0)
-   Button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+   Button.Size = UDim2.new(0.3, 0, 0.6, 0)
+   Button.Position = UDim2.new(0.65, 0, 0.2, 0)
+   Button.BackgroundColor3 = DefaultValue and Color3.fromRGB(50, 200, 100) or Color3.fromRGB(100, 100, 100)
    Button.TextColor3 = Color3.white
    Button.TextSize = 11
    Button.Font = Enum.Font.GothamBold
-   Button.Text = Settings[setting] and "ON" or "OFF"
+   Button.Text = DefaultValue and "ON" or "OFF"
    Button.BorderSizePixel = 0
    Button.Parent = Toggle
    
@@ -477,19 +436,24 @@ local function addToggle(text, setting)
    ButtonCorner.Parent = Button
    
    Button.MouseButton1Click:Connect(function()
-      Settings[setting] = not Settings[setting]
-      Button.Text = Settings[setting] and "ON" or "OFF"
-      Button.BackgroundColor3 = Settings[setting] and Color3.fromRGB(50, 200, 100) or Color3.fromRGB(100, 100, 100)
+      DefaultValue = not DefaultValue
+      Button.BackgroundColor3 = DefaultValue and Color3.fromRGB(50, 200, 100) or Color3.fromRGB(100, 100, 100)
+      Button.Text = DefaultValue and "ON" or "OFF"
+      if Callback then Callback(DefaultValue) end
    end)
+   
+   table.insert(Tabs[TabName].Content, Toggle)
 end
 
--- Функция для создания слайдера
-local function addSlider(text, setting, min, max)
+-- Slider Creator
+local function AddSlider(TabName, Name, Min, Max, DefaultValue, Callback)
+   if not Tabs[TabName] then return end
+   
    local Container = Instance.new("Frame")
-   Container.Size = UDim2.new(1, 0, 0, 50)
+   Container.Name = Name
+   Container.Size = UDim2.new(1, 0, 0, 60)
    Container.BackgroundColor3 = Color3.fromRGB(30, 30, 60)
    Container.BorderSizePixel = 0
-   Container.Parent = List
    
    local ContainerCorner = Instance.new("UICorner")
    ContainerCorner.CornerRadius = UDim.new(0, 6)
@@ -497,18 +461,18 @@ local function addSlider(text, setting, min, max)
    
    local Label = Instance.new("TextLabel")
    Label.Size = UDim2.new(1, -10, 0, 20)
-   Label.Position = UDim2.new(0, 5, 0, 3)
+   Label.Position = UDim2.new(0, 5, 0, 5)
    Label.BackgroundTransparency = 1
    Label.TextColor3 = Color3.white
    Label.TextSize = 11
    Label.Font = Enum.Font.GothamBold
-   Label.Text = text .. ": " .. Settings[setting]
+   Label.Text = Name .. ": " .. DefaultValue
    Label.TextXAlignment = Enum.TextXAlignment.Left
    Label.Parent = Container
    
    local SliderBg = Instance.new("Frame")
    SliderBg.Size = UDim2.new(1, -10, 0, 8)
-   SliderBg.Position = UDim2.new(0, 5, 0, 25)
+   SliderBg.Position = UDim2.new(0, 5, 0, 30)
    SliderBg.BackgroundColor3 = Color3.fromRGB(50, 50, 100)
    SliderBg.BorderSizePixel = 0
    SliderBg.Parent = Container
@@ -518,7 +482,7 @@ local function addSlider(text, setting, min, max)
    SliderBgCorner.Parent = SliderBg
    
    local SliderFill = Instance.new("Frame")
-   local percent = (Settings[setting] - min) / (max - min)
+   local percent = (DefaultValue - Min) / (Max - Min)
    SliderFill.Size = UDim2.new(percent, 0, 1, 0)
    SliderFill.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
    SliderFill.BorderSizePixel = 0
@@ -532,109 +496,39 @@ local function addSlider(text, setting, min, max)
       if input.UserInputType == Enum.UserInputType.MouseButton1 then
          local mouseX = input.Position.X - SliderBg.AbsolutePosition.X
          local percent = math.clamp(mouseX / SliderBg.AbsoluteSize.X, 0, 1)
-         local value = math.floor(min + (max - min) * percent)
+         local value = math.floor(Min + (Max - Min) * percent)
          
-         Settings[setting] = value
+         DefaultValue = value
          SliderFill.Size = UDim2.new(percent, 0, 1, 0)
-         Label.Text = text .. ": " .. value
+         Label.Text = Name .. ": " .. value
+         if Callback then Callback(value) end
       end
    end)
-end
-
--- Функция для кнопки телепорта
-local function addTeleportButton(text, plr)
-   local Btn = Instance.new("TextButton")
-   Btn.Size = UDim2.new(1, 0, 0, 30)
-   Btn.BackgroundColor3 = Color3.fromRGB(80, 180, 120)
-   Btn.TextColor3 = Color3.white
-   Btn.TextSize = 11
-   Btn.Font = Enum.Font.GothamBold
-   Btn.Text = text
-   Btn.BorderSizePixel = 0
-   Btn.Parent = List
    
-   local BtnCorner = Instance.new("UICorner")
-   BtnCorner.CornerRadius = UDim.new(0, 6)
-   BtnCorner.Parent = Btn
-   
-   Btn.MouseButton1Click:Connect(function()
-      if LocalPlayer.Character and plr.Character then
-         local targetRoot = plr.Character:FindFirstChild("HumanoidRootPart")
-         if targetRoot then
-            LocalPlayer.Character:MoveTo(targetRoot.Position + Vector3.new(5, 0, 0))
-         end
-      end
-   end)
+   table.insert(Tabs[TabName].Content, Container)
 end
 
--- ============== СОЗДАНИЕ ЭЛЕМЕНТОВ GUI ==============
+-- ============== BUILD GUI ==============
 
--- AUTO FARM SECTION
-addSectionLabel("⚡ AUTO FARM")
-addToggle("Auto Farm Murder", "AutoFarmMurder")
-addToggle("Auto Farm Sheriff", "AutoFarmSheriff")
-addToggle("Auto Farm Innocent", "AutoFarmInnocent")
-addToggle("Kill Aura", "KillAura")
-addSlider("Aura Range", "KillAuraRange", 8, 35)
+CreateTab("Combat")
+AddToggle("Combat", "Kill Aura", Settings.KillAura, function(v) Settings.KillAura = v end)
+AddSlider("Combat", "Aura Range", 8, 35, Settings.KillAuraRange, function(v) Settings.KillAuraRange = v end)
+AddToggle("Combat", "Auto Farm Murder", Settings.AutoFarmMurder, function(v) Settings.AutoFarmMurder = v end)
+AddToggle("Combat", "Auto Farm Sheriff", Settings.AutoFarmSheriff, function(v) Settings.AutoFarmSheriff = v end)
+AddToggle("Combat", "Silent Aim", Settings.SilentAim, function(v) Settings.SilentAim = v end)
 
--- COMBAT SECTION
-addSectionLabel("⚔️ COMBAT")
-addToggle("Silent Aim", "SilentAim")
+CreateTab("Visuals")
+AddToggle("Visuals", "Murder ESP", Settings.MurderESP, function(v) Settings.MurderESP = v end)
+AddToggle("Visuals", "Sheriff ESP", Settings.SheriffESP, function(v) Settings.SheriffESP = v end)
+AddToggle("Visuals", "Innocent ESP", Settings.InnocentESP, function(v) Settings.InnocentESP = v end)
+AddToggle("Visuals", "Coin ESP", Settings.CoinESP, function(v) Settings.CoinESP = v end)
 
--- VISUALS SECTION
-addSectionLabel("👁️ VISUALS")
-addToggle("Murder ESP", "MurderESP")
-addToggle("Sheriff ESP", "SheriffESP")
-addToggle("Innocent ESP", "InnocentESP")
-addToggle("Coin ESP", "CoinESP")
-addToggle("Player ESP", "PlayerESP")
+CreateTab("Movement")
+AddToggle("Movement", "Speed Hack", Settings.SpeedHack, function(v) Settings.SpeedHack = v end)
+AddSlider("Movement", "Walk Speed", 16, 100, Settings.WalkSpeed, function(v) Settings.WalkSpeed = v end)
+AddToggle("Movement", "Noclip", Settings.Noclip, function(v) Settings.Noclip = v end)
 
--- MOVEMENT SECTION
-addSectionLabel("🚀 MOVEMENT")
-addToggle("Speed Hack", "SpeedHack")
-addSlider("Walk Speed", "WalkSpeed", 16, 100)
-addToggle("Noclip", "Noclip")
+CreateTab("Utility")
+AddToggle("Utility", "God Mode", Settings.GodMode, function(v) Settings.GodMode = v end)
 
--- UTILITY SECTION
-addSectionLabel("🔧 UTILITY")
-addToggle("God Mode", "GodMode")
-addToggle("Anti AFK", "AntiAFK")
-addToggle("Anti Flip", "AntiFlip")
-
--- TELEPORT SECTION
-addSectionLabel("📍 TELEPORT")
-for _, plr in ipairs(Players:GetPlayers()) do
-   if plr ~= LocalPlayer then
-      addTeleportButton("TP -> " .. plr.Name, plr)
-   end
-end
-
--- Кнопка закрытия
-CloseBtn.MouseButton1Click:Connect(function()
-   MainFrame:TweenSize(UDim2.new(0, 380, 0, 0), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 0.3, true, function()
-      MainFrame.Visible = false
-   end)
-end)
-
--- Уведомление при загрузке
-local Notif = Instance.new("TextLabel")
-Notif.Size = UDim2.new(0, 400, 0, 80)
-Notif.Position = UDim2.new(0.5, -200, 0, 20)
-Notif.BackgroundColor3 = Color3.fromRGB(30, 150, 60)
-Notif.TextColor3 = Color3.white
-Notif.TextSize = 14
-Notif.Font = Enum.Font.GothamBold
-Notif.Text = "✅ MM2 ULTIMATE LOADED!\n🔥 All Features Ready!\n🎮 Enjoy!"
-Notif.BorderSizePixel = 0
-Notif.Parent = ScreenGui
-
-local NotifCorner = Instance.new("UICorner")
-NotifCorner.CornerRadius = UDim.new(0, 8)
-NotifCorner.Parent = Notif
-
-task.wait(5)
-Notif:TweenPosition(UDim2.new(0.5, -200, 0, -100), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 0.5, true, function()
-   Notif:Destroy()
-end)
-
-print("✅ MM2 ULTIMATE GOD-TIER 2026 LOADED!")
+print("✅ MM2 ULTIMATE RAYFIELD STYLE LOADED!")
