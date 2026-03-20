@@ -1,4 +1,4 @@
--- MM2 GOD-TIER 2026 FIXED
+-- MM2 ULTIMATE GOD-TIER 2026
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -10,15 +10,35 @@ local UserGui = LocalPlayer:WaitForChild("PlayerGui")
 local Camera = Workspace.CurrentCamera
 
 local Settings = {
+   -- Auto Farm
+   AutoFarmMurder = false,
+   AutoFarmSheriff = false,
+   AutoFarmInnocent = false,
+   
+   -- Combat
    KillAura = false,
    KillAuraRange = 18,
    SilentAim = false,
+   
+   -- ESP
    MurderESP = true,
    SheriffESP = true,
-   Noclip = false,
-   GodMode = false,
+   InnocentESP = false,
+   CoinESP = true,
+   PlayerESP = true,
+   
+   -- Movement
    SpeedHack = false,
    WalkSpeed = 25,
+   Noclip = false,
+   
+   -- Utility
+   GodMode = false,
+   AntiAFK = false,
+   AntiFlip = false,
+   
+   -- Teleport
+   TeleportTarget = nil,
 }
 
 -- ============== ОСНОВНЫЕ ФУНКЦИИ ==============
@@ -45,18 +65,73 @@ local function getMurderer()
    return nil
 end
 
--- ============== KILL AURA ==============
+local function getSheriff()
+   for _, plr in Players:GetPlayers() do
+      if plr ~= LocalPlayer and getRole(plr) == "Sheriff" and isAlive(plr) then
+         return plr
+      end
+   end
+   return nil
+end
+
+local function getInnocents()
+   local innocents = {}
+   for _, plr in Players:GetPlayers() do
+      if plr ~= LocalPlayer and getRole(plr) == "Innocent" and isAlive(plr) then
+         table.insert(innocents, plr)
+      end
+   end
+   return innocents
+end
+
+-- ============== AUTO FARM ==============
 RunService.Heartbeat:Connect(function()
    if not LocalPlayer.Character then return end
    local myRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
    if not myRoot then return end
    
+   -- Kill Aura
    if Settings.KillAura then
       for _, plr in Players:GetPlayers() do
          if plr ~= LocalPlayer and isAlive(plr) then
             local root = plr.Character:FindFirstChild("HumanoidRootPart")
             if root and (root.Position - myRoot.Position).Magnitude <= Settings.KillAuraRange then
                pcall(function() plr.Character.Humanoid.Health = 0 end)
+            end
+         end
+      end
+   end
+   
+   -- Auto Farm Murder
+   if Settings.AutoFarmMurder then
+      local murd = getMurderer()
+      if murd and isAlive(murd) then
+         local root = murd.Character:FindFirstChild("HumanoidRootPart")
+         if root and (root.Position - myRoot.Position).Magnitude <= 18 then
+            pcall(function() murd.Character.Humanoid.Health = 0 end)
+         end
+      end
+   end
+   
+   -- Auto Farm Sheriff
+   if Settings.AutoFarmSheriff then
+      local sheriff = getSheriff()
+      if sheriff and isAlive(sheriff) then
+         local root = sheriff.Character:FindFirstChild("HumanoidRootPart")
+         if root and (root.Position - myRoot.Position).Magnitude <= 18 then
+            pcall(function() sheriff.Character.Humanoid.Health = 0 end)
+         end
+      end
+   end
+   
+   -- Auto Farm Innocent
+   if Settings.AutoFarmInnocent then
+      local innocents = getInnocents()
+      for _, innocent in ipairs(innocents) do
+         if isAlive(innocent) then
+            local root = innocent.Character:FindFirstChild("HumanoidRootPart")
+            if root and (root.Position - myRoot.Position).Magnitude <= 18 then
+               pcall(function() innocent.Character.Humanoid.Health = 0 end)
             end
          end
       end
@@ -93,6 +168,26 @@ RunService.Heartbeat:Connect(function()
    end
 end)
 
+-- ============== ANTI FLIP ==============
+RunService.Heartbeat:Connect(function()
+   if Settings.AntiFlip and LocalPlayer.Character then
+      local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+      if root then
+         root.CFrame = CFrame.new(root.Position, root.Position + root.CFrame.LookVector)
+      end
+   end
+end)
+
+-- ============== ANTI AFK ==============
+RunService.Heartbeat:Connect(function()
+   if Settings.AntiAFK and LocalPlayer.Character then
+      local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+      if root then
+         root.Velocity = root.Velocity + Vector3.new(0, 0.0001, 0)
+      end
+   end
+end)
+
 -- ============== SILENT AIM ==============
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
@@ -120,7 +215,7 @@ setreadonly(mt, true)
 -- ============== ESP ==============
 local ESP = {}
 
-local function createESP(plr)
+local function createESP(plr, role, color)
    if ESP[plr] then return end
    if not plr.Character then return end
    
@@ -141,6 +236,8 @@ local function createESP(plr)
    txt.TextScaled = true
    txt.Font = Enum.Font.GothamBold
    txt.TextStrokeTransparency = 0.5
+   txt.TextColor3 = color
+   txt.Text = plr.Name .. " [" .. role .. "]"
    
    ESP[plr] = bb
    
@@ -166,14 +263,13 @@ local function updateESP()
       elseif role == "Sheriff" and Settings.SheriffESP then
          color = Color3.fromRGB(60, 140, 255)
          show = true
+      elseif role == "Innocent" and Settings.InnocentESP then
+         color = Color3.fromRGB(200, 200, 60)
+         show = true
       end
       
-      if show then
-         createESP(plr)
-         if ESP[plr] and ESP[plr]:FindFirstChild("TextLabel") then
-            ESP[plr].TextLabel.Text = plr.Name .. " [" .. role .. "]"
-            ESP[plr].TextLabel.TextColor3 = color
-         end
+      if show and Settings.PlayerESP then
+         createESP(plr, role, color)
       else
          if ESP[plr] then
             pcall(function() ESP[plr]:Destroy() end)
@@ -185,6 +281,40 @@ end
 
 RunService.Heartbeat:Connect(updateESP)
 
+-- Coin ESP
+local CoinESP = {}
+RunService.Heartbeat:Connect(function()
+   if not Settings.CoinESP then return end
+   
+   for _, coin in ipairs(Workspace:FindFirstChild("Coins") and Workspace.Coins:GetChildren() or {}) do
+      if not CoinESP[coin] and coin:IsA("BasePart") then
+         local bb = Instance.new("BillboardGui")
+         bb.Adornee = coin
+         bb.MaxDistance = math.huge
+         bb.Size = UDim2.new(0, 100, 0, 30)
+         bb.Parent = coin
+         
+         local txt = Instance.new("TextLabel")
+         txt.Parent = bb
+         txt.BackgroundTransparency = 1
+         txt.Size = UDim2.new(1, 0, 1, 0)
+         txt.TextScaled = true
+         txt.Font = Enum.Font.GothamBold
+         txt.TextColor3 = Color3.fromRGB(255, 215, 0)
+         txt.Text = "💰 COIN"
+         
+         CoinESP[coin] = bb
+         
+         coin.AncestryChanged:Connect(function()
+            if not coin.Parent then
+               pcall(function() bb:Destroy() end)
+               CoinESP[coin] = nil
+            end
+         end)
+      end
+   end
+end)
+
 -- ============== GUI ==============
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MM2GUI"
@@ -194,13 +324,13 @@ ScreenGui.Parent = UserGui
 -- Основной фрейм
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 300, 0, 550)
-MainFrame.Position = UDim2.new(0, 20, 0, 100)
+MainFrame.Size = UDim2.new(0, 380, 0, 700)
+MainFrame.Position = UDim2.new(0, 20, 0, 80)
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 30)
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
 
--- Добавляем градиент
+-- Градиент
 local Gradient = Instance.new("UIGradient")
 Gradient.Color = ColorSequence.new({
    ColorSequenceKeypoint.new(0, Color3.fromRGB(5, 5, 15)),
@@ -210,39 +340,40 @@ Gradient.Parent = MainFrame
 
 -- Скругление углов
 local Corner = Instance.new("UICorner")
-Corner.CornerRadius = UDim.new(0, 10)
+Corner.CornerRadius = UDim.new(0, 12)
 Corner.Parent = MainFrame
 
 -- Header
 local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 45)
+Header.Size = UDim2.new(1, 0, 0, 50)
 Header.BackgroundColor3 = Color3.fromRGB(20, 50, 120)
 Header.BorderSizePixel = 0
 Header.Parent = MainFrame
 
 local HeaderCorner = Instance.new("UICorner")
-HeaderCorner.CornerRadius = UDim.new(0, 10)
+HeaderCorner.CornerRadius = UDim.new(0, 12)
 HeaderCorner.Parent = Header
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(0.85, 0, 1, 0)
+Title.Size = UDim2.new(0.8, 0, 1, 0)
 Title.Position = UDim2.new(0.05, 0, 0, 0)
 Title.BackgroundTransparency = 1
 Title.TextColor3 = Color3.white
 Title.TextSize = 16
 Title.Font = Enum.Font.GothamBold
-Title.Text = "🔥 MM2 GOD-TIER"
+Title.Text = "🔥 MM2 ULTIMATE"
 Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.TextYAlignment = Enum.TextYAlignment.Center
 Title.Parent = Header
 
 local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 35, 0, 35)
-CloseBtn.Position = UDim2.new(1, -40, 0.5, -17.5)
+CloseBtn.Size = UDim2.new(0, 40, 0, 40)
+CloseBtn.Position = UDim2.new(1, -45, 0.5, -20)
 CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 CloseBtn.TextColor3 = Color3.white
-CloseBtn.TextSize = 14
+CloseBtn.TextSize = 16
 CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.Text = "X"
+CloseBtn.Text = "✕"
 CloseBtn.BorderSizePixel = 0
 CloseBtn.Parent = Header
 
@@ -279,8 +410,8 @@ end)
 
 -- Список элементов
 local List = Instance.new("ScrollingFrame")
-List.Size = UDim2.new(1, -10, 1, -55)
-List.Position = UDim2.new(0, 5, 0, 50)
+List.Size = UDim2.new(1, -10, 1, -60)
+List.Position = UDim2.new(0, 5, 0, 55)
 List.BackgroundTransparency = 1
 List.BorderSizePixel = 0
 List.ScrollBarThickness = 5
@@ -289,6 +420,23 @@ List.Parent = MainFrame
 local ListLayout = Instance.new("UIListLayout")
 ListLayout.Padding = UDim.new(0, 6)
 ListLayout.Parent = List
+
+-- Функция для создания заголовка раздела
+local function addSectionLabel(text)
+   local Label = Instance.new("TextLabel")
+   Label.Size = UDim2.new(1, 0, 0, 25)
+   Label.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+   Label.TextColor3 = Color3.white
+   Label.TextSize = 12
+   Label.Font = Enum.Font.GothamBold
+   Label.Text = text
+   Label.BorderSizePixel = 0
+   Label.Parent = List
+   
+   local LabelCorner = Instance.new("UICorner")
+   LabelCorner.CornerRadius = UDim.new(0, 6)
+   LabelCorner.Parent = Label
+end
 
 -- Функция для создания тоггла
 local function addToggle(text, setting)
@@ -393,33 +541,90 @@ local function addSlider(text, setting, min, max)
    end)
 end
 
--- Добавляем элементы
+-- Функция для кнопки телепорта
+local function addTeleportButton(text, plr)
+   local Btn = Instance.new("TextButton")
+   Btn.Size = UDim2.new(1, 0, 0, 30)
+   Btn.BackgroundColor3 = Color3.fromRGB(80, 180, 120)
+   Btn.TextColor3 = Color3.white
+   Btn.TextSize = 11
+   Btn.Font = Enum.Font.GothamBold
+   Btn.Text = text
+   Btn.BorderSizePixel = 0
+   Btn.Parent = List
+   
+   local BtnCorner = Instance.new("UICorner")
+   BtnCorner.CornerRadius = UDim.new(0, 6)
+   BtnCorner.Parent = Btn
+   
+   Btn.MouseButton1Click:Connect(function()
+      if LocalPlayer.Character and plr.Character then
+         local targetRoot = plr.Character:FindFirstChild("HumanoidRootPart")
+         if targetRoot then
+            LocalPlayer.Character:MoveTo(targetRoot.Position + Vector3.new(5, 0, 0))
+         end
+      end
+   end)
+end
+
+-- ============== СОЗДАНИЕ ЭЛЕМЕНТОВ GUI ==============
+
+-- AUTO FARM SECTION
+addSectionLabel("⚡ AUTO FARM")
+addToggle("Auto Farm Murder", "AutoFarmMurder")
+addToggle("Auto Farm Sheriff", "AutoFarmSheriff")
+addToggle("Auto Farm Innocent", "AutoFarmInnocent")
 addToggle("Kill Aura", "KillAura")
 addSlider("Aura Range", "KillAuraRange", 8, 35)
+
+-- COMBAT SECTION
+addSectionLabel("⚔️ COMBAT")
 addToggle("Silent Aim", "SilentAim")
-addToggle("Murderer ESP", "MurderESP")
+
+-- VISUALS SECTION
+addSectionLabel("👁️ VISUALS")
+addToggle("Murder ESP", "MurderESP")
 addToggle("Sheriff ESP", "SheriffESP")
+addToggle("Innocent ESP", "InnocentESP")
+addToggle("Coin ESP", "CoinESP")
+addToggle("Player ESP", "PlayerESP")
+
+-- MOVEMENT SECTION
+addSectionLabel("🚀 MOVEMENT")
 addToggle("Speed Hack", "SpeedHack")
 addSlider("Walk Speed", "WalkSpeed", 16, 100)
 addToggle("Noclip", "Noclip")
+
+-- UTILITY SECTION
+addSectionLabel("🔧 UTILITY")
 addToggle("God Mode", "GodMode")
+addToggle("Anti AFK", "AntiAFK")
+addToggle("Anti Flip", "AntiFlip")
+
+-- TELEPORT SECTION
+addSectionLabel("📍 TELEPORT")
+for _, plr in ipairs(Players:GetPlayers()) do
+   if plr ~= LocalPlayer then
+      addTeleportButton("TP -> " .. plr.Name, plr)
+   end
+end
 
 -- Кнопка закрытия
 CloseBtn.MouseButton1Click:Connect(function()
-   MainFrame:TweenSize(UDim2.new(0, 300, 0, 0), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 0.3, true, function()
+   MainFrame:TweenSize(UDim2.new(0, 380, 0, 0), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 0.3, true, function()
       MainFrame.Visible = false
    end)
 end)
 
--- Уведомление
+-- Уведомление при загрузке
 local Notif = Instance.new("TextLabel")
-Notif.Size = UDim2.new(0, 350, 0, 70)
-Notif.Position = UDim2.new(0.5, -175, 0, 20)
+Notif.Size = UDim2.new(0, 400, 0, 80)
+Notif.Position = UDim2.new(0.5, -200, 0, 20)
 Notif.BackgroundColor3 = Color3.fromRGB(30, 150, 60)
 Notif.TextColor3 = Color3.white
-Notif.TextSize = 13
+Notif.TextSize = 14
 Notif.Font = Enum.Font.GothamBold
-Notif.Text = "✅ MM2 GOD-TIER Loaded!\n🎮 Enjoy the features!"
+Notif.Text = "✅ MM2 ULTIMATE LOADED!\n🔥 All Features Ready!\n🎮 Enjoy!"
 Notif.BorderSizePixel = 0
 Notif.Parent = ScreenGui
 
@@ -427,7 +632,9 @@ local NotifCorner = Instance.new("UICorner")
 NotifCorner.CornerRadius = UDim.new(0, 8)
 NotifCorner.Parent = Notif
 
-task.wait(4)
-Notif:Destroy()
+task.wait(5)
+Notif:TweenPosition(UDim2.new(0.5, -200, 0, -100), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 0.5, true, function()
+   Notif:Destroy()
+end)
 
-print("✅ MM2 GOD-TIER LOADED!")
+print("✅ MM2 ULTIMATE GOD-TIER 2026 LOADED!")
