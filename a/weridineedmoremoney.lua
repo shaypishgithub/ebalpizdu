@@ -1,4 +1,4 @@
--- MEGAHACK v2.1 | Purple/Black Edition + Auto Wallbang
+
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
