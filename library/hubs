@@ -387,17 +387,17 @@ function Library.CreateWindow(windowName)
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.Parent = Player:WaitForChild("PlayerGui")
 
-	local ww = IsMobile and 350 or 520
-	local wh = IsMobile and 380 or 470
-	local tw = IsMobile and 48 or 138
+	local ww = IsMobile and 400 or 680
+	local wh = IsMobile and 430 or 520
+	local tw = IsMobile and 52 or 160
 
 	-- Main frame
 	local main = Instance.new("Frame")
 	main.Name = "Main"
 	main.BackgroundColor3 = Theme.Background
 	main.Size = UDim2.new(0, ww, 0, wh)
-	main.Position = UDim2.new(0.5, 0, 0.5, 0)
-	main.AnchorPoint = Vector2.new(0.5, 0.5)
+	main.Position = UDim2.new(0.5, -ww/2, 0.5, -wh/2)
+	main.AnchorPoint = Vector2.new(0, 0)
 	main.ClipsDescendants = true
 	main.Visible = false
 	main.Parent = gui
@@ -519,7 +519,7 @@ function Library.CreateWindow(windowName)
 	minBtn.MouseButton1Click:Connect(function()
 		W.Minimized = not W.Minimized
 		if W.Minimized then
-			tween(main, {Size = UDim2.new(0, ww, 0, IsMobile and 42 or 48)}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+			tween(main, {Size = UDim2.new(0, ww, 0, IsMobile and 42 or 50)}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
 			minBtn.Text = "＋"
 		else
 			tween(main, {Size = UDim2.new(0, ww, 0, wh)}, 0.4, Enum.EasingStyle.Back)
@@ -529,25 +529,31 @@ function Library.CreateWindow(windowName)
 
 	-- ── Drag (перетаскивание по всему экрану) ─
 	do
-		local dragging, dragStart, startPos = false, nil, nil
+		local dragging = false
+		local dragOffsetX = 0
+		local dragOffsetY = 0
+
 		titleBar.InputBegan:Connect(function(input)
 			if input.UserInputType == Enum.UserInputType.MouseButton1
 			or input.UserInputType == Enum.UserInputType.Touch then
-				dragging  = true
-				dragStart = input.Position
-				startPos  = main.Position
+				dragging = true
+				-- Считаем смещение курсора относительно левого верхнего угла окна
+				dragOffsetX = input.Position.X - main.AbsolutePosition.X
+				dragOffsetY = input.Position.Y - main.AbsolutePosition.Y
 			end
 		end)
+
 		UserInputService.InputChanged:Connect(function(input)
-			if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
-			or input.UserInputType == Enum.UserInputType.Touch) then
-				local d = input.Position - dragStart
-				main.Position = UDim2.new(
-					startPos.X.Scale, startPos.X.Offset + d.X,
-					startPos.Y.Scale, startPos.Y.Offset + d.Y
-				)
+			if dragging and (
+				input.UserInputType == Enum.UserInputType.MouseMovement or
+				input.UserInputType == Enum.UserInputType.Touch
+			) then
+				local newX = input.Position.X - dragOffsetX
+				local newY = input.Position.Y - dragOffsetY
+				main.Position = UDim2.new(0, newX, 0, newY)
 			end
 		end)
+
 		UserInputService.InputEnded:Connect(function(input)
 			if input.UserInputType == Enum.UserInputType.MouseButton1
 			or input.UserInputType == Enum.UserInputType.Touch then
@@ -699,7 +705,7 @@ function Library.CreateWindow(windowName)
 			bLbl.Position = UDim2.new(0, 32, 0, 0)
 			bLbl.Text = tabName
 			bLbl.TextColor3 = Theme.TextDim
-			bLbl.TextSize = 12
+			bLbl.TextSize = 13
 			bLbl.FontFace = FONT_MED
 			bLbl.TextXAlignment = Enum.TextXAlignment.Left
 			bLbl.TextTruncate = Enum.TextTruncate.AtEnd
