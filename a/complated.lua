@@ -3,8 +3,8 @@ local tws = 25
 local sdb = 1
 local anc = false
 
-local nex = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Defaltkawaik123-lol/Claude-UI-Library/refs/heads/main/README.md'),true))()
-local window = nex.CreateWindow("SUSLIK HUB")
+local nex = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/library/hubs'),true))()
+local window = nex.CreateWindow("EBAL HUB")
 local mon = window:CreateTab("Base")
 mon:CreateLabel("Your Plot: ".. game.Players.LocalPlayer.Plot.Value.Name)
 mon:CreateButton("Collect All Cash (Once)",function()
