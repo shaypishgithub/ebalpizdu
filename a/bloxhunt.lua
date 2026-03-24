@@ -1,118 +1,228 @@
 local player = game.Players.LocalPlayer
-local plot = player.Plot.Value
+local plot = player:WaitForChild("Plot").Value
 
-local tws = 25
-local sdb = 1
-local anc = false
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("EBAL HUB", "DarkTheme")
 
-local nex = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/library/hubs'), true))()
-local window = nex.CreateWindow("EBAL HUB")
+-- ====================== BASE TAB ======================
+local Base = Window:NewTab("Base")
+local BaseSection = Base:NewSection("Main Functions")
 
-local mon = window:CreateTab("Base")
-mon:CreateLabel("Your Plot: " .. plot.Name)
+BaseSection:NewLabel("Your Plot: " .. plot.Name)
 
--- ====================== BLOX HUNT TAB ======================
-local bh = window:CreateTab("Blox Hunt")
+BaseSection:NewButton("Collect All Cash (Once)", "", function()
+    for _, a in pairs(plot.Floors:GetDescendants()) do
+        if a.Name == "CollectPartTouch" then
+            firetouchinterest(player.Character.HumanoidRootPart, a, 1)
+            task.wait(0.1)
+            firetouchinterest(player.Character.HumanoidRootPart, a, 0)
+        end
+    end
+end)
 
--- ESP Players
-local espEnabled = false
-bh:CreateToggle("ESP Players", false, function(state)
-    espEnabled = state
+BaseSection:NewButton("Pick Up All Computers", "", function()
+    for _, a in pairs(plot.Floors:GetDescendants()) do
+        if a.Name == "ProximityPrompt" and a.Parent.Name == "Top" and a.Parent.Parent:FindFirstChild("VisualModel") then
+            fireproximityprompt(a)
+        end
+    end
+end)
+
+BaseSection:NewButton("Place All Computers", "", function()
+    for _, a in pairs(player.Backpack:GetChildren()) do
+        if a:FindFirstChild("ItemGUI") then
+            a.Parent = player.Character
+            task.wait(0.3)
+            for _, b in pairs(plot.Floors:GetDescendants()) do
+                if b:FindFirstChild("Top") and not b:FindFirstChild("VisualModel") then
+                    fireproximityprompt(b.Top.ProximityPrompt)
+                    task.wait(0.5)
+                    break
+                end
+            end
+        end
+    end
+end)
+
+BaseSection:NewButton("Sell All Computers", "", function()
+    Library:Notification("Подтверждение", "Ты уверен, что хочешь продать всё?", "Yes", function()
+        for _, a in pairs(plot.Floors:GetDescendants()) do
+            if a.Name == "SellProximity" and a.Parent.Parent:FindFirstChild("VisualModel") then
+                Library:Notification("Продажа", "Sold: " .. a.Parent.Parent.VisualModel:FindFirstChildWhichIsA("MeshPart").Name, "Info")
+                fireproximityprompt(a)
+                task.wait(0.3)
+            end
+        end
+    end)
+end)
+
+-- ====================== BLOX HUNT FEATURES TAB ======================
+local BhTab = Window:NewTab("Blox Hunt")
+local BhSection = BhTab:NewSection("Blox Hunt Features")
+
+-- ESP на игроков
+BhSection:NewToggle("ESP Players", "Показывает всех игроков через стены с именем и дистанцией", false, function(state)
+    getgenv().BloxESP = state
+    
     if state then
-        -- Простой Drawing ESP (работает в большинстве эксплойтов)
-        for _, v in pairs(game.Players:GetPlayers()) do
-            if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-                local esp = Drawing.new("Text")
-                esp.Text = v.Name .. " (" .. math.floor((player.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).Magnitude) .. ")"
-                esp.Size = 16
-                esp.Color = Color3.fromRGB(255, 0, 0)
-                esp.Outline = true
-                esp.Visible = true
-                
-                -- Можно улучшить, но для начала хватит
-                spawn(function()
-                    while espEnabled and v.Character and v.Character:FindFirstChild("HumanoidRootPart") do
-                        local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
-                        if onScreen then
-                            esp.Position = Vector2.new(pos.X, pos.Y)
-                            esp.Text = v.Name .. " (" .. math.floor((player.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).Magnitude) .. ")"
-                            esp.Visible = true
+        spawn(function()
+            while getgenv().BloxESP do
+                for _, plr in pairs(game.Players:GetPlayers()) do
+                    if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                        local root = plr.Character.HumanoidRootPart
+                        local dist = math.floor((player.Character.HumanoidRootPart.Position - root.Position).Magnitude)
+                        
+                        -- Простой BillboardGui ESP
+                        if not root:FindFirstChild("BloxESP") then
+                            local bill = Instance.new("BillboardGui")
+                            bill.Name = "BloxESP"
+                            bill.Adornee = root
+                            bill.Size = UDim2.new(0, 200, 0, 50)
+                            bill.StudsOffset = Vector3.new(0, 3, 0)
+                            bill.AlwaysOnTop = true
+                            
+                            local text = Instance.new("TextLabel")
+                            text.Size = UDim2.new(1, 0, 1, 0)
+                            text.BackgroundTransparency = 1
+                            text.Text = plr.Name .. " [" .. dist .. "m]"
+                            text.TextColor3 = Color3.fromRGB(255, 50, 50)
+                            text.TextScaled = true
+                            text.Font = Enum.Font.GothamBold
+                            text.Parent = bill
+                            
+                            bill.Parent = root
                         else
-                            esp.Visible = false
+                            local lbl = root.BloxESP.TextLabel
+                            lbl.Text = plr.Name .. " [" .. dist .. "m]"
                         end
-                        wait(0.1)
                     end
-                    esp:Remove()
-                end)
+                end
+                task.wait(0.2)
+            end
+        end)
+    else
+        -- Удаляем ESP
+        for _, plr in pairs(game.Players:GetPlayers()) do
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local esp = plr.Character.HumanoidRootPart:FindFirstChild("BloxESP")
+                if esp then esp:Destroy() end
             end
         end
     end
 end)
 
 -- God Mode
-bh:CreateToggle("God Mode", false, function(state)
-    if state then
-        if player.Character and player.Character:FindFirstChild("Humanoid") then
-            player.Character.Humanoid.MaxHealth = math.huge
-            player.Character.Humanoid.Health = math.huge
-        end
-        -- Защита от урона
-        player.CharacterAdded:Connect(function(char)
-            wait(1)
-            if char:FindFirstChild("Humanoid") then
-                char.Humanoid.MaxHealth = math.huge
-                char.Humanoid.Health = math.huge
-            end
-        end)
+BhSection:NewToggle("God Mode", "Бессмертие", false, function(state)
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.MaxHealth = state and math.huge or 100
+        player.Character.Humanoid.Health = state and math.huge or 100
     end
 end)
 
--- Infinity Energy (предполагаем, что энергия хранится в Character или Player)
-bh:CreateToggle("Infinity Energy", false, function(state)
-    if state then
-        spawn(function()
-            while state do
-                if player.Character and player.Character:FindFirstChild("Energy") or player:FindFirstChild("Energy") then
+-- Infinity Energy
+BhSection:NewToggle("Infinity Energy", "Бесконечная энергия/стамина", false, function(state)
+    getgenv().InfEnergy = state
+    spawn(function()
+        while getgenv().InfEnergy do
+            pcall(function()
+                if player.Character then
                     local energy = player.Character:FindFirstChild("Energy") or player:FindFirstChild("Energy")
-                    if energy then energy.Value = 999999 end
+                    if energy and energy.Value then
+                        energy.Value = 999999
+                    end
                 end
-                wait(0.5)
-            end
-        end)
-    end
+            end)
+            task.wait(0.3)
+        end
+    end)
 end)
 
 -- Speed Hack
-bh:CreateSlider("WalkSpeed", 16, 500, 100, false, function(value)
+BhSection:NewSlider("WalkSpeed", "Скорость персонажа", 16, 300, 100, function(value)
     if player.Character and player.Character:FindFirstChild("Humanoid") then
         player.Character.Humanoid.WalkSpeed = value
     end
 end)
 
--- Auto Farm Coins / Tokens (простая версия — телепорт к ближайшим токенам)
-local farmEnabled = false
-bh:CreateToggle("Auto Farm Coins", false, function(state)
-    farmEnabled = state
+-- Auto Farm Coins / Tokens
+local autoFarm = false
+BhSection:NewToggle("Auto Farm Coins", "Автоматический сбор монет/токенов", false, function(state)
+    autoFarm = state
     if state then
         spawn(function()
-            while farmEnabled do
+            while autoFarm do
                 pcall(function()
-                    for _, token in pairs(workspace:GetDescendants()) do
-                        if token:IsA("Part") and (token.Name:lower():find("coin") or token.Name:lower():find("token") or token.Name:lower():find("cash")) then
-                            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                                player.Character.HumanoidRootPart.CFrame = token.CFrame + Vector3.new(0, 3, 0)
-                                wait(0.3)
+                    for _, v in pairs(workspace:GetDescendants()) do
+                        if v:IsA("Part") or v:IsA("MeshPart") then
+                            local n = v.Name:lower()
+                            if n:find("coin") or n:find("token") or n:find("cash") or n:find("orb") then
+                                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                                    player.Character.HumanoidRootPart.CFrame = v.CFrame + Vector3.new(0, 5, 0)
+                                    task.wait(0.25)
+                                end
                             end
                         end
                     end
                 end)
-                wait(1)
+                task.wait(0.5)
             end
         end)
     end
 end)
 
-bh:CreateLabel("Blox Hunt Features loaded!")
-bh:CreateButton("Destroy GUI", function()
-    window:Destroy()
+-- ====================== ТВОИ ОСТАЛЬНЫЕ ТАБЫ ======================
+local UpgradeTab = Window:NewTab("Upgrade")
+local UpgradeSection = UpgradeTab:NewSection("Upgrades")
+
+local autoUpgrade = false
+UpgradeSection:NewToggle("Auto Upgrade All", "", false, function(state)
+    autoUpgrade = state
 end)
+
+UpgradeSection:NewButton("Upgrade All (Once)", "", function()
+    for _, a in pairs(plot.Floors:GetDescendants()) do
+        if a:FindFirstChild("VisualModel") then
+            local args = { buffer.fromstring("\v\003One"), {a} }
+            game:GetService("ReplicatedStorage").Packages.Packet.RemoteEvent:FireServer(unpack(args))
+        end
+    end
+end)
+
+local AutoTab = Window:NewTab("Auto")
+local AutoSection = AutoTab:NewSection("Automation")
+
+local autoMoney = false
+AutoSection:NewToggle("Auto Money Pick Up", "", false, function(state)
+    autoMoney = state
+end)
+
+-- Авто улучшение
+task.spawn(function()
+    while task.wait(2) do
+        if autoUpgrade then
+            for _, a in pairs(plot.Floors:GetDescendants()) do
+                if a:FindFirstChild("VisualModel") then
+                    local args = { buffer.fromstring("\v\003One"), {a} }
+                    game:GetService("ReplicatedStorage").Packages.Packet.RemoteEvent:FireServer(unpack(args))
+                end
+            end
+        end
+    end
+end)
+
+-- Автосбор денег
+task.spawn(function()
+    while task.wait(1) do
+        if autoMoney then
+            for _, a in pairs(plot.Floors:GetDescendants()) do
+                if a.Name == "CollectPartTouch" and a.Parent:FindFirstChild("VisualModel") then
+                    firetouchinterest(player.Character.HumanoidRootPart, a, 1)
+                    task.wait(0.1)
+                    firetouchinterest(player.Character.HumanoidRootPart, a, 0)
+                end
+            end
+        end
+    end
+end)
+
+Library:Notify("EBAL HUB загружен!", "Все функции Blox Hunt добавлены", 5)
