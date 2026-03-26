@@ -8,6 +8,7 @@ local Camera = Workspace.CurrentCamera
 local PathfindingService = game:GetService("PathfindingService")
 
 local Settings = {
+    AutoShootOn = false,
     AimbotOn = false,
     ShowFOV = true,
     TeamCheck = true,
@@ -304,6 +305,26 @@ local function equipGun()
     local gun = backpack:FindFirstChildOfClass("Tool")
     if gun then
         humanoid:EquipTool(gun)
+    end
+end
+
+-- ============================================================
+-- AUTO SHOOT FUNCTION
+-- ============================================================
+
+local function autoShoot()
+    if not Settings.AutoShootOn or not LocalPlayer.Character or 
+       not LocalPlayer.Character:FindFirstChild("Humanoid") then
+        return
+    end
+    
+    local nearestPlayer = getNearestPlayer()
+    if nearestPlayer and nearestPlayer.Character and nearestPlayer.Character:FindFirstChild("Head") then
+        -- Направляем камеру на цель
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, nearestPlayer.Character.Head.Position)
+        
+        -- Стреляем
+        fireGun()
     end
 end
 
@@ -1211,14 +1232,15 @@ TabFrames["Aimbot"].Visible = true
 
 -- Aimbot Tab
 local AimbotSF = TabFrames["Aimbot"]
-makeSectionLabel(AimbotSF, "Aimbot Settings", 1)
-makeToggle(AimbotSF, "Aimbot", Settings.AimbotOn, 2, function(v) Settings.AimbotOn = v end)
-makeToggle(AimbotSF, "Auto Aimbot", Settings.AutoAimbotOn, 3, function(v) Settings.AutoAimbotOn = v end)
-makeToggle(AimbotSF, "Show FOV Circle", Settings.ShowFOV, 4, function(v) Settings.ShowFOV = v RadiusFrame.Visible = v end)
-makeToggle(AimbotSF, "Team Check", Settings.TeamCheck, 5, function(v) Settings.TeamCheck = v end)
-makeToggle(AimbotSF, "Wallbang", Settings.WallbangOn, 6, function(v) Settings.WallbangOn = v end)
-makeSectionLabel(AimbotSF, "FOV Settings", 7)
-makeInput(AimbotSF, "FOV Radius", Settings.LockRadius, 8, function(v)
+makeToggle(AimbotSF, "Auto Shoot", Settings.AutoShootOn, 1, function(v) Settings.AutoShootOn = v end)
+makeSectionLabel(AimbotSF, "Aimbot Settings", 2)
+makeToggle(AimbotSF, "Aimbot", Settings.AimbotOn, 3, function(v) Settings.AimbotOn = v end)
+makeToggle(AimbotSF, "Auto Aimbot", Settings.AutoAimbotOn, 4, function(v) Settings.AutoAimbotOn = v end)
+makeToggle(AimbotSF, "Show FOV Circle", Settings.ShowFOV, 5, function(v) Settings.ShowFOV = v RadiusFrame.Visible = v end)
+makeToggle(AimbotSF, "Team Check", Settings.TeamCheck, 6, function(v) Settings.TeamCheck = v end)
+makeToggle(AimbotSF, "Wallbang", Settings.WallbangOn, 7, function(v) Settings.WallbangOn = v end)
+makeSectionLabel(AimbotSF, "FOV Settings", 8)
+makeInput(AimbotSF, "FOV Radius", Settings.LockRadius, 9, function(v)
     local val = tonumber(v)
     if val then Settings.LockRadius = val RadiusFrame.Size = UDim2.new(0, val * 2, 0, val * 2) end
 end)
@@ -1508,6 +1530,7 @@ RunService.RenderStepped:Connect(function()
         airWalk()
         spinbot()
         aIbot()
+        autoShoot()
     end
     
     if lockOn and Settings.AimbotOn then
