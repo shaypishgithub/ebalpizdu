@@ -1,0 +1,578 @@
+-- ╔═══════════════════════════════════════════════════════════════╗
+-- ║           ROBLOX MODERN GUI LIBRARY v1.0                     ║
+-- ║     Красивая библиотека для создания интерфейсов              ║
+-- ╚═══════════════════════════════════════════════════════════════╝
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local Player = Players.LocalPlayer
+local Mouse = Player:GetMouse()
+local UserGui = Player:WaitForChild("PlayerGui")
+
+-- ═══════════════════════════════════════════════════════════════
+-- ГЛАВНАЯ БИБЛИОТЕКА
+-- ═══════════════════════════════════════════════════════════════
+
+local Library = {}
+Library.Windows = {}
+Library.Connections = {}
+
+-- ЦВЕТОВАЯ СХЕМА
+Library.Colors = {
+    Primary = Color3.fromRGB(20, 20, 25),      -- Черный
+    Secondary = Color3.fromRGB(35, 35, 45),    -- Темно-серый
+    Accent = Color3.fromRGB(100, 150, 255),    -- Синий акцент
+    Text = Color3.fromRGB(240, 240, 245),      -- Почти белый
+    TextDark = Color3.fromRGB(150, 150, 160),  -- Серый текст
+    Success = Color3.fromRGB(100, 200, 100),   -- Зеленый
+    Warning = Color3.fromRGB(255, 165, 0),     -- Оранжевый
+    Error = Color3.fromRGB(255, 85, 85),       -- Красный
+}
+
+-- РАЗМЕРЫ И ПАРАМЕТРЫ
+Library.Settings = {
+    CornerRadius = UDim.new(0, 8),
+    AnimationSpeed = 0.3,
+    StrokeThickness = 1,
+    Padding = UDim.new(0, 15),
+}
+
+-- ═══════════════════════════════════════════════════════════════
+-- УТИЛИТЫ И ФУНКЦИИ
+-- ═══════════════════════════════════════════════════════════════
+
+local function CreateGradient(parent, topColor, bottomColor)
+    local Gradient = Instance.new("UIGradient")
+    Gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, topColor),
+        ColorSequenceKeypoint.new(1, bottomColor)
+    })
+    Gradient.Rotation = 90
+    Gradient.Parent = parent
+    return Gradient
+end
+
+local function CreateCorner(parent, radius)
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = radius
+    Corner.Parent = parent
+    return Corner
+end
+
+local function CreateTween(object, props, duration)
+    local TweenInfo = TweenInfo.new(
+        duration or Library.Settings.AnimationSpeed,
+        Enum.EasingStyle.Quad,
+        Enum.EasingDirection.InOut
+    )
+    return TweenService:Create(object, TweenInfo, props)
+end
+
+local function IsMobile()
+    return UserInputService:GetLastInputType() == Enum.UserInputType.Touch
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- СОЗДАНИЕ ОКНА
+-- ═══════════════════════════════════════════════════════════════
+
+function Library:CreateWindow(config)
+    config = config or {}
+    
+    local WindowName = config.Name or "Window"
+    local WindowSize = config.Size or UDim2.new(0, 450, 0, 350)
+    local StartPosition = config.Position or UDim2.new(0.5, -225, 0.5, -175)
+    
+    -- Главный контейнер
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = WindowName .. "_Container"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    ScreenGui.Parent = UserGui
+    
+    -- Главное окно
+    local MainWindow = Instance.new("Frame")
+    MainWindow.Name = WindowName
+    MainWindow.BackgroundColor3 = Library.Colors.Primary
+    MainWindow.BorderSizePixel = 0
+    MainWindow.Size = WindowSize
+    MainWindow.Position = StartPosition
+    MainWindow.Visible = false
+    MainWindow.Parent = ScreenGui
+    
+    -- Градиент фона
+    CreateGradient(MainWindow, Library.Colors.Primary, Library.Colors.Secondary)
+    
+    -- Закругленные углы
+    CreateCorner(MainWindow, Library.Settings.CornerRadius)
+    
+    -- Обводка
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Color = Color3.fromRGB(60, 60, 75)
+    Stroke.Thickness = Library.Settings.StrokeThickness
+    Stroke.Parent = MainWindow
+    
+    -- ЗАГОЛОВОК ОКНА
+    local TitleBar = Instance.new("Frame")
+    TitleBar.Name = "TitleBar"
+    TitleBar.BackgroundColor3 = Library.Colors.Secondary
+    TitleBar.BorderSizePixel = 0
+    TitleBar.Size = UDim2.new(1, 0, 0, 45)
+    TitleBar.Parent = MainWindow
+    
+    CreateCorner(TitleBar, Library.Settings.CornerRadius)
+    CreateGradient(TitleBar, Library.Colors.Secondary, Library.Colors.Primary)
+    
+    -- Название окна
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Name = "Title"
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.TextColor3 = Library.Colors.Text
+    TitleLabel.TextSize = 16
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.Size = UDim2.new(1, -100, 1, 0)
+    TitleLabel.Position = UDim2.new(0, 15, 0, 0)
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.Text = WindowName
+    TitleLabel.Parent = TitleBar
+    
+    -- КНОПКА ЗАКРЫТИЯ
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Name = "CloseButton"
+    CloseButton.BackgroundColor3 = Library.Colors.Error
+    CloseButton.TextColor3 = Library.Colors.Text
+    CloseButton.TextSize = 16
+    CloseButton.Font = Enum.Font.GothamBold
+    CloseButton.Text = "✕"
+    CloseButton.BorderSizePixel = 0
+    CloseButton.Size = UDim2.new(0, 35, 0, 35)
+    CloseButton.Position = UDim2.new(1, -40, 0, 5)
+    CloseButton.Parent = TitleBar
+    
+    CreateCorner(CloseButton, UDim.new(0, 5))
+    
+    CloseButton.MouseButton1Click:Connect(function()
+        Library:CloseWindow(WindowName)
+    end)
+    
+    -- Эффект при наведении на кнопку закрытия
+    CloseButton.MouseEnter:Connect(function()
+        CreateTween(CloseButton, {BackgroundColor3 = Color3.fromRGB(255, 100, 100)}, 0.2):Play()
+    end)
+    
+    CloseButton.MouseLeave:Connect(function()
+        CreateTween(CloseButton, {BackgroundColor3 = Library.Colors.Error}, 0.2):Play()
+    end)
+    
+    -- КНОПКА МИНИМИЗАЦИИ
+    local MinimizeButton = Instance.new("TextButton")
+    MinimizeButton.Name = "MinimizeButton"
+    MinimizeButton.BackgroundColor3 = Library.Colors.Warning
+    MinimizeButton.TextColor3 = Library.Colors.Text
+    MinimizeButton.TextSize = 18
+    MinimizeButton.Font = Enum.Font.GothamBold
+    MinimizeButton.Text = "−"
+    MinimizeButton.BorderSizePixel = 0
+    MinimizeButton.Size = UDim2.new(0, 35, 0, 35)
+    MinimizeButton.Position = UDim2.new(1, -80, 0, 5)
+    MinimizeButton.Parent = TitleBar
+    
+    CreateCorner(MinimizeButton, UDim.new(0, 5))
+    
+    local IsMinimized = false
+    MinimizeButton.MouseButton1Click:Connect(function()
+        IsMinimized = not IsMinimized
+        if IsMinimized then
+            CreateTween(MainWindow, {Size = UDim2.new(0, WindowSize.X.Offset, 0, 45)}, 0.3):Play()
+            MinimizeButton.Text = "□"
+        else
+            CreateTween(MainWindow, {Size = WindowSize}, 0.3):Play()
+            MinimizeButton.Text = "−"
+        end
+    end)
+    
+    -- Эффект при наведении на кнопку минимизации
+    MinimizeButton.MouseEnter:Connect(function()
+        CreateTween(MinimizeButton, {BackgroundColor3 = Color3.fromRGB(255, 180, 0)}, 0.2):Play()
+    end)
+    
+    MinimizeButton.MouseLeave:Connect(function()
+        CreateTween(MinimizeButton, {BackgroundColor3 = Library.Colors.Warning}, 0.2):Play()
+    end)
+    
+    -- КОНТЕНТ ОКНА
+    local ContentFrame = Instance.new("Frame")
+    ContentFrame.Name = "Content"
+    ContentFrame.BackgroundTransparency = 1
+    ContentFrame.BorderSizePixel = 0
+    ContentFrame.Size = UDim2.new(1, 0, 1, -45)
+    ContentFrame.Position = UDim2.new(0, 0, 0, 45)
+    ContentFrame.ClipsDescendants = true
+    ContentFrame.Parent = MainWindow
+    
+    -- ScrollingFrame для контента
+    local ScrollFrame = Instance.new("ScrollingFrame")
+    ScrollFrame.Name = "ScrollFrame"
+    ScrollFrame.BackgroundTransparency = 1
+    ScrollFrame.BorderSizePixel = 0
+    ScrollFrame.Size = UDim2.new(1, -5, 1, 0)
+    ScrollFrame.Position = UDim2.new(0, 5, 0, 0)
+    ScrollFrame.ScrollBarThickness = 4
+    ScrollFrame.ScrollBarImageColor3 = Library.Colors.Accent
+    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    ScrollFrame.Parent = ContentFrame
+    
+    -- UIListLayout для автоматического расположения элементов
+    local ListLayout = Instance.new("UIListLayout")
+    ListLayout.Padding = UDim.new(0, 10)
+    ListLayout.Parent = ScrollFrame
+    
+    -- UIPadding для отступов
+    local Padding = Instance.new("UIPadding")
+    Padding.PaddingTop = UDim.new(0, 10)
+    Padding.PaddingBottom = UDim.new(0, 10)
+    Padding.PaddingLeft = UDim.new(0, 10)
+    Padding.PaddingRight = UDim.new(0, 10)
+    Padding.Parent = ScrollFrame
+    
+    -- Обновление размера канвы
+    ListLayout.Changed:Connect(function()
+        ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y + 20)
+    end)
+    
+    -- ПЕРЕТАСКИВАНИЕ ОКНА
+    local Dragging = false
+    local DragStart = Vector2.new(0, 0)
+    local FrameStart = UDim2.new(0, 0, 0, 0)
+    
+    TitleBar.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            Dragging = true
+            DragStart = Mouse.Position
+            FrameStart = MainWindow.Position
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if Dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = Mouse.Position - DragStart
+            MainWindow.Position = UDim2.new(
+                FrameStart.X.Scale,
+                FrameStart.X.Offset + delta.X,
+                FrameStart.Y.Scale,
+                FrameStart.Y.Offset + delta.Y
+            )
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            Dragging = false
+        end
+    end)
+    
+    -- ОБЪЕКТ ОКНА
+    local Window = {
+        MainWindow = MainWindow,
+        ScrollFrame = ScrollFrame,
+        ContentFrame = ContentFrame,
+        ScreenGui = ScreenGui,
+        Name = WindowName,
+        IsOpen = false,
+    }
+    
+    -- Открыть окно с анимацией
+    function Window:Open()
+        MainWindow.Visible = true
+        MainWindow.Size = UDim2.new(0, WindowSize.X.Offset, 0, 0)
+        CreateTween(MainWindow, {Size = WindowSize}, 0.4):Play()
+        self.IsOpen = true
+    end
+    
+    -- Закрыть окно с анимацией
+    function Window:Close()
+        CreateTween(MainWindow, {Size = UDim2.new(0, WindowSize.X.Offset, 0, 0)}, 0.3):Play()
+        task.wait(0.3)
+        MainWindow.Visible = false
+        self.IsOpen = false
+    end
+    
+    -- Добавить кнопку
+    function Window:AddButton(config)
+        config = config or {}
+        local ButtonName = config.Name or "Button"
+        local Callback = config.Callback or function() end
+        
+        local Button = Instance.new("TextButton")
+        Button.Name = ButtonName
+        Button.BackgroundColor3 = Library.Colors.Accent
+        Button.TextColor3 = Library.Colors.Text
+        Button.TextSize = 14
+        Button.Font = Enum.Font.GothamBold
+        Button.Text = ButtonName
+        Button.BorderSizePixel = 0
+        Button.Size = UDim2.new(1, -10, 0, 40)
+        Button.Parent = ScrollFrame
+        
+        CreateCorner(Button, Library.Settings.CornerRadius)
+        
+        local Stroke = Instance.new("UIStroke")
+        Stroke.Color = Color3.fromRGB(120, 160, 255)
+        Stroke.Thickness = 1
+        Stroke.Parent = Button
+        
+        Button.MouseButton1Click:Connect(function()
+            CreateTween(Button, {BackgroundColor3 = Color3.fromRGB(80, 120, 200)}, 0.1):Play()
+            task.wait(0.1)
+            CreateTween(Button, {BackgroundColor3 = Library.Colors.Accent}, 0.2):Play()
+            Callback()
+        end)
+        
+        Button.MouseEnter:Connect(function()
+            CreateTween(Button, {BackgroundColor3 = Color3.fromRGB(120, 160, 255)}, 0.2):Play()
+        end)
+        
+        Button.MouseLeave:Connect(function()
+            CreateTween(Button, {BackgroundColor3 = Library.Colors.Accent}, 0.2):Play()
+        end)
+        
+        return Button
+    end
+    
+    -- Добавить текстовое поле
+    function Window:AddTextBox(config)
+        config = config or {}
+        local Label = config.Label or "Input"
+        local Placeholder = config.Placeholder or "Введите текст..."
+        local Callback = config.Callback or function() end
+        
+        -- Контейнер
+        local Container = Instance.new("Frame")
+        Container.BackgroundTransparency = 1
+        Container.Size = UDim2.new(1, -10, 0, 70)
+        Container.Parent = ScrollFrame
+        
+        -- Название поля
+        local LabelText = Instance.new("TextLabel")
+        LabelText.BackgroundTransparency = 1
+        LabelText.TextColor3 = Library.Colors.Text
+        LabelText.TextSize = 12
+        LabelText.Font = Enum.Font.GothamBold
+        LabelText.Size = UDim2.new(1, 0, 0, 20)
+        LabelText.TextXAlignment = Enum.TextXAlignment.Left
+        LabelText.Text = Label
+        LabelText.Parent = Container
+        
+        -- Текстовое поле
+        local TextBox = Instance.new("TextBox")
+        TextBox.Name = "TextBox"
+        TextBox.BackgroundColor3 = Library.Colors.Secondary
+        TextBox.TextColor3 = Library.Colors.Text
+        TextBox.PlaceholderColor3 = Library.Colors.TextDark
+        TextBox.PlaceholderText = Placeholder
+        TextBox.TextSize = 13
+        TextBox.Font = Enum.Font.Gotham
+        TextBox.BorderSizePixel = 0
+        TextBox.Size = UDim2.new(1, 0, 0, 35)
+        TextBox.Position = UDim2.new(0, 0, 0, 25)
+        TextBox.Parent = Container
+        
+        CreateCorner(TextBox, Library.Settings.CornerRadius)
+        
+        local Stroke = Instance.new("UIStroke")
+        Stroke.Color = Color3.fromRGB(80, 80, 95)
+        Stroke.Thickness = 1
+        Stroke.Parent = TextBox
+        
+        -- UIPadding для текста
+        local TextPadding = Instance.new("UIPadding")
+        TextPadding.PaddingLeft = UDim.new(0, 10)
+        TextPadding.PaddingRight = UDim.new(0, 10)
+        TextPadding.Parent = TextBox
+        
+        TextBox.FocusLost:Connect(function(enterPressed)
+            if enterPressed then
+                Callback(TextBox.Text)
+            end
+        end)
+        
+        TextBox.Focused:Connect(function()
+            CreateTween(Stroke, {Color = Library.Colors.Accent}, 0.2):Play()
+        end)
+        
+        TextBox.FocusLost:Connect(function()
+            CreateTween(Stroke, {Color = Color3.fromRGB(80, 80, 95)}, 0.2):Play()
+        end)
+        
+        return TextBox
+    end
+    
+    -- Добавить переключатель
+    function Window:AddToggle(config)
+        config = config or {}
+        local Label = config.Label or "Toggle"
+        local Default = config.Default or false
+        local Callback = config.Callback or function() end
+        
+        local Container = Instance.new("Frame")
+        Container.BackgroundTransparency = 1
+        Container.Size = UDim2.new(1, -10, 0, 35)
+        Container.Parent = ScrollFrame
+        
+        local LabelText = Instance.new("TextLabel")
+        LabelText.BackgroundTransparency = 1
+        LabelText.TextColor3 = Library.Colors.Text
+        LabelText.TextSize = 13
+        LabelText.Font = Enum.Font.Gotham
+        LabelText.Size = UDim2.new(1, -50, 1, 0)
+        LabelText.TextXAlignment = Enum.TextXAlignment.Left
+        LabelText.Text = Label
+        LabelText.Parent = Container
+        
+        local ToggleButton = Instance.new("Frame")
+        ToggleButton.Name = "Toggle"
+        ToggleButton.BackgroundColor3 = if Default then Library.Colors.Success else Library.Colors.TextDark
+        ToggleButton.BorderSizePixel = 0
+        ToggleButton.Size = UDim2.new(0, 50, 0, 25)
+        ToggleButton.Position = UDim2.new(1, -50, 0.5, -12.5)
+        ToggleButton.Parent = Container
+        
+        CreateCorner(ToggleButton, UDim.new(0, 12))
+        
+        local ToggleCircle = Instance.new("Frame")
+        ToggleCircle.BackgroundColor3 = Library.Colors.Text
+        ToggleCircle.BorderSizePixel = 0
+        ToggleCircle.Size = UDim2.new(0, 21, 0, 21)
+        ToggleCircle.Position = if Default then UDim2.new(0, 25, 0.5, -10.5) else UDim2.new(0, 2, 0.5, -10.5)
+        ToggleCircle.Parent = ToggleButton
+        
+        CreateCorner(ToggleCircle, UDim.new(0, 10))
+        
+        local IsOn = Default
+        
+        local toggleFunction = function()
+            IsOn = not IsOn
+            if IsOn then
+                CreateTween(ToggleButton, {BackgroundColor3 = Library.Colors.Success}, 0.2):Play()
+                CreateTween(ToggleCircle, {Position = UDim2.new(0, 25, 0.5, -10.5)}, 0.2):Play()
+            else
+                CreateTween(ToggleButton, {BackgroundColor3 = Library.Colors.TextDark}, 0.2):Play()
+                CreateTween(ToggleCircle, {Position = UDim2.new(0, 2, 0.5, -10.5)}, 0.2):Play()
+            end
+            Callback(IsOn)
+        end
+        
+        ToggleButton.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                toggleFunction()
+            end
+        end)
+        
+        return ToggleButton
+    end
+    
+    -- Добавить текстовый лейбл
+    function Window:AddLabel(text)
+        local Label = Instance.new("TextLabel")
+        Label.BackgroundTransparency = 1
+        Label.TextColor3 = Library.Colors.TextDark
+        Label.TextSize = 12
+        Label.Font = Enum.Font.Gotham
+        Label.Size = UDim2.new(1, -10, 0, 30)
+        Label.TextWrapped = true
+        Label.TextXAlignment = Enum.TextXAlignment.Left
+        Label.Text = text
+        Label.Parent = ScrollFrame
+        
+        return Label
+    end
+    
+    -- Добавить разделитель
+    function Window:AddDivider()
+        local Divider = Instance.new("Frame")
+        Divider.BackgroundColor3 = Color3.fromRGB(60, 60, 75)
+        Divider.BorderSizePixel = 0
+        Divider.Size = UDim2.new(1, -10, 0, 1)
+        Divider.Parent = ScrollFrame
+        
+        return Divider
+    end
+    
+    Library.Windows[WindowName] = Window
+    return Window
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- ФУНКЦИИ БИБЛИОТЕКИ
+-- ═══════════════════════════════════════════════════════════════
+
+function Library:CloseWindow(windowName)
+    if Library.Windows[windowName] then
+        Library.Windows[windowName]:Close()
+    end
+end
+
+function Library:OpenWindow(windowName)
+    if Library.Windows[windowName] then
+        Library.Windows[windowName]:Open()
+    end
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- ПРИМЕР ИСПОЛЬЗОВАНИЯ
+-- ═══════════════════════════════════════════════════════════════
+
+local TestWindow = Library:CreateWindow({
+    Name = "Modern GUI",
+    Size = UDim2.new(0, 450, 0, 400),
+    Position = UDim2.new(0.5, -225, 0.5, -200)
+})
+
+-- Открыть окно
+TestWindow:Open()
+
+-- Добавить элементы
+TestWindow:AddLabel("Добро пожаловать в Modern GUI Library!")
+TestWindow:AddDivider()
+
+TestWindow:AddButton({
+    Name = "Кнопка 1",
+    Callback = function()
+        print("Кнопка 1 нажата!")
+    end
+})
+
+TestWindow:AddButton({
+    Name = "Кнопка 2",
+    Callback = function()
+        print("Кнопка 2 нажата!")
+    end
+})
+
+TestWindow:AddDivider()
+
+TestWindow:AddToggle({
+    Label = "Включить что-то",
+    Default = false,
+    Callback = function(value)
+        print("Переключатель:", value)
+    end
+})
+
+TestWindow:AddTextBox({
+    Label = "Ввод текста",
+    Placeholder = "Напишите сообщение...",
+    Callback = function(text)
+        print("Вы ввели:", text)
+    end
+})
+
+TestWindow:AddLabel("© 2024 Modern GUI Library")
+
+-- ═══════════════════════════════════════════════════════════════
+
+return Library
