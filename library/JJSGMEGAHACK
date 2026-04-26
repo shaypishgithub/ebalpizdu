@@ -1,0 +1,370 @@
+-- ═══════════════════════════════════════════════════════
+--  EVADE LIBRARY - CANDY PLATFORM UI
+--  Загружается через loadstring
+-- ═══════════════════════════════════════════════════════
+
+return function(exports)
+    local Players = game:GetService("Players")
+    local UserInputService = game:GetService("UserInputService")
+    local TweenService = game:GetService("TweenService")
+    local LocalPlayer = Players.LocalPlayer
+    local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+    
+    -- Получаем экспортированные данные
+    local STATE = exports.STATE
+    local CFG = exports.CFG
+    local setStatus = exports.setStatus
+    
+    -- ══════════════════════════════════════════════════════════════
+    --  GUI СОЗДАНИЕ (такое же как в оригинале)
+    -- ══════════════════════════════════════════════════════════════
+    
+    local Gui = Instance.new("ScreenGui")
+    Gui.Name = "CandyFarmUI"
+    Gui.ResetOnSpawn = false
+    Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    Gui.Parent = PlayerGui
+    
+    local function mkCorner(p, r)
+        local c = Instance.new("UICorner", p); c.CornerRadius = UDim.new(0, r or 12); return c
+    end
+    
+    local function mkStroke(p, col, th, tr)
+        local s = Instance.new("UIStroke", p)
+        s.Color = col or Color3.new(1,1,1); s.Thickness = th or 1; s.Transparency = tr or 0; return s
+    end
+    
+    local function mkGrad(p, c0, c1, rot)
+        local g = Instance.new("UIGradient", p)
+        g.Color = ColorSequence.new(c0,c1); g.Rotation = rot or 0; return g
+    end
+    
+    local function mkLabel(p, text, sz, col, font, xal, props)
+        local l = Instance.new("TextLabel", p)
+        l.BackgroundTransparency = 1; l.Text = text; l.TextSize = sz or 13
+        l.TextColor3 = col or Color3.new(1,1,1); l.Font = font or Enum.Font.GothamBold
+        l.TextXAlignment = xal or Enum.TextXAlignment.Left; l.RichText = true
+        if props then for k,v in pairs(props) do l[k] = v end end; return l
+    end
+    
+    -- ══════════════════════════════════════════
+    --  PILL
+    -- ══════════════════════════════════════════
+    local Pill = Instance.new("TextButton", Gui)
+    Pill.Size = UDim2.new(0,110,0,36); Pill.Position = UDim2.new(0,14,0.5,-18)
+    Pill.BackgroundColor3 = Color3.fromRGB(5,5,8); Pill.BackgroundTransparency = 0.05
+    Pill.BorderSizePixel = 0; Pill.Text = "🍬  OPEN"
+    Pill.TextColor3 = Color3.fromRGB(0,195,255); Pill.TextSize = 13
+    Pill.Font = Enum.Font.GothamBold; Pill.ZIndex = 10
+    mkCorner(Pill,18)
+    local pillStroke = mkStroke(Pill, Color3.fromRGB(0,150,255), 1.3, 0.3)
+    mkGrad(Pill, Color3.fromRGB(10,18,32), Color3.fromRGB(2,4,10), 135)
+    local PillDot = Instance.new("Frame", Pill)
+    PillDot.Size = UDim2.new(0,7,0,7); PillDot.Position = UDim2.new(0,12,0.5,-3.5)
+    PillDot.BackgroundColor3 = Color3.fromRGB(0,195,255); PillDot.BorderSizePixel = 0; PillDot.ZIndex = 11
+    mkCorner(PillDot, 99)
+    
+    -- ══════════════════════════════════════════
+    --  WINDOW
+    -- ══════════════════════════════════════════
+    local WIN_H = 430
+    local Win = Instance.new("Frame", Gui)
+    Win.Size = UDim2.new(0,320,0,WIN_H); Win.Position = UDim2.new(0.5,-160,0.18,0)
+    Win.BackgroundColor3 = Color3.fromRGB(3,4,8); Win.BackgroundTransparency = 0.04
+    Win.BorderSizePixel = 0; Win.ClipsDescendants = true; Win.Visible = false; Win.ZIndex = 5
+    mkCorner(Win,18)
+    mkStroke(Win, Color3.fromRGB(0,120,255), 1.4, 0.3)
+    mkGrad(Win, Color3.fromRGB(12,22,44), Color3.fromRGB(3,4,8), 150)
+    
+    local Shine = Instance.new("Frame",Win)
+    Shine.Size = UDim2.new(0.7,0,0,1); Shine.Position = UDim2.new(0.15,0,0,0)
+    Shine.BackgroundColor3 = Color3.fromRGB(0,180,255); Shine.BackgroundTransparency = 0.5
+    Shine.BorderSizePixel = 0; Shine.ZIndex = 6; mkCorner(Shine,1)
+    
+    local Header = Instance.new("Frame",Win)
+    Header.Size = UDim2.new(1,0,0,56); Header.BackgroundColor3 = Color3.fromRGB(0,10,22)
+    Header.BackgroundTransparency = 0.2; Header.BorderSizePixel = 0; Header.ZIndex = 6
+    mkCorner(Header,18)
+    
+    local Hfix = Instance.new("Frame",Header)
+    Hfix.Size = UDim2.new(1,0,0.5,0); Hfix.Position = UDim2.new(0,0,0.5,0)
+    Hfix.BackgroundColor3 = Color3.fromRGB(0,10,22); Hfix.BackgroundTransparency = 0.2
+    Hfix.BorderSizePixel = 0; Hfix.ZIndex = 6
+    
+    local IconBg = Instance.new("Frame",Header)
+    IconBg.Size = UDim2.new(0,34,0,34); IconBg.Position = UDim2.new(0,12,0.5,-17)
+    IconBg.BackgroundColor3 = Color3.fromRGB(0,80,200); IconBg.BackgroundTransparency = 0.3
+    IconBg.BorderSizePixel = 0; IconBg.ZIndex = 7
+    mkCorner(IconBg,10); mkStroke(IconBg,Color3.fromRGB(0,160,255),1,0.4)
+    
+    local IL = Instance.new("TextLabel",IconBg)
+    IL.Size = UDim2.new(1,0,1,0); IL.BackgroundTransparency = 1; IL.Text = "🍬"
+    IL.TextSize = 18; IL.Font = Enum.Font.GothamBold
+    IL.TextXAlignment = Enum.TextXAlignment.Center; IL.ZIndex = 8
+    
+    mkLabel(Header,"Candy AutoFarm",15,Color3.fromRGB(200,230,255),Enum.Font.GothamBold,
+        Enum.TextXAlignment.Left,
+        {Size=UDim2.new(1,-70,0,20),Position=UDim2.new(0,56,0,10),ZIndex=7})
+    mkLabel(Header,"Auto-restore • Speed • Revive • Y=1000",9,Color3.fromRGB(50,100,160),
+        Enum.Font.Gotham,Enum.TextXAlignment.Left,
+        {Size=UDim2.new(1,-70,0,14),Position=UDim2.new(0,57,0,30),ZIndex=7})
+    
+    local Div = Instance.new("Frame",Win)
+    Div.Size = UDim2.new(1,-28,0,1); Div.Position = UDim2.new(0,14,0,56)
+    Div.BackgroundColor3 = Color3.fromRGB(0,80,180); Div.BackgroundTransparency = 0.6
+    Div.BorderSizePixel = 0; Div.ZIndex = 6
+    
+    local Content = Instance.new("Frame",Win)
+    Content.Size = UDim2.new(1,-28,0,WIN_H-70); Content.Position = UDim2.new(0,14,0,66)
+    Content.BackgroundTransparency = 1; Content.ZIndex = 6
+    
+    local layout = Instance.new("UIListLayout",Content)
+    layout.Padding = UDim.new(0,7); layout.SortOrder = Enum.SortOrder.LayoutOrder
+    
+    -- STATUS CARD
+    local StatusCard = Instance.new("Frame",Content)
+    StatusCard.Size = UDim2.new(1,0,0,48); StatusCard.BackgroundColor3 = Color3.fromRGB(8,12,22)
+    StatusCard.BackgroundTransparency = 0.3; StatusCard.BorderSizePixel = 0
+    StatusCard.ZIndex = 7; StatusCard.LayoutOrder = 1
+    mkCorner(StatusCard,12); mkStroke(StatusCard,Color3.fromRGB(0,80,160),1,0.55)
+    
+    local SDot = Instance.new("Frame",StatusCard)
+    SDot.Size = UDim2.new(0,8,0,8); SDot.Position = UDim2.new(0,12,0.5,-4)
+    SDot.BackgroundColor3 = Color3.fromRGB(60,60,80); SDot.BorderSizePixel = 0; SDot.ZIndex = 8
+    mkCorner(SDot,99)
+    
+    local STxt = mkLabel(StatusCard,"Status: Idle",12,Color3.fromRGB(130,160,200),
+        Enum.Font.Gotham,Enum.TextXAlignment.Left,
+        {Size=UDim2.new(1,-32,0,16),Position=UDim2.new(0,28,0,7),ZIndex=8})
+    local SSub = mkLabel(StatusCard,"Enable toggles below",10,Color3.fromRGB(50,80,120),
+        Enum.Font.Gotham,Enum.TextXAlignment.Left,
+        {Size=UDim2.new(1,-32,0,13),Position=UDim2.new(0,28,0,24),ZIndex=8})
+    
+    local function updateStatus(main, sub, dotCol, txtCol)
+        STxt.Text = "Status: " .. main
+        STxt.TextColor3 = txtCol or Color3.fromRGB(130,160,200)
+        SSub.Text = sub or ""
+        TweenService:Create(SDot,TweenInfo.new(0.25),{BackgroundColor3 = dotCol or Color3.fromRGB(60,60,80)}):Play()
+    end
+    
+    -- Передаем функцию обновления статуса обратно
+    -- (теперь основной скрипт может вызывать updateStatus)
+    if exports.setStatus then
+        exports.setStatus = updateStatus
+    end
+    
+    -- ══════════════════════════════════════════
+    --  TOGGLE FACTORY
+    -- ══════════════════════════════════════════
+    local function makeToggle(order, icon, title, subtitle, accent, onEnable, onDisable)
+        local card = Instance.new("Frame",Content)
+        card.Size = UDim2.new(1,0,0,52); card.BackgroundColor3 = Color3.fromRGB(6,10,20)
+        card.BackgroundTransparency = 0.15; card.BorderSizePixel = 0
+        card.ZIndex = 7; card.LayoutOrder = order
+        mkCorner(card,12)
+        local cs = mkStroke(card,accent,1.1,0.55)
+        
+        local bar = Instance.new("Frame",card)
+        bar.Size = UDim2.new(0,3,0.6,0); bar.Position = UDim2.new(0,0,0.2,0)
+        bar.BackgroundColor3 = accent; bar.BorderSizePixel = 0; bar.ZIndex = 8; mkCorner(bar,3)
+        
+        mkLabel(card,icon,19,accent,Enum.Font.GothamBold,Enum.TextXAlignment.Center,
+            {Size=UDim2.new(0,34,1,0),Position=UDim2.new(0,8,0,0),ZIndex=8})
+        mkLabel(card,title,13,Color3.fromRGB(200,220,240),Enum.Font.GothamSemibold,
+            Enum.TextXAlignment.Left,
+            {Size=UDim2.new(1,-118,0,18),Position=UDim2.new(0,48,0,8),ZIndex=8})
+        mkLabel(card,subtitle,9,Color3.fromRGB(50,80,120),Enum.Font.Gotham,
+            Enum.TextXAlignment.Left,
+            {Size=UDim2.new(1,-118,0,13),Position=UDim2.new(0,48,0,27),ZIndex=8})
+        
+        local swBg = Instance.new("Frame",card)
+        swBg.Size = UDim2.new(0,46,0,24); swBg.Position = UDim2.new(1,-56,0.5,-12)
+        swBg.BackgroundColor3 = Color3.fromRGB(20,28,44); swBg.BorderSizePixel = 0; swBg.ZIndex = 8
+        mkCorner(swBg,99); mkStroke(swBg,Color3.fromRGB(40,60,100),1,0.5)
+        
+        local knob = Instance.new("Frame",swBg)
+        knob.Size = UDim2.new(0,18,0,18); knob.Position = UDim2.new(0,3,0.5,-9)
+        knob.BackgroundColor3 = Color3.fromRGB(80,100,130); knob.BorderSizePixel = 0; knob.ZIndex = 9
+        mkCorner(knob,99)
+        
+        local tag = mkLabel(card,"AUTO ↺",8,Color3.fromRGB(0,120,200),Enum.Font.GothamBold,
+            Enum.TextXAlignment.Center,
+            {Size=UDim2.new(0,52,0,12),Position=UDim2.new(1,-56,1,-14),ZIndex=8})
+        
+        local btn = Instance.new("TextButton",card)
+        btn.Size = UDim2.new(1,0,1,0); btn.BackgroundTransparency = 1; btn.Text = ""; btn.ZIndex = 9
+        mkCorner(btn,12)
+        
+        btn.MouseEnter:Connect(function()
+            TweenService:Create(card,TweenInfo.new(0.15),{BackgroundTransparency=0}):Play() 
+        end)
+        btn.MouseLeave:Connect(function()
+            TweenService:Create(card,TweenInfo.new(0.15),{BackgroundTransparency=0.15}):Play() 
+        end)
+        
+        local isOn = false
+        local function setOn(v)
+            isOn = v
+            TweenService:Create(knob,TweenInfo.new(0.2),{
+                Position = v and UDim2.new(1,-21,0.5,-9) or UDim2.new(0,3,0.5,-9),
+                BackgroundColor3 = v and Color3.fromRGB(220,240,255) or Color3.fromRGB(80,100,130)
+            }):Play()
+            TweenService:Create(swBg,TweenInfo.new(0.2),{
+                BackgroundColor3 = v and accent or Color3.fromRGB(20,28,44)
+            }):Play()
+            TweenService:Create(cs,TweenInfo.new(0.2),{
+                Color = v and accent or Color3.fromRGB(40,60,100),
+                Transparency = v and 0.2 or 0.55
+            }):Play()
+            tag.Text = v and "AUTO ON ✓" or "AUTO ↺"
+            tag.TextColor3 = v and Color3.fromRGB(0,220,110) or Color3.fromRGB(0,120,200)
+        end
+        
+        btn.MouseButton1Click:Connect(function()
+            setOn(not isOn)
+            if isOn then
+                if onEnable then pcall(onEnable) end
+            else
+                if onDisable then pcall(onDisable) end
+            end
+        end)
+        
+        return setOn
+    end
+    
+    -- ══════════════════════════════════════════
+    --  СОЗДАНИЕ ТОГГЛОВ (вызываем функции из exports)
+    -- ══════════════════════════════════════════
+    local setPlatToggle = makeToggle(2,"⬡","Auto Platform","Recreates at Y=1000 every round",
+        Color3.fromRGB(0,140,255),
+        function() 
+            STATE.platform = true
+            if exports.spawnPlatform then exports.spawnPlatform() end
+        end,
+        function() 
+            STATE.platform = false
+            if exports.removePlatform then exports.removePlatform() end
+        end
+    )
+    
+    local setFarmToggle = makeToggle(3,"🍬","Auto Farm","Collects candies → returns home",
+        Color3.fromRGB(0,200,100),
+        function() 
+            STATE.farm = true
+            if exports.startFarmThread then exports.startFarmThread() end
+        end,
+        function() 
+            STATE.farm = false
+            if exports.stopFarmThread then exports.stopFarmThread() end
+        end
+    )
+    
+    local setSpeedToggle = makeToggle(4,"⚡","Speed Hack","WalkSpeed 80 + server events",
+        Color3.fromRGB(255,200,0),
+        function() 
+            STATE.speed = true
+            if exports.setSpeedState then exports.setSpeedState(true) end
+        end,
+        function() 
+            STATE.speed = false
+            if exports.setSpeedState then exports.setSpeedState(false) end
+        end
+    )
+    
+    local setAntiDownToggle = makeToggle(5,"🛡","Anti-Down","Auto-stands you up when downed",
+        Color3.fromRGB(180,80,255),
+        function() 
+            STATE.antiDown = true
+            if exports.setAntiDownState then exports.setAntiDownState(true) end
+        end,
+        function() 
+            STATE.antiDown = false
+            if exports.setAntiDownState then exports.setAntiDownState(false) end
+        end
+    )
+    
+    local setReviveToggle = makeToggle(6,"💉","Auto Revive","Revives nearest downed teammate",
+        Color3.fromRGB(255,60,100),
+        function() 
+            STATE.autoRevive = true
+            if exports.setAutoReviveState then exports.setAutoReviveState(true) end
+        end,
+        function() 
+            STATE.autoRevive = false
+            if exports.setAutoReviveState then exports.setAutoReviveState(false) end
+        end
+    )
+    
+    -- DISABLE ALL BUTTON
+    local KillCard = Instance.new("Frame",Content)
+    KillCard.Size = UDim2.new(1,0,0,34); KillCard.BackgroundColor3 = Color3.fromRGB(6,4,6)
+    KillCard.BackgroundTransparency = 0.15; KillCard.BorderSizePixel = 0
+    KillCard.ZIndex = 7; KillCard.LayoutOrder = 7
+    mkCorner(KillCard,10); mkStroke(KillCard,Color3.fromRGB(160,30,30),1,0.45)
+    
+    local KillBtn = Instance.new("TextButton",KillCard)
+    KillBtn.Size = UDim2.new(1,0,1,0); KillBtn.BackgroundTransparency = 1
+    KillBtn.Text = "✕   Disable All & Destroy Platform"
+    KillBtn.TextColor3 = Color3.fromRGB(220,60,60); KillBtn.TextSize = 12
+    KillBtn.Font = Enum.Font.GothamSemibold; KillBtn.ZIndex = 8
+    mkCorner(KillBtn,10)
+    
+    KillBtn.MouseButton1Click:Connect(function()
+        setPlatToggle(false)
+        setFarmToggle(false)
+        setSpeedToggle(false)
+        setAntiDownToggle(false)
+        setReviveToggle(false)
+        if exports.removePlatform then exports.removePlatform() end
+        updateStatus("All Off", "Everything disabled", Color3.fromRGB(60,60,80), Color3.fromRGB(130,160,200))
+    end)
+    
+    -- OPEN / CLOSE
+    local guiOpen = false
+    local function setOpen(v)
+        guiOpen = v
+        if v then
+            Win.Visible = true
+            Win.Size = UDim2.new(0,10,0,10); Win.Position = UDim2.new(0.5,0,0.18,0)
+            TweenService:Create(Win,TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{
+                Size = UDim2.new(0,320,0,WIN_H), Position = UDim2.new(0.5,-160,0.18,0)
+            }):Play()
+            Pill.Text = "🍬  CLOSE"; Pill.TextColor3 = Color3.fromRGB(255,90,90)
+            pillStroke.Color = Color3.fromRGB(255,60,60); PillDot.BackgroundColor3 = Color3.fromRGB(255,90,90)
+        else
+            TweenService:Create(Win,TweenInfo.new(0.2,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{
+                Size = UDim2.new(0,10,0,10), Position = UDim2.new(0.5,0,0.18,0)
+            }):Play()
+            task.delay(0.22,function() Win.Visible = false end)
+            Pill.Text = "🍬  OPEN"; Pill.TextColor3 = Color3.fromRGB(0,195,255)
+            pillStroke.Color = Color3.fromRGB(0,150,255); PillDot.BackgroundColor3 = Color3.fromRGB(0,195,255)
+        end
+    end
+    
+    Pill.MouseButton1Click:Connect(function() setOpen(not guiOpen) end)
+    
+    -- DRAG
+    local function makeDraggable(frame, handle)
+        local drag, ds, dp = false, nil, nil
+        handle.InputBegan:Connect(function(i)
+            if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+                drag = true; ds = i.Position; dp = frame.Position
+                i.Changed:Connect(function()
+                    if i.UserInputState == Enum.UserInputState.End then drag = false end
+                end)
+            end
+        end)
+        UserInputService.InputChanged:Connect(function(i)
+            if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+                local d = i.Position - ds
+                frame.Position = UDim2.new(dp.X.Scale, dp.X.Offset + d.X, dp.Y.Scale, dp.Y.Offset + d.Y)
+            end
+        end)
+    end
+    
+    makeDraggable(Win, Header)
+    makeDraggable(Pill, Pill)
+    
+    -- Возвращаем функцию обновления статуса
+    return updateStatus
+end
