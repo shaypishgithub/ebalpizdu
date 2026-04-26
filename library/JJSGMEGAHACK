@@ -262,7 +262,7 @@ LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
 --  GUI  —  evadelib
 -- ══════════════════════════════════════════════════════
 
-local nex    = loadstring(game:HttpGet("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/library/evadelib", true))()
+local nex    = loadstring(game:HttpGet("https://github.com/shaypishgithub/megahack/blob/main/library/hubs", true))()
 local window = nex.CreateWindow("CANDY FARM")
 
 -- ── TAB: FARM ──────────────────────────────────────────
