@@ -1,7 +1,6 @@
--- ╔══════════════════════════════════════════════════════════╗
--- ║          CandyFarm Script — NexusUI (ESP v2 + Jitter)    ║
--- ╚══════════════════════════════════════════════════════════╝
-
+-- ╔══════════════════════════════════════════════════════════════╗
+-- ║ CandyFarm Script — NexusUI (ESP v2 + Jitter + New Features) ║
+-- ╚══════════════════════════════════════════════════════════════╝
 local NexusUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/library/nexus"))()
 
 -- Services
@@ -10,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
+local Lighting = game:GetService("Lighting")
 
 -- Config
 local CFG = {
@@ -21,8 +21,11 @@ local CFG = {
     JitterDelay = 0.03,
     JitterRange = 1.2,
     WalkSpeed = 80,
+    CameraZoom = 20, -- Default camera zoom
+    FullBright = false,
+    SpeedMultiplier = 1, -- 1x to 10x
+    BotHeightOffset = 20, -- +20 height when near bot
     TicketsFolder = workspace:WaitForChild("Game"):WaitForChild("Effects"):WaitForChild("Tickets"),
-
     ESP = {
         Players = true,
         Bots = true,
@@ -43,10 +46,11 @@ local STATE = {
     speed = true,
     antiDown = true,
     autoRevive = true,
-    autoHelpDowned = true,   -- New: Auto TP to downed teammates
+    autoHelpDowned = true,
     esp = true,
     aura = false,
     hat = false,
+    autoHeightNearBot = true, -- New: Auto height adjustment near bots
 }
 
 -- Remotes
@@ -60,6 +64,57 @@ local evMode = evPlayer and evPlayer:FindFirstChild("ChangePlayerMode")
 local platform = nil
 local platformCF = nil
 local farmThread = nil
+local originalPosition = nil -- Store original position for bot height adjustment
+local lastBotDistance = math.huge
+
+-- ==================== NEW: Camera Zoom Function ====================
+local function setCameraZoom(zoomValue)
+    local clampedZoom = math.clamp(zoomValue, 1, 1000)
+    CFG.CameraZoom = clampedZoom
+    pcall(function()
+        if LocalPlayer.CameraMaxZoomDistance then
+            LocalPlayer.CameraMaxZoomDistance = clampedZoom
+        end
+        Camera.FieldOfView = 70 -- Reset FOV
+        if LocalPlayer.CameraMinZoomDistance then
+            LocalPlayer.CameraMinZoomDistance = 1
+        end
+    end)
+end
+
+-- ==================== NEW: Full Bright Function ====================
+local function setFullBright(enabled)
+    CFG.FullBright = enabled
+    if enabled then
+        Lighting.Brightness = 2
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 100000
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+        Lighting.Outlines = false
+        Lighting.ClockTime = 14
+        Lighting.TimeOfDay = "14:00:00"
+    else
+        Lighting.Brightness = 1
+        Lighting.GlobalShadows = true
+        Lighting.FogEnd = 5000
+        Lighting.OutdoorAmbient = Color3.fromRGB(127, 127, 127)
+        Lighting.Outlines = true
+    end
+end
+
+-- ==================== NEW: Speed Function ====================
+local function setSpeed(speedMultiplier)
+    CFG.SpeedMultiplier = speedMultiplier
+    if STATE.speed then
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.WalkSpeed = CFG.WalkSpeed * speedMultiplier
+        end
+        if evMove then
+            evMove:FireServer(CFG.WalkSpeed * speedMultiplier)
+        end
+    end
+end
 
 -- ==================== ESP v2 ====================
 local espObjects = {}
@@ -94,7 +149,7 @@ local function makeBillboard(adornee, color)
     bb.StudsOffset = Vector3.new(0, 3.2, 0)
     bb.Adornee = adornee
     bb.Parent = adornee
-
+    
     local lbl = Instance.new("TextLabel", bb)
     lbl.BackgroundTransparency = 1
     lbl.Size = UDim2.new(1, 0, 1, 0)
@@ -118,16 +173,16 @@ end
 local function setupPlayerESP(player)
     if player == LocalPlayer then return end
     local uid = "pl_" .. player.UserId
-
+    
     local function attachToChar(char)
         cleanESP(uid)
         local hrp = char:WaitForChild("HumanoidRootPart", 5)
         if not hrp then return end
-
+        
         local bb, lbl = makeBillboard(hrp, CFG.ESP.Color.Players)
         local box = makeBox(hrp, CFG.ESP.Color.Players)
         espObjects[uid] = {bb, box}
-
+        
         RunService.Heartbeat:Connect(function()
             if not (STATE.esp and CFG.ESP.Players) then cleanESP(uid); return end
             if lbl and lbl.Parent then
@@ -138,7 +193,7 @@ local function setupPlayerESP(player)
             end
         end)
     end
-
+    
     if player.Character then task.spawn(attachToChar, player.Character) end
     player.CharacterAdded:Connect(attachToChar)
     player.CharacterRemoving:Connect(function() cleanESP(uid) end)
@@ -153,7 +208,7 @@ task.spawn(function()
     while true do
         task.wait(0.8)
         if not STATE.esp then continue end
-
+        
         -- Bots
         if CFG.ESP.Bots then
             local folder = workspace:FindFirstChild("Bots") or workspace:FindFirstChild("NPCs")
@@ -165,7 +220,6 @@ task.spawn(function()
                         espTracked[key] = true
                         local bb, lbl = makeBillboard(hrp, CFG.ESP.Color.Bots)
                         local box = makeBox(hrp, CFG.ESP.Color.Bots)
-
                         RunService.Heartbeat:Connect(function()
                             if not (STATE.esp and CFG.ESP.Bots) then return end
                             if lbl and lbl.Parent then
@@ -179,7 +233,7 @@ task.spawn(function()
                 end
             end
         end
-
+        
         -- Candies
         if CFG.ESP.Candies then
             for _, d in ipairs(CFG.TicketsFolder:GetDescendants()) do
@@ -190,7 +244,6 @@ task.spawn(function()
                         local name = (d.Parent and d.Parent.Name) or "Candy"
                         local bb, lbl = makeBillboard(d, CFG.ESP.Color.Candies)
                         local box = makeBox(d, CFG.ESP.Color.Candies)
-
                         RunService.Heartbeat:Connect(function()
                             if not (STATE.esp and CFG.ESP.Candies) then return end
                             if lbl and lbl.Parent then
@@ -207,14 +260,64 @@ task.spawn(function()
     end
 end)
 
+-- ==================== NEW: Auto Height Near Bot ====================
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if not STATE.autoHeightNearBot then continue end
+        
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then continue end
+        
+        local nearestBot = nil
+        local minDistance = math.huge
+        
+        -- Find nearest bot
+        local folder = workspace:FindFirstChild("Bots") or workspace:FindFirstChild("NPCs")
+        if folder then
+            for _, bot in ipairs(folder:GetChildren()) do
+                local botHRP = bot:FindFirstChild("HumanoidRootPart")
+                if botHRP then
+                    local distance = (hrp.Position - botHRP.Position).Magnitude
+                    if distance < minDistance then
+                        minDistance = distance
+                        nearestBot = botHRP
+                    end
+                end
+            end
+        end
+        
+        -- Check if bot is within range (50 studs)
+        if nearestBot and minDistance < 50 then
+            -- Bot is nearby, store original position and teleport above bot
+            if lastBotDistance >= 50 then
+                originalPosition = hrp.Position
+            end
+            local botPosition = nearestBot.Position
+            hrp.CFrame = CFrame.new(botPosition.X, botPosition.Y + CFG.BotHeightOffset, botPosition.Z)
+            lastBotDistance = minDistance
+        else
+            -- Bot is not nearby, return to original position if stored
+            if originalPosition and lastBotDistance < 50 then
+                hrp.CFrame = CFrame.new(originalPosition)
+                originalPosition = nil
+            end
+            lastBotDistance = minDistance
+        end
+    end
+end)
+
 -- ==================== Platform ====================
 local function spawnPlatform()
     if platform and platform.Parent then platform:Destroy() end
+    
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
-
+    
     local pos = Vector3.new(hrp.Position.X, CFG.PlatformHeight, hrp.Position.Z)
+    
     platform = Instance.new("Part")
     platform.Name = "CandyFarmPlatform"
     platform.Size = CFG.PlatformSize
@@ -222,9 +325,10 @@ local function spawnPlatform()
     platform.Transparency = 0.5
     platform.CFrame = CFrame.new(pos)
     platform.Parent = workspace
-
+    
     platformCF = CFrame.new(pos + Vector3.new(0, 5, 0))
     hrp.CFrame = platformCF
+    
     NexusUI.Notify({Title = "✦ Platform", Description = "Created at height " .. CFG.PlatformHeight, Duration = 3})
 end
 
@@ -262,7 +366,7 @@ local function farmLoop()
                 table.insert(candies, d)
             end
         end
-
+        
         if #candies > 0 then
             for _, candy in ipairs(candies) do
                 if not STATE.farm then break end
@@ -272,14 +376,11 @@ local function farmLoop()
                     task.wait(CFG.CollectDelay)
                 end
             end
-
+            
             task.wait(CFG.ReturnDelay)
-
-            -- Return logic based on your request
+            
             if STATE.platform and platformCF then
-                goHome()                    -- Both on → return to platform
-            else
-                -- Only farm on → stay near last candy (no forced up)
+                goHome()
             end
         end
         task.wait(0.4)
@@ -291,18 +392,17 @@ task.spawn(function()
     while true do
         task.wait(0.5)
         if not STATE.autoHelpDowned then continue end
-
+        
         local myChar = LocalPlayer.Character
         local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
         if not myHRP then continue end
-
+        
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr == LocalPlayer then continue end
             local char = plr.Character
             if char and char:GetAttribute("Downed") then
                 local tHRP = char:FindFirstChild("HumanoidRootPart")
                 if tHRP and (myHRP.Position - tHRP.Position).Magnitude < 80 then
-                    -- Teleport close to help/revive
                     myHRP.CFrame = tHRP.CFrame * CFrame.new(3, 0, 3)
                     task.wait(0.8)
                 end
@@ -317,9 +417,9 @@ task.spawn(function()
         task.wait(0.3)
         if STATE.speed then
             local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if hum then hum.WalkSpeed = CFG.WalkSpeed end
+            if hum then hum.WalkSpeed = CFG.WalkSpeed * CFG.SpeedMultiplier end
             if evSpeed then evSpeed:FireServer(true) end
-            if evMove then evMove:FireServer(CFG.WalkSpeed) end
+            if evMove then evMove:FireServer(CFG.WalkSpeed * CFG.SpeedMultiplier) end
         end
     end
 end)
@@ -329,11 +429,11 @@ task.spawn(function()
         task.wait(0.4)
         local char = LocalPlayer.Character
         if not char then continue end
-
+        
         if STATE.antiDown and char:GetAttribute("Downed") then
             if evMode then evMode:FireServer(true) end
         end
-
+        
         if STATE.autoRevive then
             local myHRP = char:FindFirstChild("HumanoidRootPart")
             for _, p in ipairs(Players:GetPlayers()) do
@@ -354,12 +454,14 @@ end)
 local function onCharacter(char)
     char:WaitForChild("HumanoidRootPart")
     task.wait(2)
-
+    
     if STATE.platform then spawnPlatform() end
+    
     if STATE.farm then
         if farmThread then task.cancel(farmThread) end
         farmThread = task.spawn(farmLoop)
     end
+    
     if STATE.hat then spawnHat() end
     if STATE.aura then spawnAura() end
 end
@@ -370,7 +472,7 @@ if LocalPlayer.Character then task.spawn(onCharacter, LocalPlayer.Character) end
 -- ==================== NexusUI Window ====================
 local Window = NexusUI:CreateWindow({
     Title = "NexusUI",
-    SubTitle = "CandyFarm v2 — Jitter Edition",
+    SubTitle = "CandyFarm v2 — Full Edition",
 })
 
 local MainTab = Window:Tab({ Name = "Main", Icon = "⚡" })
@@ -380,7 +482,6 @@ MainTab:Toggle({ Name = "Platform (Height 1000)", Default = STATE.platform, Call
     STATE.platform = v
     if v then spawnPlatform() else destroyPlatform() end
 end})
-
 MainTab:Button({ Name = "Recreate Platform", Callback = spawnPlatform })
 MainTab:Button({ Name = "Return to Platform", Callback = goHome })
 
@@ -403,9 +504,33 @@ MainTab:Slider({ Name = "Jitter Range (×10)", Min = 1, Max = 30, Default = math
 MainTab:Slider({ Name = "Collect Delay (×100ms)", Min = 2, Max = 50, Default = math.floor(CFG.CollectDelay * 100), Callback = function(v) CFG.CollectDelay = v / 100 end })
 MainTab:Slider({ Name = "Return Delay (×10)", Min = 1, Max = 30, Default = math.floor(CFG.ReturnDelay * 10), Callback = function(v) CFG.ReturnDelay = v / 10 end })
 
+-- NEW FEATURES TAB
+local FeaturesTab = Window:Tab({ Name = "Features", Icon = "⚙️" })
+
+FeaturesTab:Section("Bot Height Adjustment")
+FeaturesTab:Toggle({ Name = "Auto Height Near Bot", Default = STATE.autoHeightNearBot, Callback = function(v)
+    STATE.autoHeightNearBot = v
+    if not v then
+        originalPosition = nil
+        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hrp and platformCF then
+            hrp.CFrame = platformCF
+        end
+    end
+end})
+FeaturesTab:Slider({ Name = "Bot Height Offset", Min = 5, Max = 100, Default = CFG.BotHeightOffset, Callback = function(v) CFG.BotHeightOffset = v end })
+
+FeaturesTab:Section("Camera Zoom")
+FeaturesTab:Slider({ Name = "Увеличение камеры (1-1000)", Min = 1, Max = 1000, Default = CFG.CameraZoom, Callback = function(v) setCameraZoom(v) end })
+
+FeaturesTab:Section("Full Bright")
+FeaturesTab:Toggle({ Name = "FULL BRIGHT (ON/OFF)", Default = CFG.FullBright, Callback = function(v) setFullBright(v) end })
+
+FeaturesTab:Section("Speed")
+FeaturesTab:Slider({ Name = "Speed (1x-10x)", Min = 1, Max = 10, Default = CFG.SpeedMultiplier, Callback = function(v) setSpeed(v) end })
+
 -- ESP Tab with ALL button
 local ESPTab = Window:Tab({ Name = "ESP", Icon = "👁️" })
-
 ESPTab:Section("ESP Controls")
 ESPTab:Toggle({ Name = "ESP Master Toggle", Default = STATE.esp, Callback = function(v)
     STATE.esp = v
@@ -420,7 +545,6 @@ ESPTab:Button({ Name = "ALL ESP ON / OFF", Callback = function()
     CFG.ESP.Players = newState
     CFG.ESP.Bots = newState
     CFG.ESP.Candies = newState
-
     NexusUI.Notify({Title = "✦ ESP", Description = newState and "ALL ESP ENABLED" or "ALL ESP DISABLED", Duration = 2})
 end})
 
@@ -429,7 +553,5 @@ ESPTab:Toggle({ Name = "Players (Red)", Default = CFG.ESP.Players, Callback = fu
 ESPTab:Toggle({ Name = "Bots (Blue)", Default = CFG.ESP.Bots, Callback = function(v) CFG.ESP.Bots = v end })
 ESPTab:Toggle({ Name = "Candies (Yellow)", Default = CFG.ESP.Candies, Callback = function(v) CFG.ESP.Candies = v end })
 
--- Other tabs (Player, Cosmetics, etc.) remain similar, I can add them if you want.
-
 task.wait(1)
-NexusUI.Notify({Title = "✦ NexusUI Loaded", Description = "CandyFarm Jitter Edition — Ready", Duration = 5})
+NexusUI.Notify({Title = "✦ NexusUI Loaded", Description = "CandyFarm Full Edition — Ready", Duration = 5})
