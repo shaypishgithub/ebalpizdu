@@ -1,16 +1,15 @@
 -- ╔══════════════════════════════════════════════════════════════════╗
 -- ║         CandyFarm Script — Powered by NexusUI                  ║
--- ║  loadstring(game:HttpGet("RAW_GITHUB_LINK_TO_THIS_FILE"))()    ║
 -- ╚══════════════════════════════════════════════════════════════════╝
 
--- ── NexusUI ───────────────────────────────────────────────────────────
--- Замени ссылку на свой GitHub Raw после загрузки NexusUI.lua
 local NexusUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/shaypishgithub/megahack/refs/heads/main/library/nexus"))()
 
 -- ── Services ──────────────────────────────────────────────────────────
-local Players          = game:GetService("Players")
-local ReplicatedStorage= game:GetService("ReplicatedStorage")
-local LocalPlayer      = Players.LocalPlayer
+local Players           = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService        = game:GetService("RunService")
+local LocalPlayer       = Players.LocalPlayer
+local Camera            = workspace.CurrentCamera
 
 -- ── Config ────────────────────────────────────────────────────────────
 local CFG = {
@@ -22,6 +21,23 @@ local CFG = {
     TicketsFolder  = game.Workspace:WaitForChild("Game")
                         :WaitForChild("Effects")
                         :WaitForChild("Tickets"),
+    ESP = {
+        Players = true,
+        Bots    = true,
+        Candies = true,
+        Color   = {
+            Players = Color3.fromRGB(255, 80, 80),
+            Bots    = Color3.fromRGB(80, 200, 255),
+            Candies = Color3.fromRGB(255, 220, 50),
+        },
+    },
+    Aura = {
+        Enabled = false,
+        Color   = "Black", -- "Black" | "Gray" | "White"
+    },
+    Hat = {
+        Enabled = false,
+    },
 }
 
 local STATE = {
@@ -30,9 +46,12 @@ local STATE = {
     speed      = true,
     antiDown   = true,
     autoRevive = true,
+    esp        = true,
+    aura       = false,
+    hat        = false,
 }
 
--- ── Remote Events ─────────────────────────────────────────────────────
+-- ── Remotes ───────────────────────────────────────────────────────────
 local evChar   = ReplicatedStorage:WaitForChild("Events"):FindFirstChild("Character")
 local evSpeed  = evChar and evChar:FindFirstChild("SpeedBoost")
 local evMove   = evChar and evChar:FindFirstChild("MoveSpeed")
@@ -43,10 +62,288 @@ local evMode   = evPlayer and evPlayer:FindFirstChild("ChangePlayerMode")
 local platform   = nil
 local platformCF = nil
 local farmThread = nil
-local collecting = false
 
 -- ══════════════════════════════════════════
---  NAMECALL HOOK (Speed spoof)
+--  ESP SYSTEM
+-- ══════════════════════════════════════════
+local espObjects = {}
+
+local function removeESP(key)
+    if espObjects[key] then
+        for _, obj in ipairs(espObjects[key]) do
+            if obj and obj.Parent then obj:Destroy() end
+        end
+        espObjects[key] = nil
+    end
+end
+
+local function createBillboard(adornee, text, color, studOffset)
+    local bb = Instance.new("BillboardGui")
+    bb.Name          = "NexusESP"
+    bb.AlwaysOnTop   = true
+    bb.Size          = UDim2.new(0, 120, 0, 40)
+    bb.StudsOffset   = studOffset or Vector3.new(0, 3, 0)
+    bb.Adornee       = adornee
+    bb.Parent        = adornee
+
+    local frame = Instance.new("Frame", bb)
+    frame.BackgroundTransparency = 1
+    frame.Size = UDim2.new(1, 0, 1, 0)
+
+    local label = Instance.new("TextLabel", frame)
+    label.BackgroundTransparency = 1
+    label.Size       = UDim2.new(1, 0, 1, 0)
+    label.TextColor3 = color
+    label.TextStrokeTransparency = 0
+    label.TextStrokeColor3       = Color3.new(0, 0, 0)
+    label.Font       = Enum.Font.GothamBold
+    label.TextScaled = true
+    label.Text       = text
+
+    return bb, label
+end
+
+local function createBox(part, color)
+    local box = Instance.new("SelectionBox")
+    box.Color3         = color
+    box.LineThickness  = 0.05
+    box.SurfaceTransparency = 1
+    box.Adornee        = part
+    box.Parent         = workspace
+    return box
+end
+
+-- Player ESP
+local function setupPlayerESP(player)
+    if player == LocalPlayer then return end
+    local key = "player_" .. player.UserId
+
+    local function onChar(char)
+        removeESP(key)
+        local hrp = char:WaitForChild("HumanoidRootPart", 5)
+        if not hrp then return end
+
+        local objects = {}
+
+        local function updateLabel()
+            if not STATE.esp or not CFG.ESP.Players then return end
+            local dist = math.floor((LocalPlayer.Character and
+                LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and
+                (LocalPlayer.Character.HumanoidRootPart.Position - hrp.Position).Magnitude) or 0)
+            return player.DisplayName .. "\n" .. dist .. "m"
+        end
+
+        local bb, label = createBillboard(hrp, updateLabel() or player.DisplayName, CFG.ESP.Color.Players, Vector3.new(0, 3.5, 0))
+        local box = createBox(hrp, CFG.ESP.Color.Players)
+
+        table.insert(objects, bb)
+        table.insert(objects, box)
+        espObjects[key] = objects
+
+        RunService.Heartbeat:Connect(function()
+            if not STATE.esp or not CFG.ESP.Players then
+                for _, o in ipairs(objects) do if o and o.Parent then o:Destroy() end end
+                return
+            end
+            if label and label.Parent then
+                label.Text = updateLabel() or player.DisplayName
+            end
+        end)
+    end
+
+    if player.Character then task.spawn(onChar, player.Character) end
+    player.CharacterAdded:Connect(onChar)
+end
+
+Players.PlayerAdded:Connect(setupPlayerESP)
+Players.PlayerRemoving:Connect(function(p)
+    removeESP("player_" .. p.UserId)
+end)
+for _, p in ipairs(Players:GetPlayers()) do
+    task.spawn(setupPlayerESP, p)
+end
+
+-- Bot + Candy ESP (scan workspace loop)
+local espTracked = {}
+
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if not STATE.esp then continue end
+
+        -- Bots
+        if CFG.ESP.Bots then
+            local botsFolder = workspace:FindFirstChild("Bots") or workspace:FindFirstChild("NPCs")
+            if botsFolder then
+                for _, bot in ipairs(botsFolder:GetChildren()) do
+                    local hrp = bot:FindFirstChild("HumanoidRootPart")
+                    local key = "bot_" .. bot:GetDebugId()
+                    if hrp and not espTracked[key] then
+                        espTracked[key] = true
+                        local dist = 0
+                        local bb, label = createBillboard(hrp, (bot.Name or "Bot") .. "\n0m", CFG.ESP.Color.Bots, Vector3.new(0, 3, 0))
+                        createBox(hrp, CFG.ESP.Color.Bots)
+
+                        RunService.Heartbeat:Connect(function()
+                            if not hrp or not hrp.Parent then return end
+                            local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                            if myHRP then
+                                dist = math.floor((myHRP.Position - hrp.Position).Magnitude)
+                            end
+                            if label and label.Parent then
+                                label.Text = (bot.Name or "Bot") .. "\n" .. dist .. "m"
+                            end
+                        end)
+                    end
+                end
+            end
+        end
+
+        -- Candies / Tickets
+        if CFG.ESP.Candies then
+            for _, d in ipairs(CFG.TicketsFolder:GetDescendants()) do
+                if d:IsA("BasePart") and d.Name == "HumanoidRootPart" then
+                    local key = "candy_" .. d:GetDebugId()
+                    if not espTracked[key] then
+                        espTracked[key] = true
+                        local parent = d.Parent
+                        local name = (parent and parent.Name) or "Candy"
+                        local bb, label = createBillboard(d, name .. "\n0m", CFG.ESP.Color.Candies, Vector3.new(0, 2, 0))
+                        createBox(d, CFG.ESP.Color.Candies)
+
+                        RunService.Heartbeat:Connect(function()
+                            if not d or not d.Parent then return end
+                            local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                            local dist = 0
+                            if myHRP then
+                                dist = math.floor((myHRP.Position - d.Position).Magnitude)
+                            end
+                            if label and label.Parent then
+                                label.Text = name .. "\n" .. dist .. "m"
+                            end
+                        end)
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- ══════════════════════════════════════════
+--  CONICAL HAT
+-- ══════════════════════════════════════════
+local hatPart = nil
+
+local function spawnHat()
+    local char = LocalPlayer.Character
+    local head = char and char:FindFirstChild("Head")
+    if not head then return end
+    if hatPart and hatPart.Parent then hatPart:Destroy() end
+
+    hatPart = Instance.new("SpecialMesh") -- use Part + Mesh for cone
+    hatPart:Destroy()
+
+    local cone = Instance.new("Part")
+    cone.Name      = "NexusHat"
+    cone.Size      = Vector3.new(1.5, 2.5, 1.5)
+    cone.Anchored  = false
+    cone.CanCollide= false
+    cone.CastShadow= false
+    cone.Color     = Color3.fromRGB(180, 30, 200)
+    cone.Material  = Enum.Material.SmoothPlastic
+    cone.Parent    = char
+
+    local mesh = Instance.new("SpecialMesh", cone)
+    mesh.MeshType = Enum.MeshType.FileMesh
+    mesh.MeshId   = "rbxassetid://1033714" -- cone mesh
+    mesh.Scale    = Vector3.new(1.2, 2.0, 1.2)
+
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0  = head
+    weld.Part1  = cone
+    weld.Parent = cone
+
+    cone.CFrame = head.CFrame * CFrame.new(0, 1.6, 0)
+    hatPart = cone
+end
+
+local function removeHat()
+    if hatPart and hatPart.Parent then
+        hatPart:Destroy()
+        hatPart = nil
+    end
+end
+
+-- ══════════════════════════════════════════
+--  AURA (Black / Gray / White)
+-- ══════════════════════════════════════════
+local auraParts = {}
+
+local AURA_COLORS = {
+    Black = Color3.fromRGB(10,  10,  10),
+    Gray  = Color3.fromRGB(120, 120, 120),
+    White = Color3.fromRGB(240, 240, 240),
+}
+
+local function spawnAura()
+    for _, p in ipairs(auraParts) do if p and p.Parent then p:Destroy() end end
+    auraParts = {}
+
+    local char = LocalPlayer.Character
+    local hrp  = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local col = AURA_COLORS[CFG.Aura.Color] or AURA_COLORS.Black
+
+    -- 3 rings
+    for i = 1, 3 do
+        local ring = Instance.new("Part")
+        ring.Name        = "NexusAura"
+        ring.Anchored    = false
+        ring.CanCollide  = false
+        ring.CastShadow  = false
+        ring.Size        = Vector3.new(4 + i * 0.6, 0.15, 4 + i * 0.6)
+        ring.Color       = col
+        ring.Material    = Enum.Material.Neon
+        ring.Transparency= 0.3 + i * 0.15
+        ring.Parent      = char
+
+        local mesh = Instance.new("SpecialMesh", ring)
+        mesh.MeshType = Enum.MeshType.FileMesh
+        mesh.MeshId   = "rbxassetid://3270017" -- torus/ring mesh
+        mesh.Scale    = Vector3.new(1, 0.3, 1)
+
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0  = hrp
+        weld.Part1  = ring
+        weld.Parent = ring
+
+        ring.CFrame = hrp.CFrame * CFrame.new(0, -1 + i * 0.4, 0)
+        table.insert(auraParts, ring)
+    end
+
+    -- Spinning animation
+    local angle = 0
+    RunService.Heartbeat:Connect(function(dt)
+        if not STATE.aura then return end
+        angle = angle + dt * 90
+        for idx, p in ipairs(auraParts) do
+            if p and p.Parent and hrp and hrp.Parent then
+                p.CFrame = hrp.CFrame
+                    * CFrame.new(0, -0.8 + idx * 0.5, 0)
+                    * CFrame.Angles(0, math.rad(angle * (idx % 2 == 0 and -1 or 1)), 0)
+            end
+        end
+    end)
+end
+
+local function removeAura()
+    for _, p in ipairs(auraParts) do if p and p.Parent then p:Destroy() end end
+    auraParts = {}
+end
+
+-- ══════════════════════════════════════════
+--  NAMECALL HOOK
 -- ══════════════════════════════════════════
 local meta = getrawmetatable(game)
 setreadonly(meta, false)
@@ -66,14 +363,13 @@ meta.__namecall = newcclosure(function(self, ...)
 end)
 
 -- ══════════════════════════════════════════
---  ЛОГИКА
+--  CORE LOGIC
 -- ══════════════════════════════════════════
 local function spawnPlatform()
     if platform and platform.Parent then platform:Destroy() end
     local char = LocalPlayer.Character
     local hrp  = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
-
     local pos = Vector3.new(hrp.Position.X, CFG.PlatformHeight, hrp.Position.Z)
     platform = Instance.new("Part")
     platform.Name         = "CandyFarmPlatform"
@@ -82,27 +378,15 @@ local function spawnPlatform()
     platform.Transparency = 0.5
     platform.CFrame       = CFrame.new(pos)
     platform.Parent       = workspace
-
     platformCF = CFrame.new(pos + Vector3.new(0, 5, 0))
     hrp.CFrame = platformCF
-
-    NexusUI.Notify({
-        Title       = "✦ Платформа",
-        Description = "Платформа создана на высоте " .. CFG.PlatformHeight,
-        Duration    = 3,
-    })
+    NexusUI.Notify({ Title = "✦ Platform", Description = "Platform created at height " .. CFG.PlatformHeight, Duration = 3 })
 end
 
 local function destroyPlatform()
     if platform and platform.Parent then
-        platform:Destroy()
-        platform   = nil
-        platformCF = nil
-        NexusUI.Notify({
-            Title       = "✦ Платформа",
-            Description = "Платформа удалена",
-            Duration    = 2,
-        })
+        platform:Destroy(); platform = nil; platformCF = nil
+        NexusUI.Notify({ Title = "✦ Platform", Description = "Platform removed", Duration = 2 })
     end
 end
 
@@ -119,9 +403,7 @@ local function farmLoop()
                 table.insert(candies, d)
             end
         end
-
         if #candies > 0 then
-            collecting = true
             for _, candy in ipairs(candies) do
                 if not STATE.farm then break end
                 local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -132,13 +414,11 @@ local function farmLoop()
             end
             task.wait(CFG.ReturnDelay)
             goHome()
-            collecting = false
         end
         task.wait(0.5)
     end
 end
 
--- Speed Loop
 task.spawn(function()
     while true do
         task.wait(0.3)
@@ -151,17 +431,14 @@ task.spawn(function()
     end
 end)
 
--- Anti-Down & Auto-Revive Loop
 task.spawn(function()
     while true do
         task.wait(0.4)
         local char = LocalPlayer.Character
         if not char then continue end
-
         if STATE.antiDown and char:GetAttribute("Downed") then
             if evMode then evMode:FireServer(true) end
         end
-
         if STATE.autoRevive then
             local myHRP = char:FindFirstChild("HumanoidRootPart")
             for _, p in ipairs(Players:GetPlayers()) do
@@ -184,176 +461,143 @@ local function onCharacter(char)
         if farmThread then task.cancel(farmThread) end
         farmThread = task.spawn(farmLoop)
     end
+    if STATE.hat   then spawnHat()  end
+    if STATE.aura  then spawnAura() end
 end
 
 LocalPlayer.CharacterAdded:Connect(onCharacter)
 if LocalPlayer.Character then task.spawn(onCharacter, LocalPlayer.Character) end
 
 -- ══════════════════════════════════════════
---  NEXUSUI — ОКНО
+--  NEXUSUI WINDOW
 -- ══════════════════════════════════════════
-local Window = NexusUI:CreateWindow({
-    Title    = "NexusUI",
-    SubTitle = "CandyFarm Edition",
-})
+local Window = NexusUI:CreateWindow({ Title = "NexusUI", SubTitle = "CandyFarm Edition" })
 
--- ── Вкладка: Main ─────────────────────────────────────────────────────
+-- ── Main Tab ──────────────────────────────────────────────────────────
 local MainTab = Window:Tab({ Name = "Main", Icon = "⚡" })
 
-MainTab:Section("Платформа")
+MainTab:Section("Platform")
+MainTab:Toggle({ Name = "Platform (height 1000)", Default = STATE.platform,
+    Callback = function(v) STATE.platform = v; if v then spawnPlatform() else destroyPlatform() end end })
+MainTab:Button({ Name = "Recreate Platform", Description = "Teleport & recreate platform",
+    Callback = spawnPlatform })
+MainTab:Button({ Name = "Return to Platform", Description = "Teleport back to platform",
+    Callback = goHome })
 
-MainTab:Toggle({
-    Name    = "Платформа (высота 1000)",
-    Default = STATE.platform,
-    Callback = function(v)
-        STATE.platform = v
-        if v then
-            spawnPlatform()
-        else
-            destroyPlatform()
-        end
-    end,
-})
-
-MainTab:Button({
-    Name        = "Пересоздать платформу",
-    Description = "Телепортирует и пересоздаёт платформу заново",
-    Callback    = function()
-        spawnPlatform()
-    end,
-})
-
-MainTab:Button({
-    Name        = "Вернуться на платформу",
-    Description = "Телепортирует обратно на платформу",
-    Callback    = function()
-        goHome()
-    end,
-})
-
-MainTab:Section("Фарм")
-
-MainTab:Toggle({
-    Name    = "Автосбор конфет",
-    Default = STATE.farm,
+MainTab:Section("Farm")
+MainTab:Toggle({ Name = "Auto Collect Candies", Default = STATE.farm,
     Callback = function(v)
         STATE.farm = v
         if v then
             if farmThread then task.cancel(farmThread) end
             farmThread = task.spawn(farmLoop)
-            NexusUI.Notify({ Title = "✦ Фарм", Description = "Автосбор включён", Duration = 2 })
+            NexusUI.Notify({ Title = "✦ Farm", Description = "Auto collect ON", Duration = 2 })
         else
-            NexusUI.Notify({ Title = "✦ Фарм", Description = "Автосбор выключен", Duration = 2 })
+            NexusUI.Notify({ Title = "✦ Farm", Description = "Auto collect OFF", Duration = 2 })
         end
-    end,
-})
-
-MainTab:Slider({
-    Name    = "Задержка сбора (сек × 100)",
-    Min     = 5,
-    Max     = 100,
+    end })
+MainTab:Slider({ Name = "Collect Delay (sec×100)", Min = 5, Max = 100,
     Default = math.floor(CFG.CollectDelay * 100),
-    Callback = function(v)
-        CFG.CollectDelay = v / 100
-    end,
-})
-
-MainTab:Slider({
-    Name    = "Задержка возврата (сек × 10)",
-    Min     = 1,
-    Max     = 30,
+    Callback = function(v) CFG.CollectDelay = v / 100 end })
+MainTab:Slider({ Name = "Return Delay (sec×10)", Min = 1, Max = 30,
     Default = math.floor(CFG.ReturnDelay * 10),
+    Callback = function(v) CFG.ReturnDelay = v / 10 end })
+
+-- ── ESP Tab ───────────────────────────────────────────────────────────
+local ESPTab = Window:Tab({ Name = "ESP", Icon = "👁️" })
+
+ESPTab:Section("ESP Toggles")
+ESPTab:Toggle({ Name = "ESP Enabled", Default = STATE.esp,
+    Callback = function(v) STATE.esp = v
+        NexusUI.Notify({ Title = "✦ ESP", Description = v and "ESP ON" or "ESP OFF", Duration = 2 }) end })
+ESPTab:Toggle({ Name = "ESP Players", Default = CFG.ESP.Players,
+    Callback = function(v) CFG.ESP.Players = v end })
+ESPTab:Toggle({ Name = "ESP Bots", Default = CFG.ESP.Bots,
+    Callback = function(v) CFG.ESP.Bots = v end })
+ESPTab:Toggle({ Name = "ESP Candies", Default = CFG.ESP.Candies,
+    Callback = function(v) CFG.ESP.Candies = v end })
+
+ESPTab:Section("Info")
+ESPTab:Label("ESP shows: Name | Distance in meters")
+ESPTab:Label("Players = Red  |  Bots = Blue  |  Candies = Yellow")
+
+-- ── Cosmetics Tab ─────────────────────────────────────────────────────
+local CosTab = Window:Tab({ Name = "Cosmetics", Icon = "🎩" })
+
+CosTab:Section("Conical Hat")
+CosTab:Toggle({ Name = "Conical Hat", Default = STATE.hat,
     Callback = function(v)
-        CFG.ReturnDelay = v / 10
+        STATE.hat = v
+        if v then spawnHat() else removeHat() end
+        NexusUI.Notify({ Title = "✦ Hat", Description = v and "Hat ON" or "Hat OFF", Duration = 2 })
+    end })
+
+CosTab:Section("Player Aura")
+CosTab:Toggle({ Name = "Aura Enabled", Default = STATE.aura,
+    Callback = function(v)
+        STATE.aura = v
+        if v then spawnAura() else removeAura() end
+        NexusUI.Notify({ Title = "✦ Aura", Description = v and ("Aura ON — " .. CFG.Aura.Color) or "Aura OFF", Duration = 2 })
+    end })
+
+CosTab:Dropdown({
+    Name    = "Aura Color",
+    Options = { "Black", "Gray", "White" },
+    Default = CFG.Aura.Color,
+    Callback = function(v)
+        CFG.Aura.Color = v
+        if STATE.aura then spawnAura() end
+        NexusUI.Notify({ Title = "✦ Aura Color", Description = "Set to: " .. v, Duration = 2 })
     end,
 })
 
--- ── Вкладка: Player ───────────────────────────────────────────────────
+CosTab:Label("Aura spins around your character with neon rings")
+
+-- ── Player Tab ────────────────────────────────────────────────────────
 local PlayerTab = Window:Tab({ Name = "Player", Icon = "🧍" })
 
-PlayerTab:Section("Скорость")
-
-PlayerTab:Toggle({
-    Name    = "Speed Hack",
-    Default = STATE.speed,
+PlayerTab:Section("Speed")
+PlayerTab:Toggle({ Name = "Speed Hack", Default = STATE.speed,
     Callback = function(v)
         STATE.speed = v
         if not v then
             local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
             if hum then hum.WalkSpeed = 16 end
         end
-        NexusUI.Notify({
-            Title       = "✦ Speed Hack",
-            Description = v and ("Включён — " .. CFG.WalkSpeed .. " speed") or "Выключен",
-            Duration    = 2,
-        })
-    end,
-})
+        NexusUI.Notify({ Title = "✦ Speed Hack",
+            Description = v and ("ON — " .. CFG.WalkSpeed .. " speed") or "OFF", Duration = 2 })
+    end })
+PlayerTab:Slider({ Name = "Walk Speed", Min = 16, Max = 500, Default = CFG.WalkSpeed,
+    Callback = function(v) CFG.WalkSpeed = v end })
 
-PlayerTab:Slider({
-    Name    = "Walk Speed",
-    Min     = 16,
-    Max     = 500,
-    Default = CFG.WalkSpeed,
-    Callback = function(v)
-        CFG.WalkSpeed = v
-    end,
-})
-
-PlayerTab:Section("Выживание")
-
-PlayerTab:Toggle({
-    Name    = "Anti-Down (авто-подъём)",
-    Default = STATE.antiDown,
+PlayerTab:Section("Survival")
+PlayerTab:Toggle({ Name = "Anti-Down", Default = STATE.antiDown,
     Callback = function(v)
         STATE.antiDown = v
-        NexusUI.Notify({
-            Title       = "✦ Anti-Down",
-            Description = v and "Включён" or "Выключен",
-            Duration    = 2,
-        })
-    end,
-})
-
-PlayerTab:Toggle({
-    Name    = "Auto-Revive тиммейтов",
-    Default = STATE.autoRevive,
+        NexusUI.Notify({ Title = "✦ Anti-Down", Description = v and "ON" or "OFF", Duration = 2 })
+    end })
+PlayerTab:Toggle({ Name = "Auto-Revive Teammates", Default = STATE.autoRevive,
     Callback = function(v)
         STATE.autoRevive = v
-        NexusUI.Notify({
-            Title       = "✦ Auto-Revive",
-            Description = v and "Включён (радиус 50)" or "Выключен",
-            Duration    = 2,
-        })
-    end,
-})
+        NexusUI.Notify({ Title = "✦ Auto-Revive", Description = v and "ON (radius 50)" or "OFF", Duration = 2 })
+    end })
 
--- ── Вкладка: Config ───────────────────────────────────────────────────
+-- ── Config Tab ────────────────────────────────────────────────────────
 local CfgTab = Window:Tab({ Name = "Config", Icon = "⚙️" })
 
-CfgTab:Section("Платформа")
+CfgTab:Section("Platform")
+CfgTab:Slider({ Name = "Platform Height", Min = 100, Max = 5000, Default = CFG.PlatformHeight,
+    Callback = function(v) CFG.PlatformHeight = v end })
+CfgTab:Label("After changing height — recreate the platform")
 
-CfgTab:Slider({
-    Name    = "Высота платформы",
-    Min     = 100,
-    Max     = 5000,
-    Default = CFG.PlatformHeight,
-    Callback = function(v)
-        CFG.PlatformHeight = v
-    end,
-})
-
-CfgTab:Label("После изменения высоты — пересоздай платформу")
-
-CfgTab:Section("Информация")
-
+CfgTab:Section("Info")
 CfgTab:Label("NexusUI CandyFarm Edition")
-CfgTab:Label("github.com/ВАШ_НИК/nexusui")
+CfgTab:Label("ESP | Hat | Aura | Farm | Speed | Anti-Down")
 
--- ── Стартовое уведомление ─────────────────────────────────────────────
+-- ── Startup Notification ──────────────────────────────────────────────
 task.wait(1)
 NexusUI.Notify({
-    Title       = "✦ NexusUI загружен",
-    Description = "CandyFarm Edition — все функции активны",
+    Title       = "✦ NexusUI Loaded",
+    Description = "CandyFarm Edition — ESP + Cosmetics active",
     Duration    = 5,
 })
