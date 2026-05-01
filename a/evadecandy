@@ -1,0 +1,361 @@
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║         CandyFarm Script — Powered by NexusUI                  ║
+-- ║  loadstring(game:HttpGet("RAW_GITHUB_LINK_TO_THIS_FILE"))()    ║
+-- ╚══════════════════════════════════════════════════════════════════╝
+
+-- ── NexusUI ───────────────────────────────────────────────────────────
+-- Замени ссылку на свой GitHub Raw после загрузки NexusUI.lua
+local NexusUI = loadstring(game:HttpGet(
+    "https://raw.githubusercontent.com/ВАШ_НИК/nexusui/main/NexusUI.lua"
+))()
+
+-- ── Services ──────────────────────────────────────────────────────────
+local Players          = game:GetService("Players")
+local ReplicatedStorage= game:GetService("ReplicatedStorage")
+local LocalPlayer      = Players.LocalPlayer
+
+-- ── Config ────────────────────────────────────────────────────────────
+local CFG = {
+    PlatformHeight = 1000,
+    PlatformSize   = Vector3.new(18, 2, 18),
+    CollectDelay   = 0.12,
+    ReturnDelay    = 0.5,
+    WalkSpeed      = 80,
+    TicketsFolder  = game.Workspace:WaitForChild("Game")
+                        :WaitForChild("Effects")
+                        :WaitForChild("Tickets"),
+}
+
+local STATE = {
+    platform   = true,
+    farm       = true,
+    speed      = true,
+    antiDown   = true,
+    autoRevive = true,
+}
+
+-- ── Remote Events ─────────────────────────────────────────────────────
+local evChar   = ReplicatedStorage:WaitForChild("Events"):FindFirstChild("Character")
+local evSpeed  = evChar and evChar:FindFirstChild("SpeedBoost")
+local evMove   = evChar and evChar:FindFirstChild("MoveSpeed")
+local evInter  = evChar and evChar:FindFirstChild("Interact")
+local evPlayer = ReplicatedStorage:WaitForChild("Events"):FindFirstChild("Player")
+local evMode   = evPlayer and evPlayer:FindFirstChild("ChangePlayerMode")
+
+local platform   = nil
+local platformCF = nil
+local farmThread = nil
+local collecting = false
+
+-- ══════════════════════════════════════════
+--  NAMECALL HOOK (Speed spoof)
+-- ══════════════════════════════════════════
+local meta = getrawmetatable(game)
+setreadonly(meta, false)
+local origNamecall = meta.__namecall
+meta.__namecall = newcclosure(function(self, ...)
+    local args   = {...}
+    local method = getnamecallmethod()
+    if tostring(self) == "PassCharacterInfoUnreliable" and method == "FireServer" then
+        local data = args[2]
+        if STATE.speed and typeof(data) == "table" and typeof(data[2]) == "Vector2int16" then
+            data[1] = CFG.WalkSpeed
+            args[2] = data
+        end
+        return origNamecall(self, unpack(args))
+    end
+    return origNamecall(self, ...)
+end)
+
+-- ══════════════════════════════════════════
+--  ЛОГИКА
+-- ══════════════════════════════════════════
+local function spawnPlatform()
+    if platform and platform.Parent then platform:Destroy() end
+    local char = LocalPlayer.Character
+    local hrp  = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local pos = Vector3.new(hrp.Position.X, CFG.PlatformHeight, hrp.Position.Z)
+    platform = Instance.new("Part")
+    platform.Name         = "CandyFarmPlatform"
+    platform.Size         = CFG.PlatformSize
+    platform.Anchored     = true
+    platform.Transparency = 0.5
+    platform.CFrame       = CFrame.new(pos)
+    platform.Parent       = workspace
+
+    platformCF = CFrame.new(pos + Vector3.new(0, 5, 0))
+    hrp.CFrame = platformCF
+
+    NexusUI.Notify({
+        Title       = "✦ Платформа",
+        Description = "Платформа создана на высоте " .. CFG.PlatformHeight,
+        Duration    = 3,
+    })
+end
+
+local function destroyPlatform()
+    if platform and platform.Parent then
+        platform:Destroy()
+        platform   = nil
+        platformCF = nil
+        NexusUI.Notify({
+            Title       = "✦ Платформа",
+            Description = "Платформа удалена",
+            Duration    = 2,
+        })
+    end
+end
+
+local function goHome()
+    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if hrp and platformCF then hrp.CFrame = platformCF end
+end
+
+local function farmLoop()
+    while STATE.farm do
+        local candies = {}
+        for _, d in ipairs(CFG.TicketsFolder:GetDescendants()) do
+            if d:IsA("BasePart") and d.Name == "HumanoidRootPart" then
+                table.insert(candies, d)
+            end
+        end
+
+        if #candies > 0 then
+            collecting = true
+            for _, candy in ipairs(candies) do
+                if not STATE.farm then break end
+                local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if hrp and candy.Parent then
+                    hrp.CFrame = candy.CFrame + Vector3.new(0, 3, 0)
+                    task.wait(CFG.CollectDelay)
+                end
+            end
+            task.wait(CFG.ReturnDelay)
+            goHome()
+            collecting = false
+        end
+        task.wait(0.5)
+    end
+end
+
+-- Speed Loop
+task.spawn(function()
+    while true do
+        task.wait(0.3)
+        if STATE.speed then
+            local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if hum then hum.WalkSpeed = CFG.WalkSpeed end
+            if evSpeed then evSpeed:FireServer(true) end
+            if evMove  then evMove:FireServer(CFG.WalkSpeed) end
+        end
+    end
+end)
+
+-- Anti-Down & Auto-Revive Loop
+task.spawn(function()
+    while true do
+        task.wait(0.4)
+        local char = LocalPlayer.Character
+        if not char then continue end
+
+        if STATE.antiDown and char:GetAttribute("Downed") then
+            if evMode then evMode:FireServer(true) end
+        end
+
+        if STATE.autoRevive then
+            local myHRP = char:FindFirstChild("HumanoidRootPart")
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer and p.Character and p.Character:GetAttribute("Downed") then
+                    local targetHRP = p.Character:FindFirstChild("HumanoidRootPart")
+                    if targetHRP and myHRP and (myHRP.Position - targetHRP.Position).Magnitude < 50 then
+                        if evInter then evInter:FireServer("Revive", true, p.Name) end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+local function onCharacter(char)
+    char:WaitForChild("HumanoidRootPart")
+    task.wait(2)
+    if STATE.platform then spawnPlatform() end
+    if STATE.farm then
+        if farmThread then task.cancel(farmThread) end
+        farmThread = task.spawn(farmLoop)
+    end
+end
+
+LocalPlayer.CharacterAdded:Connect(onCharacter)
+if LocalPlayer.Character then task.spawn(onCharacter, LocalPlayer.Character) end
+
+-- ══════════════════════════════════════════
+--  NEXUSUI — ОКНО
+-- ══════════════════════════════════════════
+local Window = NexusUI:CreateWindow({
+    Title    = "NexusUI",
+    SubTitle = "CandyFarm Edition",
+})
+
+-- ── Вкладка: Main ─────────────────────────────────────────────────────
+local MainTab = Window:Tab({ Name = "Main", Icon = "⚡" })
+
+MainTab:Section("Платформа")
+
+MainTab:Toggle({
+    Name    = "Платформа (высота 1000)",
+    Default = STATE.platform,
+    Callback = function(v)
+        STATE.platform = v
+        if v then
+            spawnPlatform()
+        else
+            destroyPlatform()
+        end
+    end,
+})
+
+MainTab:Button({
+    Name        = "Пересоздать платформу",
+    Description = "Телепортирует и пересоздаёт платформу заново",
+    Callback    = function()
+        spawnPlatform()
+    end,
+})
+
+MainTab:Button({
+    Name        = "Вернуться на платформу",
+    Description = "Телепортирует обратно на платформу",
+    Callback    = function()
+        goHome()
+    end,
+})
+
+MainTab:Section("Фарм")
+
+MainTab:Toggle({
+    Name    = "Автосбор конфет",
+    Default = STATE.farm,
+    Callback = function(v)
+        STATE.farm = v
+        if v then
+            if farmThread then task.cancel(farmThread) end
+            farmThread = task.spawn(farmLoop)
+            NexusUI.Notify({ Title = "✦ Фарм", Description = "Автосбор включён", Duration = 2 })
+        else
+            NexusUI.Notify({ Title = "✦ Фарм", Description = "Автосбор выключен", Duration = 2 })
+        end
+    end,
+})
+
+MainTab:Slider({
+    Name    = "Задержка сбора (сек × 100)",
+    Min     = 5,
+    Max     = 100,
+    Default = math.floor(CFG.CollectDelay * 100),
+    Callback = function(v)
+        CFG.CollectDelay = v / 100
+    end,
+})
+
+MainTab:Slider({
+    Name    = "Задержка возврата (сек × 10)",
+    Min     = 1,
+    Max     = 30,
+    Default = math.floor(CFG.ReturnDelay * 10),
+    Callback = function(v)
+        CFG.ReturnDelay = v / 10
+    end,
+})
+
+-- ── Вкладка: Player ───────────────────────────────────────────────────
+local PlayerTab = Window:Tab({ Name = "Player", Icon = "🧍" })
+
+PlayerTab:Section("Скорость")
+
+PlayerTab:Toggle({
+    Name    = "Speed Hack",
+    Default = STATE.speed,
+    Callback = function(v)
+        STATE.speed = v
+        if not v then
+            local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if hum then hum.WalkSpeed = 16 end
+        end
+        NexusUI.Notify({
+            Title       = "✦ Speed Hack",
+            Description = v and ("Включён — " .. CFG.WalkSpeed .. " speed") or "Выключен",
+            Duration    = 2,
+        })
+    end,
+})
+
+PlayerTab:Slider({
+    Name    = "Walk Speed",
+    Min     = 16,
+    Max     = 500,
+    Default = CFG.WalkSpeed,
+    Callback = function(v)
+        CFG.WalkSpeed = v
+    end,
+})
+
+PlayerTab:Section("Выживание")
+
+PlayerTab:Toggle({
+    Name    = "Anti-Down (авто-подъём)",
+    Default = STATE.antiDown,
+    Callback = function(v)
+        STATE.antiDown = v
+        NexusUI.Notify({
+            Title       = "✦ Anti-Down",
+            Description = v and "Включён" or "Выключен",
+            Duration    = 2,
+        })
+    end,
+})
+
+PlayerTab:Toggle({
+    Name    = "Auto-Revive тиммейтов",
+    Default = STATE.autoRevive,
+    Callback = function(v)
+        STATE.autoRevive = v
+        NexusUI.Notify({
+            Title       = "✦ Auto-Revive",
+            Description = v and "Включён (радиус 50)" or "Выключен",
+            Duration    = 2,
+        })
+    end,
+})
+
+-- ── Вкладка: Config ───────────────────────────────────────────────────
+local CfgTab = Window:Tab({ Name = "Config", Icon = "⚙️" })
+
+CfgTab:Section("Платформа")
+
+CfgTab:Slider({
+    Name    = "Высота платформы",
+    Min     = 100,
+    Max     = 5000,
+    Default = CFG.PlatformHeight,
+    Callback = function(v)
+        CFG.PlatformHeight = v
+    end,
+})
+
+CfgTab:Label("После изменения высоты — пересоздай платформу")
+
+CfgTab:Section("Информация")
+
+CfgTab:Label("NexusUI CandyFarm Edition")
+CfgTab:Label("github.com/ВАШ_НИК/nexusui")
+
+-- ── Стартовое уведомление ─────────────────────────────────────────────
+task.wait(1)
+NexusUI.Notify({
+    Title       = "✦ NexusUI загружен",
+    Description = "CandyFarm Edition — все функции активны",
+    Duration    = 5,
+})
