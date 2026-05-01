@@ -1,0 +1,1047 @@
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║              NexusUI Library v1.0 by NexusDev                  ║
+-- ║         Black · Grey · White Gradient GUI Framework            ║
+-- ║   loadstring(game:HttpGet("YOUR_RAW_GITHUB_LINK"))()           ║
+-- ╚══════════════════════════════════════════════════════════════════╝
+
+local NexusUI = {}
+NexusUI.__index = NexusUI
+
+-- ── Services ──────────────────────────────────────────────────────────
+local Players         = game:GetService("Players")
+local TweenService    = game:GetService("TweenService")
+local UserInputService= game:GetService("UserInputService")
+local RunService      = game:GetService("RunService")
+local CoreGui         = game:GetService("CoreGui")
+
+local LocalPlayer = Players.LocalPlayer
+local Mouse       = LocalPlayer:GetMouse()
+
+-- ── Palette ───────────────────────────────────────────────────────────
+local COLORS = {
+    Black      = Color3.fromRGB(8,  8,  10),
+    Dark       = Color3.fromRGB(18, 18, 22),
+    Dark2      = Color3.fromRGB(26, 26, 32),
+    Mid        = Color3.fromRGB(40, 40, 50),
+    Mid2       = Color3.fromRGB(60, 60, 72),
+    Grey       = Color3.fromRGB(100,100,115),
+    LightGrey  = Color3.fromRGB(160,160,175),
+    White      = Color3.fromRGB(235,235,240),
+    PureWhite  = Color3.fromRGB(255,255,255),
+    Accent     = Color3.fromRGB(200,200,215),
+    Shimmer1   = Color3.fromRGB(255,255,255),
+    Shimmer2   = Color3.fromRGB(180,180,195),
+}
+
+-- ── Utility ───────────────────────────────────────────────────────────
+local function Tween(obj, info, props)
+    TweenService:Create(obj, info, props):Play()
+end
+
+local function QuickTween(obj, t, props)
+    Tween(obj, TweenInfo.new(t, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), props)
+end
+
+local function MakeShadow(parent, size)
+    local shadow = Instance.new("ImageLabel")
+    shadow.Name = "Shadow"
+    shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+    shadow.BackgroundTransparency = 1
+    shadow.Position = UDim2.new(0.5, 0, 0.5, 8)
+    shadow.Size = UDim2.new(1, size or 40, 1, size or 40)
+    shadow.ZIndex = parent.ZIndex - 1
+    shadow.Image = "rbxassetid://6014261993"
+    shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.ImageTransparency = 0.5
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(49, 49, 450, 450)
+    shadow.Parent = parent
+    return shadow
+end
+
+local function MakeGradient(parent, rotation, c0, c1)
+    local g = Instance.new("UIGradient")
+    g.Rotation = rotation or 90
+    g.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   c0 or COLORS.Dark),
+        ColorSequenceKeypoint.new(0.5, COLORS.Mid),
+        ColorSequenceKeypoint.new(1,   c1 or COLORS.Dark2),
+    })
+    g.Parent = parent
+    return g
+end
+
+local function MakeCorner(parent, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius or 8)
+    c.Parent = parent
+    return c
+end
+
+local function MakeStroke(parent, color, thickness)
+    local s = Instance.new("UIStroke")
+    s.Color = color or COLORS.Mid2
+    s.Thickness = thickness or 1
+    s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    s.Parent = parent
+    return s
+end
+
+-- ── Shimmer Animation ─────────────────────────────────────────────────
+local function AddShimmer(frame)
+    local shimmerFrame = Instance.new("Frame")
+    shimmerFrame.Name = "Shimmer"
+    shimmerFrame.Size = UDim2.new(0.4, 0, 1, 0)
+    shimmerFrame.Position = UDim2.new(-0.5, 0, 0, 0)
+    shimmerFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    shimmerFrame.BackgroundTransparency = 1
+    shimmerFrame.ZIndex = frame.ZIndex + 5
+    shimmerFrame.ClipsDescendants = false
+    shimmerFrame.Parent = frame
+
+    local shimmerGrad = Instance.new("UIGradient")
+    shimmerGrad.Rotation = 15
+    shimmerGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   Color3.fromRGB(255,255,255)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255,255,255)),
+        ColorSequenceKeypoint.new(1,   Color3.fromRGB(255,255,255)),
+    })
+    shimmerGrad.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0,   1),
+        NumberSequenceKeypoint.new(0.4, 0.75),
+        NumberSequenceKeypoint.new(0.5, 0.6),
+        NumberSequenceKeypoint.new(0.6, 0.75),
+        NumberSequenceKeypoint.new(1,   1),
+    })
+    shimmerGrad.Parent = shimmerFrame
+
+    local function runShimmer()
+        shimmerFrame.Position = UDim2.new(-0.5, 0, 0, 0)
+        QuickTween(shimmerFrame, 1.8, {Position = UDim2.new(1.2, 0, 0, 0)})
+        task.wait(1.8)
+        task.wait(math.random(10, 25) / 10)
+        if shimmerFrame.Parent then
+            runShimmer()
+        end
+    end
+
+    task.spawn(runShimmer)
+    return shimmerFrame
+end
+
+-- ── Pulse Glow ────────────────────────────────────────────────────────
+local function AddPulseGlow(frame)
+    local glow = Instance.new("ImageLabel")
+    glow.Name = "Glow"
+    glow.AnchorPoint = Vector2.new(0.5, 0.5)
+    glow.BackgroundTransparency = 1
+    glow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    glow.Size = UDim2.new(1, 60, 1, 60)
+    glow.ZIndex = frame.ZIndex - 1
+    glow.Image = "rbxassetid://5028857084"
+    glow.ImageColor3 = COLORS.LightGrey
+    glow.ImageTransparency = 0.85
+    glow.Parent = frame
+
+    local function pulse()
+        QuickTween(glow, 1.5, {ImageTransparency = 0.6, Size = UDim2.new(1, 80, 1, 80)})
+        task.wait(1.5)
+        QuickTween(glow, 1.5, {ImageTransparency = 0.9, Size = UDim2.new(1, 50, 1, 50)})
+        task.wait(1.5)
+        if glow.Parent then pulse() end
+    end
+    task.spawn(pulse)
+    return glow
+end
+
+-- ════════════════════════════════════════════════════════════════════
+--  WINDOW
+-- ════════════════════════════════════════════════════════════════════
+function NexusUI:CreateWindow(options)
+    options = options or {}
+    local Title    = options.Title    or "NexusUI"
+    local SubTitle = options.SubTitle or "Modern GUI Library"
+    local Size     = options.Size     or UDim2.new(0, 580, 0, 420)
+
+    local Window = {}
+
+    -- ── ScreenGui ──
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "NexusUI_" .. Title
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.IgnoreGuiInset = true
+
+    pcall(function()
+        ScreenGui.Parent = CoreGui
+    end)
+    if not ScreenGui.Parent then
+        ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    end
+
+    -- ── Main Frame ──
+    local Main = Instance.new("Frame")
+    Main.Name = "Main"
+    Main.AnchorPoint = Vector2.new(0.5, 0.5)
+    Main.Position = UDim2.new(0.5, 0, 0.5, 0)
+    Main.Size = UDim2.fromOffset(0, 0)
+    Main.BackgroundColor3 = COLORS.Dark
+    Main.BorderSizePixel = 0
+    Main.ZIndex = 10
+    Main.ClipsDescendants = true
+    Main.Parent = ScreenGui
+
+    MakeCorner(Main, 12)
+    MakeGradient(Main, 145, COLORS.Black, COLORS.Dark2)
+    MakeShadow(Main, 60)
+
+    local mainStroke = MakeStroke(Main, COLORS.Mid2, 1)
+    local borderGrad = Instance.new("UIGradient")
+    borderGrad.Rotation = 145
+    borderGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   COLORS.Grey),
+        ColorSequenceKeypoint.new(0.5, COLORS.White),
+        ColorSequenceKeypoint.new(1,   COLORS.Mid2),
+    })
+    borderGrad.Parent = mainStroke
+
+    -- Clip inner content
+    local ClipFrame = Instance.new("Frame")
+    ClipFrame.Name = "Clip"
+    ClipFrame.Size = UDim2.new(1,0,1,0)
+    ClipFrame.BackgroundTransparency = 1
+    ClipFrame.ZIndex = 10
+    ClipFrame.ClipsDescendants = true
+    ClipFrame.Parent = Main
+
+    -- ── Top Bar ──
+    local TopBar = Instance.new("Frame")
+    TopBar.Name = "TopBar"
+    TopBar.Size = UDim2.new(1, 0, 0, 50)
+    TopBar.BackgroundColor3 = COLORS.Black
+    TopBar.BorderSizePixel = 0
+    TopBar.ZIndex = 12
+    TopBar.Parent = ClipFrame
+
+    MakeGradient(TopBar, 90, COLORS.Black, COLORS.Dark)
+    AddShimmer(TopBar)
+
+    local topDivider = Instance.new("Frame")
+    topDivider.Size = UDim2.new(1, 0, 0, 1)
+    topDivider.Position = UDim2.new(0, 0, 1, -1)
+    topDivider.BackgroundColor3 = COLORS.Mid2
+    topDivider.BorderSizePixel = 0
+    topDivider.ZIndex = 13
+    topDivider.Parent = TopBar
+
+    local divGrad = Instance.new("UIGradient")
+    divGrad.Rotation = 0
+    divGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   COLORS.Dark),
+        ColorSequenceKeypoint.new(0.3, COLORS.White),
+        ColorSequenceKeypoint.new(0.7, COLORS.LightGrey),
+        ColorSequenceKeypoint.new(1,   COLORS.Dark),
+    })
+    divGrad.Parent = topDivider
+
+    -- Logo dot
+    local logoDot = Instance.new("Frame")
+    logoDot.Size = UDim2.fromOffset(8, 8)
+    logoDot.Position = UDim2.new(0, 16, 0.5, -4)
+    logoDot.BackgroundColor3 = COLORS.White
+    logoDot.BorderSizePixel = 0
+    logoDot.ZIndex = 14
+    logoDot.Parent = TopBar
+    MakeCorner(logoDot, 4)
+    AddPulseGlow(logoDot)
+
+    -- Title
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Size = UDim2.new(0.5, 0, 0, 22)
+    TitleLabel.Position = UDim2.new(0, 34, 0, 8)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Text = Title
+    TitleLabel.TextColor3 = COLORS.PureWhite
+    TitleLabel.TextSize = 15
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.ZIndex = 14
+    TitleLabel.Parent = TopBar
+
+    local SubLabel = Instance.new("TextLabel")
+    SubLabel.Size = UDim2.new(0.6, 0, 0, 14)
+    SubLabel.Position = UDim2.new(0, 34, 0, 30)
+    SubLabel.BackgroundTransparency = 1
+    SubLabel.Text = SubTitle
+    SubLabel.TextColor3 = COLORS.Grey
+    SubLabel.TextSize = 10
+    SubLabel.Font = Enum.Font.Gotham
+    SubLabel.TextXAlignment = Enum.TextXAlignment.Left
+    SubLabel.ZIndex = 14
+    SubLabel.Parent = TopBar
+
+    -- Close button
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Size = UDim2.fromOffset(28, 28)
+    CloseBtn.Position = UDim2.new(1, -38, 0.5, -14)
+    CloseBtn.BackgroundColor3 = COLORS.Mid
+    CloseBtn.Text = "✕"
+    CloseBtn.TextColor3 = COLORS.LightGrey
+    CloseBtn.TextSize = 12
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.ZIndex = 15
+    CloseBtn.Parent = TopBar
+    MakeCorner(CloseBtn, 6)
+    MakeStroke(CloseBtn, COLORS.Mid2, 1)
+
+    CloseBtn.MouseEnter:Connect(function()
+        QuickTween(CloseBtn, 0.2, {BackgroundColor3 = Color3.fromRGB(200,60,60), TextColor3 = COLORS.White})
+    end)
+    CloseBtn.MouseLeave:Connect(function()
+        QuickTween(CloseBtn, 0.2, {BackgroundColor3 = COLORS.Mid, TextColor3 = COLORS.LightGrey})
+    end)
+    CloseBtn.MouseButton1Click:Connect(function()
+        QuickTween(Main, 0.3, {Size = UDim2.fromOffset(0,0), BackgroundTransparency = 1})
+        task.delay(0.35, function() ScreenGui:Destroy() end)
+    end)
+
+    -- Minimize button
+    local MinBtn = Instance.new("TextButton")
+    MinBtn.Size = UDim2.fromOffset(28, 28)
+    MinBtn.Position = UDim2.new(1, -72, 0.5, -14)
+    MinBtn.BackgroundColor3 = COLORS.Mid
+    MinBtn.Text = "–"
+    MinBtn.TextColor3 = COLORS.LightGrey
+    MinBtn.TextSize = 14
+    MinBtn.Font = Enum.Font.GothamBold
+    MinBtn.ZIndex = 15
+    MinBtn.Parent = TopBar
+    MakeCorner(MinBtn, 6)
+    MakeStroke(MinBtn, COLORS.Mid2, 1)
+
+    local minimized = false
+    MinBtn.MouseEnter:Connect(function()
+        QuickTween(MinBtn, 0.2, {BackgroundColor3 = COLORS.Mid2, TextColor3 = COLORS.White})
+    end)
+    MinBtn.MouseLeave:Connect(function()
+        QuickTween(MinBtn, 0.2, {BackgroundColor3 = COLORS.Mid, TextColor3 = COLORS.LightGrey})
+    end)
+    MinBtn.MouseButton1Click:Connect(function()
+        minimized = not minimized
+        if minimized then
+            QuickTween(Main, 0.3, {Size = UDim2.new(Size.X.Scale, Size.X.Offset, 0, 50)})
+        else
+            QuickTween(Main, 0.3, {Size = Size})
+        end
+    end)
+
+    -- ── Sidebar ──
+    local Sidebar = Instance.new("Frame")
+    Sidebar.Name = "Sidebar"
+    Sidebar.Size = UDim2.new(0, 140, 1, -50)
+    Sidebar.Position = UDim2.new(0, 0, 0, 50)
+    Sidebar.BackgroundColor3 = COLORS.Black
+    Sidebar.BorderSizePixel = 0
+    Sidebar.ZIndex = 11
+    Sidebar.Parent = ClipFrame
+
+    MakeGradient(Sidebar, 180, COLORS.Black, Color3.fromRGB(12,12,16))
+
+    local sideDiv = Instance.new("Frame")
+    sideDiv.Size = UDim2.new(0, 1, 1, 0)
+    sideDiv.Position = UDim2.new(1, -1, 0, 0)
+    sideDiv.BackgroundColor3 = COLORS.Mid
+    sideDiv.BorderSizePixel = 0
+    sideDiv.ZIndex = 12
+    sideDiv.Parent = Sidebar
+
+    local sideDivGrad = Instance.new("UIGradient")
+    sideDivGrad.Rotation = 90
+    sideDivGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   COLORS.Dark),
+        ColorSequenceKeypoint.new(0.5, COLORS.Grey),
+        ColorSequenceKeypoint.new(1,   COLORS.Dark),
+    })
+    sideDivGrad.Parent = sideDiv
+
+    local TabList = Instance.new("UIListLayout")
+    TabList.Padding = UDim.new(0, 4)
+    TabList.SortOrder = Enum.SortOrder.LayoutOrder
+    TabList.Parent = Sidebar
+
+    local TabPadding = Instance.new("UIPadding")
+    TabPadding.PaddingTop = UDim.new(0, 10)
+    TabPadding.PaddingLeft = UDim.new(0, 8)
+    TabPadding.PaddingRight = UDim.new(0, 8)
+    TabPadding.Parent = Sidebar
+
+    -- ── Content Area ──
+    local Content = Instance.new("Frame")
+    Content.Name = "Content"
+    Content.Size = UDim2.new(1, -140, 1, -50)
+    Content.Position = UDim2.new(0, 140, 0, 50)
+    Content.BackgroundColor3 = COLORS.Dark
+    Content.BorderSizePixel = 0
+    Content.ZIndex = 11
+    Content.Parent = ClipFrame
+
+    MakeGradient(Content, 135, COLORS.Dark2, COLORS.Dark)
+
+    -- ── Dragging ──
+    local dragging, dragStart, startPos = false, nil, nil
+    TopBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = Main.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            Main.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    -- ── Open Animation ──
+    Main.Size = UDim2.fromOffset(0, 0)
+    Main.BackgroundTransparency = 1
+    task.defer(function()
+        QuickTween(Main, 0.45, {Size = Size, BackgroundTransparency = 0})
+    end)
+
+    -- ── Tab System ──────────────────────────────────────────────────
+    local tabs = {}
+    local activeTab = nil
+
+    function Window:Tab(tabOptions)
+        tabOptions = tabOptions or {}
+        local TabName = tabOptions.Name or "Tab"
+        local TabIcon = tabOptions.Icon or "☰"
+
+        local Tab = {}
+
+        -- Tab Button
+        local TabBtn = Instance.new("TextButton")
+        TabBtn.Name = TabName
+        TabBtn.Size = UDim2.new(1, 0, 0, 34)
+        TabBtn.BackgroundColor3 = COLORS.Dark2
+        TabBtn.BackgroundTransparency = 1
+        TabBtn.Text = ""
+        TabBtn.ZIndex = 13
+        TabBtn.LayoutOrder = #tabs + 1
+        TabBtn.Parent = Sidebar
+        MakeCorner(TabBtn, 7)
+
+        local TabBtnLayout = Instance.new("UIListLayout")
+        TabBtnLayout.FillDirection = Enum.FillDirection.Horizontal
+        TabBtnLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+        TabBtnLayout.Padding = UDim.new(0, 8)
+        TabBtnLayout.Parent = TabBtn
+
+        local TabBtnPad = Instance.new("UIPadding")
+        TabBtnPad.PaddingLeft = UDim.new(0, 10)
+        TabBtnPad.Parent = TabBtn
+
+        local IconLbl = Instance.new("TextLabel")
+        IconLbl.Size = UDim2.fromOffset(16, 34)
+        IconLbl.BackgroundTransparency = 1
+        IconLbl.Text = TabIcon
+        IconLbl.TextColor3 = COLORS.Grey
+        IconLbl.TextSize = 14
+        IconLbl.Font = Enum.Font.Gotham
+        IconLbl.ZIndex = 14
+        IconLbl.Parent = TabBtn
+
+        local NameLbl = Instance.new("TextLabel")
+        NameLbl.Size = UDim2.new(1, -34, 1, 0)
+        NameLbl.BackgroundTransparency = 1
+        NameLbl.Text = TabName
+        NameLbl.TextColor3 = COLORS.Grey
+        NameLbl.TextSize = 12
+        NameLbl.Font = Enum.Font.Gotham
+        NameLbl.TextXAlignment = Enum.TextXAlignment.Left
+        NameLbl.ZIndex = 14
+        NameLbl.Parent = TabBtn
+
+        local ActiveBar = Instance.new("Frame")
+        ActiveBar.Size = UDim2.new(0, 3, 0.6, 0)
+        ActiveBar.Position = UDim2.new(1, -3, 0.2, 0)
+        ActiveBar.BackgroundColor3 = COLORS.White
+        ActiveBar.BorderSizePixel = 0
+        ActiveBar.BackgroundTransparency = 1
+        ActiveBar.ZIndex = 15
+        ActiveBar.Parent = TabBtn
+        MakeCorner(ActiveBar, 2)
+
+        -- Tab Content Page
+        local Page = Instance.new("ScrollingFrame")
+        Page.Name = TabName .. "_Page"
+        Page.Size = UDim2.new(1, 0, 1, 0)
+        Page.BackgroundTransparency = 1
+        Page.BorderSizePixel = 0
+        Page.ScrollBarThickness = 3
+        Page.ScrollBarImageColor3 = COLORS.Mid2
+        Page.CanvasSize = UDim2.new(0, 0, 0, 0)
+        Page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        Page.Visible = false
+        Page.ZIndex = 12
+        Page.Parent = Content
+
+        local PageLayout = Instance.new("UIListLayout")
+        PageLayout.Padding = UDim.new(0, 8)
+        PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        PageLayout.Parent = Page
+
+        local PagePad = Instance.new("UIPadding")
+        PagePad.PaddingTop = UDim.new(0, 12)
+        PagePad.PaddingLeft = UDim.new(0, 12)
+        PagePad.PaddingRight = UDim.new(0, 12)
+        PagePad.PaddingBottom = UDim.new(0, 12)
+        PagePad.Parent = Page
+
+        local function SelectTab()
+            if activeTab then
+                -- deselect old
+                QuickTween(activeTab.Btn, 0.2, {BackgroundTransparency = 1})
+                QuickTween(activeTab.Icon, 0.2, {TextColor3 = COLORS.Grey})
+                QuickTween(activeTab.Label, 0.2, {TextColor3 = COLORS.Grey, Font = Enum.Font.Gotham})
+                QuickTween(activeTab.Bar, 0.15, {BackgroundTransparency = 1})
+                activeTab.Page.Visible = false
+            end
+            activeTab = {Btn = TabBtn, Icon = IconLbl, Label = NameLbl, Bar = ActiveBar, Page = Page}
+            QuickTween(TabBtn, 0.2, {BackgroundTransparency = 0.85, BackgroundColor3 = COLORS.Mid})
+            QuickTween(IconLbl, 0.2, {TextColor3 = COLORS.White})
+            QuickTween(NameLbl, 0.2, {TextColor3 = COLORS.White})
+            QuickTween(ActiveBar, 0.15, {BackgroundTransparency = 0})
+            Page.Visible = true
+        end
+
+        TabBtn.MouseButton1Click:Connect(SelectTab)
+        TabBtn.MouseEnter:Connect(function()
+            if activeTab and activeTab.Btn ~= TabBtn then
+                QuickTween(TabBtn, 0.15, {BackgroundTransparency = 0.92})
+            end
+        end)
+        TabBtn.MouseLeave:Connect(function()
+            if activeTab and activeTab.Btn ~= TabBtn then
+                QuickTween(TabBtn, 0.15, {BackgroundTransparency = 1})
+            end
+        end)
+
+        if #tabs == 0 then SelectTab() end
+        table.insert(tabs, Tab)
+
+        -- ── Elements ─────────────────────────────────────────────────
+
+        local elemCount = 0
+        local function nextOrder()
+            elemCount = elemCount + 1
+            return elemCount
+        end
+
+        -- Section Header
+        function Tab:Section(name)
+            local sec = Instance.new("Frame")
+            sec.Size = UDim2.new(1, 0, 0, 24)
+            sec.BackgroundTransparency = 1
+            sec.LayoutOrder = nextOrder()
+            sec.Parent = Page
+
+            local line = Instance.new("Frame")
+            line.Size = UDim2.new(1, 0, 0, 1)
+            line.Position = UDim2.new(0, 0, 0.5, 0)
+            line.BackgroundColor3 = COLORS.Mid
+            line.BorderSizePixel = 0
+            line.Parent = sec
+
+            local lineGrad = Instance.new("UIGradient")
+            lineGrad.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, COLORS.Dark),
+                ColorSequenceKeypoint.new(0.4, COLORS.Mid2),
+                ColorSequenceKeypoint.new(1, COLORS.Dark),
+            })
+            lineGrad.Parent = line
+
+            local secLbl = Instance.new("TextLabel")
+            secLbl.Size = UDim2.new(0, 0, 1, 0)
+            secLbl.AutomaticSize = Enum.AutomaticSize.X
+            secLbl.AnchorPoint = Vector2.new(0.5, 0)
+            secLbl.Position = UDim2.new(0.5, 0, 0, 0)
+            secLbl.BackgroundColor3 = COLORS.Dark2
+            secLbl.BorderSizePixel = 0
+            secLbl.Text = "  " .. name .. "  "
+            secLbl.TextColor3 = COLORS.LightGrey
+            secLbl.TextSize = 10
+            secLbl.Font = Enum.Font.GothamBold
+            secLbl.ZIndex = 13
+            secLbl.Parent = sec
+
+            local secPad = Instance.new("UIPadding")
+            secPad.PaddingLeft = UDim.new(0, 4)
+            secPad.PaddingRight = UDim.new(0, 4)
+            secPad.Parent = secLbl
+        end
+
+        -- Button
+        function Tab:Button(btnOptions)
+            btnOptions = btnOptions or {}
+            local Btn = Instance.new("TextButton")
+            Btn.Size = UDim2.new(1, 0, 0, 38)
+            Btn.BackgroundColor3 = COLORS.Dark2
+            Btn.Text = ""
+            Btn.ZIndex = 13
+            Btn.LayoutOrder = nextOrder()
+            Btn.Parent = Page
+            MakeCorner(Btn, 8)
+            MakeStroke(Btn, COLORS.Mid, 1)
+
+            local btnGrad = MakeGradient(Btn, 90, COLORS.Dark2, COLORS.Mid)
+
+            local BtnLabel = Instance.new("TextLabel")
+            BtnLabel.Size = UDim2.new(1, -12, 1, 0)
+            BtnLabel.Position = UDim2.new(0, 12, 0, 0)
+            BtnLabel.BackgroundTransparency = 1
+            BtnLabel.Text = btnOptions.Name or "Button"
+            BtnLabel.TextColor3 = COLORS.White
+            BtnLabel.TextSize = 13
+            BtnLabel.Font = Enum.Font.Gotham
+            BtnLabel.TextXAlignment = Enum.TextXAlignment.Left
+            BtnLabel.ZIndex = 14
+            BtnLabel.Parent = Btn
+
+            if btnOptions.Description then
+                BtnLabel.Size = UDim2.new(1,-12,0,18)
+                BtnLabel.Position = UDim2.new(0,12,0,5)
+                local Desc = Instance.new("TextLabel")
+                Desc.Size = UDim2.new(1,-12,0,13)
+                Desc.Position = UDim2.new(0,12,0,22)
+                Desc.BackgroundTransparency = 1
+                Desc.Text = btnOptions.Description
+                Desc.TextColor3 = COLORS.Grey
+                Desc.TextSize = 10
+                Desc.Font = Enum.Font.Gotham
+                Desc.TextXAlignment = Enum.TextXAlignment.Left
+                Desc.ZIndex = 14
+                Desc.Parent = Btn
+                Btn.Size = UDim2.new(1,0,0,46)
+            end
+
+            Btn.MouseEnter:Connect(function()
+                QuickTween(Btn, 0.15, {BackgroundColor3 = COLORS.Mid})
+                btnGrad.Color = ColorSequence.new({
+                    ColorSequenceKeypoint.new(0, COLORS.Mid),
+                    ColorSequenceKeypoint.new(1, COLORS.Mid2),
+                })
+            end)
+            Btn.MouseLeave:Connect(function()
+                QuickTween(Btn, 0.15, {BackgroundColor3 = COLORS.Dark2})
+                btnGrad.Color = ColorSequence.new({
+                    ColorSequenceKeypoint.new(0, COLORS.Dark2),
+                    ColorSequenceKeypoint.new(1, COLORS.Mid),
+                })
+            end)
+            Btn.MouseButton1Down:Connect(function()
+                QuickTween(Btn, 0.08, {BackgroundColor3 = COLORS.Mid2})
+            end)
+            Btn.MouseButton1Up:Connect(function()
+                QuickTween(Btn, 0.15, {BackgroundColor3 = COLORS.Mid})
+                if btnOptions.Callback then
+                    pcall(btnOptions.Callback)
+                end
+            end)
+            Btn.MouseButton1Click:Connect(function()
+                AddShimmer(Btn)
+            end)
+        end
+
+        -- Toggle
+        function Tab:Toggle(togOptions)
+            togOptions = togOptions or {}
+            local value = togOptions.Default or false
+
+            local Row = Instance.new("Frame")
+            Row.Size = UDim2.new(1, 0, 0, 38)
+            Row.BackgroundColor3 = COLORS.Dark2
+            Row.BorderSizePixel = 0
+            Row.ZIndex = 13
+            Row.LayoutOrder = nextOrder()
+            Row.Parent = Page
+            MakeCorner(Row, 8)
+            MakeStroke(Row, COLORS.Mid, 1)
+            MakeGradient(Row, 90, COLORS.Dark2, COLORS.Mid)
+
+            local TogLbl = Instance.new("TextLabel")
+            TogLbl.Size = UDim2.new(1, -60, 1, 0)
+            TogLbl.Position = UDim2.new(0, 12, 0, 0)
+            TogLbl.BackgroundTransparency = 1
+            TogLbl.Text = togOptions.Name or "Toggle"
+            TogLbl.TextColor3 = COLORS.White
+            TogLbl.TextSize = 13
+            TogLbl.Font = Enum.Font.Gotham
+            TogLbl.TextXAlignment = Enum.TextXAlignment.Left
+            TogLbl.ZIndex = 14
+            TogLbl.Parent = Row
+
+            local Track = Instance.new("Frame")
+            Track.Size = UDim2.fromOffset(36, 20)
+            Track.Position = UDim2.new(1, -48, 0.5, -10)
+            Track.BackgroundColor3 = value and COLORS.White or COLORS.Mid
+            Track.BorderSizePixel = 0
+            Track.ZIndex = 14
+            Track.Parent = Row
+            MakeCorner(Track, 10)
+
+            local Knob = Instance.new("Frame")
+            Knob.Size = UDim2.fromOffset(14, 14)
+            Knob.Position = value and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)
+            Knob.BackgroundColor3 = value and COLORS.Dark or COLORS.LightGrey
+            Knob.BorderSizePixel = 0
+            Knob.ZIndex = 15
+            Knob.Parent = Track
+            MakeCorner(Knob, 7)
+
+            local Clickable = Instance.new("TextButton")
+            Clickable.Size = UDim2.new(1,0,1,0)
+            Clickable.BackgroundTransparency = 1
+            Clickable.Text = ""
+            Clickable.ZIndex = 16
+            Clickable.Parent = Row
+
+            Clickable.MouseButton1Click:Connect(function()
+                value = not value
+                QuickTween(Track, 0.2, {BackgroundColor3 = value and COLORS.White or COLORS.Mid})
+                QuickTween(Knob, 0.2, {
+                    Position = value and UDim2.new(1,-17,0.5,-7) or UDim2.new(0,3,0.5,-7),
+                    BackgroundColor3 = value and COLORS.Dark or COLORS.LightGrey,
+                })
+                if togOptions.Callback then pcall(togOptions.Callback, value) end
+            end)
+
+            return {
+                Set = function(_, v)
+                    value = v
+                    QuickTween(Track, 0.2, {BackgroundColor3 = v and COLORS.White or COLORS.Mid})
+                    QuickTween(Knob, 0.2, {
+                        Position = v and UDim2.new(1,-17,0.5,-7) or UDim2.new(0,3,0.5,-7),
+                        BackgroundColor3 = v and COLORS.Dark or COLORS.LightGrey,
+                    })
+                end,
+                Get = function(_) return value end,
+            }
+        end
+
+        -- Slider
+        function Tab:Slider(slOptions)
+            slOptions = slOptions or {}
+            local Min   = slOptions.Min     or 0
+            local Max   = slOptions.Max     or 100
+            local Def   = slOptions.Default or Min
+            local value = Def
+
+            local Container = Instance.new("Frame")
+            Container.Size = UDim2.new(1, 0, 0, 50)
+            Container.BackgroundColor3 = COLORS.Dark2
+            Container.BorderSizePixel = 0
+            Container.ZIndex = 13
+            Container.LayoutOrder = nextOrder()
+            Container.Parent = Page
+            MakeCorner(Container, 8)
+            MakeStroke(Container, COLORS.Mid, 1)
+            MakeGradient(Container, 90, COLORS.Dark2, COLORS.Mid)
+
+            local SlLbl = Instance.new("TextLabel")
+            SlLbl.Size = UDim2.new(1,-60,0,20)
+            SlLbl.Position = UDim2.new(0,12,0,6)
+            SlLbl.BackgroundTransparency = 1
+            SlLbl.Text = slOptions.Name or "Slider"
+            SlLbl.TextColor3 = COLORS.White
+            SlLbl.TextSize = 13
+            SlLbl.Font = Enum.Font.Gotham
+            SlLbl.TextXAlignment = Enum.TextXAlignment.Left
+            SlLbl.ZIndex = 14
+            SlLbl.Parent = Container
+
+            local ValLbl = Instance.new("TextLabel")
+            ValLbl.Size = UDim2.new(0,48,0,20)
+            ValLbl.Position = UDim2.new(1,-60,0,6)
+            ValLbl.BackgroundTransparency = 1
+            ValLbl.Text = tostring(Def)
+            ValLbl.TextColor3 = COLORS.LightGrey
+            ValLbl.TextSize = 12
+            ValLbl.Font = Enum.Font.GothamBold
+            ValLbl.TextXAlignment = Enum.TextXAlignment.Right
+            ValLbl.ZIndex = 14
+            ValLbl.Parent = Container
+
+            local Track = Instance.new("Frame")
+            Track.Size = UDim2.new(1, -24, 0, 4)
+            Track.Position = UDim2.new(0, 12, 1, -16)
+            Track.BackgroundColor3 = COLORS.Mid
+            Track.BorderSizePixel = 0
+            Track.ZIndex = 14
+            Track.Parent = Container
+            MakeCorner(Track, 2)
+
+            local Fill = Instance.new("Frame")
+            Fill.Size = UDim2.new((Def-Min)/(Max-Min), 0, 1, 0)
+            Fill.BackgroundColor3 = COLORS.White
+            Fill.BorderSizePixel = 0
+            Fill.ZIndex = 15
+            Fill.Parent = Track
+            MakeCorner(Fill, 2)
+
+            local FillGrad = Instance.new("UIGradient")
+            FillGrad.Rotation = 90
+            FillGrad.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, COLORS.Mid2),
+                ColorSequenceKeypoint.new(1, COLORS.White),
+            })
+            FillGrad.Parent = Fill
+
+            local Knob = Instance.new("Frame")
+            Knob.Size = UDim2.fromOffset(14, 14)
+            Knob.AnchorPoint = Vector2.new(0.5, 0.5)
+            Knob.Position = UDim2.new((Def-Min)/(Max-Min), 0, 0.5, 0)
+            Knob.BackgroundColor3 = COLORS.PureWhite
+            Knob.BorderSizePixel = 0
+            Knob.ZIndex = 16
+            Knob.Parent = Track
+            MakeCorner(Knob, 7)
+            MakeShadow(Knob, 10)
+
+            local draggingSlider = false
+            Track.InputBegan:Connect(function(inp)
+                if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+                    draggingSlider = true
+                end
+            end)
+            UserInputService.InputEnded:Connect(function(inp)
+                if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+                    draggingSlider = false
+                end
+            end)
+            UserInputService.InputChanged:Connect(function(inp)
+                if draggingSlider and inp.UserInputType == Enum.UserInputType.MouseMovement then
+                    local rel = math.clamp((inp.Position.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1)
+                    value = math.round(Min + (Max - Min) * rel)
+                    ValLbl.Text = tostring(value)
+                    Fill.Size = UDim2.new(rel, 0, 1, 0)
+                    Knob.Position = UDim2.new(rel, 0, 0.5, 0)
+                    if slOptions.Callback then pcall(slOptions.Callback, value) end
+                end
+            end)
+
+            return {
+                Set = function(_, v)
+                    v = math.clamp(v, Min, Max)
+                    value = v
+                    local rel = (v-Min)/(Max-Min)
+                    ValLbl.Text = tostring(v)
+                    Fill.Size = UDim2.new(rel,0,1,0)
+                    Knob.Position = UDim2.new(rel,0,0.5,0)
+                end,
+                Get = function(_) return value end,
+            }
+        end
+
+        -- TextBox
+        function Tab:TextBox(tbOptions)
+            tbOptions = tbOptions or {}
+
+            local Container = Instance.new("Frame")
+            Container.Size = UDim2.new(1,0,0,50)
+            Container.BackgroundColor3 = COLORS.Dark2
+            Container.BorderSizePixel = 0
+            Container.ZIndex = 13
+            Container.LayoutOrder = nextOrder()
+            Container.Parent = Page
+            MakeCorner(Container, 8)
+            MakeStroke(Container, COLORS.Mid, 1)
+            MakeGradient(Container, 90, COLORS.Dark2, COLORS.Mid)
+
+            local Lbl = Instance.new("TextLabel")
+            Lbl.Size = UDim2.new(1,-12,0,18)
+            Lbl.Position = UDim2.new(0,12,0,5)
+            Lbl.BackgroundTransparency = 1
+            Lbl.Text = tbOptions.Name or "Input"
+            Lbl.TextColor3 = COLORS.LightGrey
+            Lbl.TextSize = 11
+            Lbl.Font = Enum.Font.Gotham
+            Lbl.TextXAlignment = Enum.TextXAlignment.Left
+            Lbl.ZIndex = 14
+            Lbl.Parent = Container
+
+            local BoxBg = Instance.new("Frame")
+            BoxBg.Size = UDim2.new(1,-24,0,20)
+            BoxBg.Position = UDim2.new(0,12,0,26)
+            BoxBg.BackgroundColor3 = COLORS.Black
+            BoxBg.BorderSizePixel = 0
+            BoxBg.ZIndex = 14
+            BoxBg.Parent = Container
+            MakeCorner(BoxBg, 5)
+            MakeStroke(BoxBg, COLORS.Mid, 1)
+
+            local Box = Instance.new("TextBox")
+            Box.Size = UDim2.new(1,-8,1,0)
+            Box.Position = UDim2.new(0,4,0,0)
+            Box.BackgroundTransparency = 1
+            Box.Text = tbOptions.Default or ""
+            Box.PlaceholderText = tbOptions.Placeholder or "Enter text..."
+            Box.PlaceholderColor3 = COLORS.Mid2
+            Box.TextColor3 = COLORS.White
+            Box.TextSize = 12
+            Box.Font = Enum.Font.Gotham
+            Box.TextXAlignment = Enum.TextXAlignment.Left
+            Box.ClearTextOnFocus = tbOptions.ClearOnFocus ~= false
+            Box.ZIndex = 15
+            Box.Parent = BoxBg
+
+            Box.Focused:Connect(function()
+                QuickTween(BoxBg, 0.15, {BackgroundColor3 = COLORS.Dark2})
+                local s = BoxBg:FindFirstChildOfClass("UIStroke")
+                if s then QuickTween(s, 0.15, {Color = COLORS.LightGrey}) end
+            end)
+            Box.FocusLost:Connect(function(enter)
+                QuickTween(BoxBg, 0.15, {BackgroundColor3 = COLORS.Black})
+                local s = BoxBg:FindFirstChildOfClass("UIStroke")
+                if s then QuickTween(s, 0.15, {Color = COLORS.Mid}) end
+                if enter and tbOptions.Callback then
+                    pcall(tbOptions.Callback, Box.Text)
+                end
+            end)
+        end
+
+        -- Label
+        function Tab:Label(text)
+            local Lbl = Instance.new("TextLabel")
+            Lbl.Size = UDim2.new(1,0,0,24)
+            Lbl.BackgroundTransparency = 1
+            Lbl.Text = text or ""
+            Lbl.TextColor3 = COLORS.Grey
+            Lbl.TextSize = 12
+            Lbl.Font = Enum.Font.Gotham
+            Lbl.TextXAlignment = Enum.TextXAlignment.Left
+            Lbl.ZIndex = 13
+            Lbl.LayoutOrder = nextOrder()
+            Lbl.Parent = Page
+
+            local LblPad = Instance.new("UIPadding")
+            LblPad.PaddingLeft = UDim.new(0,4)
+            LblPad.Parent = Lbl
+        end
+
+        -- Notify (toast inside window)
+        function Tab:Notify(notOptions)
+            notOptions = notOptions or {}
+            NexusUI.Notify(notOptions)
+        end
+
+        return Tab
+    end
+
+    -- ── Global Notify ──────────────────────────────────────────────
+    function NexusUI.Notify(notOptions)
+        notOptions = notOptions or {}
+        local Title   = notOptions.Title   or "Notification"
+        local Desc    = notOptions.Description or ""
+        local Duration= notOptions.Duration or 4
+
+        local NotifHolder = ScreenGui:FindFirstChild("NotifHolder")
+        if not NotifHolder then
+            NotifHolder = Instance.new("Frame")
+            NotifHolder.Name = "NotifHolder"
+            NotifHolder.Size = UDim2.new(0,280,1,0)
+            NotifHolder.Position = UDim2.new(1,-295,0,0)
+            NotifHolder.BackgroundTransparency = 1
+            NotifHolder.ZIndex = 50
+            NotifHolder.Parent = ScreenGui
+
+            local NL = Instance.new("UIListLayout")
+            NL.Padding = UDim.new(0,8)
+            NL.SortOrder = Enum.SortOrder.LayoutOrder
+            NL.VerticalAlignment = Enum.VerticalAlignment.Bottom
+            NL.Parent = NotifHolder
+
+            local NP = Instance.new("UIPadding")
+            NP.PaddingBottom = UDim.new(0,16)
+            NP.Parent = NotifHolder
+        end
+
+        local N = Instance.new("Frame")
+        N.Size = UDim2.new(1,0,0,0)
+        N.BackgroundColor3 = COLORS.Dark
+        N.BorderSizePixel = 0
+        N.BackgroundTransparency = 1
+        N.ZIndex = 51
+        N.ClipsDescendants = true
+        N.Parent = NotifHolder
+        MakeCorner(N, 10)
+        MakeStroke(N, COLORS.Mid2, 1)
+        MakeGradient(N, 135, COLORS.Dark, COLORS.Mid)
+        AddShimmer(N)
+
+        local NT = Instance.new("TextLabel")
+        NT.Size = UDim2.new(1,-16,0,20)
+        NT.Position = UDim2.new(0,12,0,10)
+        NT.BackgroundTransparency = 1
+        NT.Text = Title
+        NT.TextColor3 = COLORS.White
+        NT.TextSize = 13
+        NT.Font = Enum.Font.GothamBold
+        NT.TextXAlignment = Enum.TextXAlignment.Left
+        NT.ZIndex = 52
+        NT.Parent = N
+
+        local ND = Instance.new("TextLabel")
+        ND.Size = UDim2.new(1,-16,0,30)
+        ND.Position = UDim2.new(0,12,0,32)
+        ND.BackgroundTransparency = 1
+        ND.Text = Desc
+        ND.TextColor3 = COLORS.Grey
+        ND.TextSize = 11
+        ND.Font = Enum.Font.Gotham
+        ND.TextWrapped = true
+        ND.TextXAlignment = Enum.TextXAlignment.Left
+        ND.ZIndex = 52
+        ND.Parent = N
+
+        local ProgressBg = Instance.new("Frame")
+        ProgressBg.Size = UDim2.new(1,-24,0,2)
+        ProgressBg.Position = UDim2.new(0,12,1,-10)
+        ProgressBg.BackgroundColor3 = COLORS.Mid
+        ProgressBg.BorderSizePixel = 0
+        ProgressBg.ZIndex = 53
+        ProgressBg.Parent = N
+        MakeCorner(ProgressBg, 1)
+
+        local ProgressFill = Instance.new("Frame")
+        ProgressFill.Size = UDim2.new(1,0,1,0)
+        ProgressFill.BackgroundColor3 = COLORS.White
+        ProgressFill.BorderSizePixel = 0
+        ProgressFill.ZIndex = 54
+        ProgressFill.Parent = ProgressBg
+        MakeCorner(ProgressFill, 1)
+
+        -- animate in
+        QuickTween(N, 0.3, {Size = UDim2.new(1,0,0,76), BackgroundTransparency = 0})
+        Tween(ProgressFill, TweenInfo.new(Duration, Enum.EasingStyle.Linear), {Size = UDim2.new(0,0,1,0)})
+
+        task.delay(Duration, function()
+            QuickTween(N, 0.3, {Size = UDim2.new(1,0,0,0), BackgroundTransparency = 1})
+            task.delay(0.35, function() N:Destroy() end)
+        end)
+    end
+
+    return Window
+end
+
+return NexusUI
